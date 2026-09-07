@@ -1,0 +1,67 @@
+@model WebApplication1.Models.Treatment
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("حذف سجل العلاج", "Delete Treatment");
+}
+
+<div class="max-w-xl mx-auto px-4 py-8 space-y-6" dir="@(_isAr ? "rtl" : "ltr")">
+
+    @* ── Back Navigation Link ── *@
+    <div>
+        <a asp-action="Index" class="inline-flex items-center gap-2 text-xs font-medium text-[#727A76] dark:text-[#9CA8A3] hover:text-[#202725] dark:hover:text-[#EAEFEA] transition-colors">
+            <i class="fa-solid @(_isAr ? "fa-arrow-right" : "fa-arrow-left")"></i>
+            <span>@T("العودة إلى سجل العلاجات", "Back to Treatments")</span>
+        </a>
+    </div>
+
+    @* ── Confirmation Card ── *@
+    <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] rounded-2xl shadow-sm overflow-hidden p-6 sm:p-8 space-y-5">
+
+        <div class="flex items-center gap-3.5 pb-4 border-b border-[#E5E9E7] dark:border-[#2B3833]">
+            <div class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center text-base shrink-0">
+                <i class="fa-solid fa-trash-can"></i>
+            </div>
+            <div>
+                <h1 class="text-base font-bold text-[#1A2621] dark:text-[#EAEFEA] m-0">@T("تأكيد حذف العلاج", "Confirm Treatment Deletion")</h1>
+                <p class="text-xs text-[#6B7D75] dark:text-[#9CA8A3] m-0 mt-0.5">@T("هل أنت متأكد من رغبتك في حذف هذا السجل العلاجي نهائياً؟", "Are you sure you want to permanently delete this treatment record?")</p>
+            </div>
+        </div>
+
+        <div class="space-y-3 text-xs">
+            <div class="flex justify-between py-2 border-b border-[#E5E9E7] dark:border-[#2B3833]/50">
+                <span class="text-[#6B7D75] dark:text-[#9CA8A3]">@T("المريض", "Patient"):</span>
+                <span class="font-semibold text-[#1A2621] dark:text-[#EAEFEA]">@(Model?.Appointment?.Patient?.PatientName ?? "—")</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-[#E5E9E7] dark:border-[#2B3833]/50">
+                <span class="text-[#6B7D75] dark:text-[#9CA8A3]">@T("تاريخ العلاج", "Treatment Date"):</span>
+                <span class="font-semibold text-[#1A2621] dark:text-[#EAEFEA]">@Model?.TreatmentDate.ToString("yyyy-MM-dd")</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-[#E5E9E7] dark:border-[#2B3833]/50">
+                <span class="text-[#6B7D75] dark:text-[#9CA8A3]">@T("الإجراء / العلاج", "Procedure"):</span>
+                <span class="font-semibold text-[#1A2621] dark:text-[#EAEFEA]">@Model?.TreatmentDesc</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-[#E5E9E7] dark:border-[#2B3833]/50">
+                <span class="text-[#6B7D75] dark:text-[#9CA8A3]">@T("التكلفة", "Cost"):</span>
+                <span class="font-bold text-rose-600 dark:text-rose-400">@Model?.TreatmentCost.ToString("N2") JOD</span>
+            </div>
+        </div>
+
+        <form asp-action="Delete" method="post" class="flex items-center justify-end gap-3 pt-4 border-t border-[#E5E9E7] dark:border-[#2B3833]">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="TreatmentId" />
+            <a asp-action="Index"
+               class="px-4 py-2.5 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/20 text-[#6B7D75] hover:text-rose-600 dark:text-[#9CA8A3] dark:hover:text-rose-400 text-xs font-semibold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-xmark text-xs"></i>
+                <span>@T("إلغاء", "Cancel")</span>
+            </a>
+            <button type="submit"
+                    class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl transition flex items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+                <span>@T("تأكيد الحذف", "Delete")</span>
+            </button>
+        </form>
+
+    </div>
+</div>

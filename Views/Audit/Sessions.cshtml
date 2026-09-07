@@ -1,0 +1,178 @@
+@model WebApplication1.Models.SessionsViewModel
+@using System.Globalization
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("سجل نشاط المستخدمين والجلسات", "User Activity & Sessions");
+}
+
+<div class="space-y-6" dir="@(_isAr ? "rtl" : "ltr")">
+    <!-- Top Hero Header Card -->
+    <div class="bg-[#1B2421] border border-[#2B3833] rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-[#49665A]/15 border border-[#49665A]/30 text-[#49665A] flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-users-viewfinder"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-[#EAEFEA] m-0">@T("سجل الجلسات ونشاط المستخدمين", "User Activity & Session Logs")</h1>
+                <p class="text-xs text-[#9CA8A3] mt-1 m-0">@T("مراقبة الجلسات الحية وتتبع تسجيلات الدخول والأنشطة الأمنية", "Monitor live active sessions and track login history in real time")</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <a asp-controller="AuditTrail" asp-action="Index" class="px-3.5 py-2 bg-[#151E1B] hover:bg-[#202B27] border border-[#2B3833] text-[#EAEFEA] text-xs font-semibold rounded-xl transition flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-[#49665A]"></i>
+                <span>@T("سجل تدقيق العمليات", "Audit Trail")</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Metric Row -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-[#1B2421] border border-[#2B3833] rounded-2xl p-5 shadow-sm flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl bg-[#151E1B] border border-[#2B3833] flex items-center justify-center text-[#9CA8A3]">
+                <i class="fa-solid fa-arrow-right-to-bracket"></i>
+            </div>
+            <div>
+                <span class="text-2xl font-bold text-[#EAEFEA]">@(Model?.TotalLoginsToday ?? 0)</span>
+                <span class="block text-[11px] font-semibold text-[#9CA8A3] uppercase tracking-wider mt-0.5">@T("تسجيلات الدخول اليوم", "Logins Today")</span>
+            </div>
+        </div>
+        <div class="bg-[#1B2421] border border-[#2B3833] rounded-2xl p-5 shadow-sm flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <i class="fa-solid fa-circle-dot"></i>
+            </div>
+            <div>
+                <span class="text-2xl font-bold text-emerald-400">@(Model?.ActiveOnlineUsers ?? 0)</span>
+                <span class="block text-[11px] font-semibold text-[#9CA8A3] uppercase tracking-wider mt-0.5">@T("المستخدمين النشطين حالياً", "Active Online Users")</span>
+            </div>
+        </div>
+        <div class="bg-[#1B2421] border border-[#2B3833] rounded-2xl p-5 shadow-sm flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl bg-[#151E1B] border border-[#2B3833] flex items-center justify-center text-[#9CA8A3]">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+            <div>
+                @{
+                    var avgMinsTotal = (int)(Model?.AverageSessionMinutes ?? 0);
+                    var avgH = avgMinsTotal / 60;
+                    var avgM = avgMinsTotal % 60;
+                    var formattedAvg = avgH > 0 ? $"{avgH}h {avgM}m" : $"{avgM}m";
+                }
+                <span class="text-2xl font-bold text-[#EAEFEA]">@formattedAvg</span>
+                <span class="block text-[11px] font-semibold text-[#9CA8A3] uppercase tracking-wider mt-0.5">@T("متوسط مدة الجلسة", "Avg Duration")</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar Card -->
+    <div class="bg-[#1B2421] border border-[#2B3833] rounded-2xl p-4 shadow-sm">
+        <form method="get" class="flex flex-wrap items-center gap-3 m-0">
+            <div class="relative flex-1 min-w-[240px]">
+                <i class="fa-solid fa-magnifying-glass absolute start-3.5 top-1/2 -translate-y-1/2 text-xs text-[#9CA8A3]"></i>
+                <input type="text" name="search" value="@Model?.SearchTerm" placeholder="@T("البحث باسم المستخدم، الدور، عنوان IP...", "Username, role, IP address...")"
+                       class="w-full ps-9 pe-4 py-2 text-xs bg-[#151E1B] border border-[#2B3833] rounded-xl text-[#EAEFEA] placeholder-[#727A76] focus:ring-1 focus:ring-[#49665A] outline-none" />
+            </div>
+            <select name="role" class="py-2 px-3 text-xs bg-[#151E1B] border border-[#2B3833] rounded-xl text-[#EAEFEA] focus:ring-1 focus:ring-[#49665A] outline-none">
+                <option value="">@T("جميع الأدوار", "All Roles")</option>
+                <option value="Admin" selected="@(Model?.RoleFilter == "Admin")">Admin</option>
+                <option value="Doctor" selected="@(Model?.RoleFilter == "Doctor")">Doctor</option>
+                <option value="Receptionist" selected="@(Model?.RoleFilter == "Receptionist")">Receptionist</option>
+            </select>
+            <select name="status" class="py-2 px-3 text-xs bg-[#151E1B] border border-[#2B3833] rounded-xl text-[#EAEFEA] focus:ring-1 focus:ring-[#49665A] outline-none">
+                <option value="">@T("جميع الحالات", "All Statuses")</option>
+                <option value="active" selected="@(Model?.StatusFilter == "active")">@T("نشط الآن", "Online / Active")</option>
+                <option value="ended" selected="@(Model?.StatusFilter == "ended")">@T("منتهي", "Ended / Offline")</option>
+            </select>
+            <button type="submit" class="px-4 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5">
+                <i class="fa-solid fa-filter text-[10px]"></i>
+                <span>@T("تصفية", "Filter")</span>
+            </button>
+            <a href="@Url.Action("Sessions")" class="p-2 text-[#9CA8A3] hover:text-[#EAEFEA] border border-[#2B3833] rounded-xl transition">
+                <i class="fa-solid fa-rotate-right text-xs"></i>
+            </a>
+        </form>
+    </div>
+
+    <!-- Table Container -->
+    <div class="bg-[#1B2421] border border-[#2B3833] rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 bg-[#151E1B] border-b border-[#2B3833] flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-list-ul text-[#49665A] text-xs"></i>
+                <h3 class="text-xs font-bold text-[#EAEFEA] m-0">@T("سجلات جلسات النظام", "Session Records")</h3>
+            </div>
+            <span class="px-2.5 py-0.5 rounded-md bg-[#151E1B] border border-[#2B3833] text-[10px] font-semibold text-[#9CA8A3]">
+                @(Model?.Sessions?.Count ?? 0) @T("سجل", "records")
+            </span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-start text-xs">
+                <thead>
+                    <tr class="bg-[#151E1B]/50 border-b border-[#2B3833] text-[#9CA8A3] uppercase tracking-wider text-[10px]">
+                        <th class="py-3 px-4 font-semibold text-start">@T("المستخدم", "User")</th>
+                        <th class="py-3 px-4 font-semibold text-start">@T("الدور", "Role")</th>
+                        <th class="py-3 px-4 font-semibold text-start">@T("وقت الدخول", "Login Time")</th>
+                        <th class="py-3 px-4 font-semibold text-start">@T("آخر نشاط", "Last Active")</th>
+                        <th class="py-3 px-4 font-semibold text-start">@T("المدة", "Duration")</th>
+                        <th class="py-3 px-4 font-semibold text-start">@T("الجهاز والمتصفح", "Device / Browser")</th>
+                        <th class="py-3 px-4 font-semibold text-start">@T("عنوان IP", "IP Address")</th>
+                        <th class="py-3 px-4 font-semibold text-start">@T("الحالة", "Status")</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-[#2B3833]">
+                    @if (Model?.Sessions == null || !Model.Sessions.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-8 text-[#9CA8A3]">
+                                @T("لا توجد جلسات مطابقة للمعايير.", "No sessions matching the criteria.")
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var s in Model.Sessions)
+                        {
+                            <tr class="hover:bg-white/[0.02] transition">
+                                <td class="py-3 px-4 flex items-center gap-2.5">
+                                    <div class="w-7 h-7 rounded-lg bg-[#49665A]/20 border border-[#49665A]/30 text-[#49665A] font-bold text-xs flex items-center justify-center shrink-0">
+                                        @((s.UserName?.Length > 0 ? s.UserName.Substring(0, 1).ToUpper() : "U"))
+                                    </div>
+                                    <span class="font-semibold text-[#EAEFEA]">@(s.UserName ?? "System")</span>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-semibold">
+                                        @(s.UserRole ?? "User")
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-[#9CA8A3]">@s.LoginTime.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</td>
+                                <td class="py-3 px-4 text-[#9CA8A3]">@s.LastActivityTime.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</td>
+                                <td class="py-3 px-4 text-[#EAEFEA] font-medium">@((int)s.DurationMinutes)m</td>
+                                <td class="py-3 px-4 text-[#9CA8A3]">
+                                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#151E1B] border border-[#2B3833] text-[11px]" title="@s.UserAgent">
+                                        <i class="fa-solid fa-desktop text-[10px]"></i>
+                                        @(string.IsNullOrWhiteSpace(s.UserAgent) ? "Client" : (s.UserAgent.Length > 20 ? s.UserAgent.Substring(0, 20) + "..." : s.UserAgent))
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-[#9CA8A3] font-mono text-[11px]">@(s.IpAddress ?? "—")</td>
+                                <td class="py-3 px-4">
+                                    @if (s.IsActive)
+                                    {
+                                        <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
+                                            @T("متصل", "Online")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="px-2 py-0.5 rounded-full bg-gray-500/10 text-[#9CA8A3] border border-gray-500/20 text-[10px] font-bold">
+                                            @T("منتهي", "Offline")
+                                        </span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

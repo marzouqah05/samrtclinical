@@ -1,0 +1,52 @@
+@using System.Globalization
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    Func<string, string, string> T = (ar, en) => _isAr ? ar : en;
+}
+
+<div id="appointmentsModal" class="cf-modal-overlay" style="display:none;">
+    <div class="cf-modal">
+        <div class="cf-modal-header">
+            <div class="d-flex align-items-center gap-2">
+                <div class="cf-modal-icon">
+                    <i class="fa-solid fa-calendar-plus"></i>
+                </div>
+                <div>
+                    <h3 class="cf-modal-title">@T("حجز موعد سريري جديد", "Book Clinical Appointment")</h3>
+                    <p class="cf-modal-subtitle m-0">@T("تسجيل الموعد وإدراجه في جدول العيادة", "Add slot to live schedule & patient queue")</p>
+                </div>
+            </div>
+            <button type="button" class="cf-modal-close" onclick="closeAppointmentsModal()">&times;</button>
+        </div>
+
+        <form asp-controller="Appointments" asp-action="Create" method="get">
+            <div class="mb-3 text-center py-3 bg-light rounded border">
+                <i class="fa-solid fa-calendar-check fa-2x text-primary mb-2"></i>
+                <h6 class="fw-bold mb-1">@T("الانتقال لنموذج حجز المواعيد الشامل", "Go to Full Appointment Booking Wizard")</h6>
+                <p class="text-muted small mb-0">@T("يمكنك اختيار المريض، الطبيب المعالج، وتحديد الوقت المناسب بدقة.", "Select patient, doctor, and accurate appointment time slot.")</p>
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-[#E5E9E7] dark:border-[#2B3833] mt-6">
+                <button type="button" class="px-4 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/20 text-[#6B7D75] hover:text-rose-600 dark:text-[#9CA8A3] dark:hover:text-rose-400 text-xs font-semibold transition flex items-center gap-1.5" onclick="closeAppointmentsModal()">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                    <span>@T("إلغاء", "Cancel")</span>
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                    <span>@T("فتح معالج الحجز", "Open Booking Wizard")</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openAppointmentsModal() {
+        var modal = document.getElementById('appointmentsModal');
+        if (modal) modal.style.display = 'flex';
+    }
+    function closeAppointmentsModal() {
+        var modal = document.getElementById('appointmentsModal');
+        if (modal) modal.style.display = 'none';
+    }
+</script>

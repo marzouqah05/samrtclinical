@@ -1,0 +1,130 @@
+@model IEnumerable<WebApplication1.Models.Department>
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("الأقسام", "Departments");
+}
+
+<div dir="@(_isAr ? "rtl" : "ltr")" class="space-y-5">
+
+    <!-- ── Page Header ── -->
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h2 class="text-lg font-bold text-[#202725] m-0 flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-sm shrink-0">
+                    <i class="fa-solid fa-sitemap"></i>
+                </span>
+                @T("إدارة الأقسام", "Departments Management")
+            </h2>
+            <p class="text-xs text-[#727A76] m-0 mt-1 ms-10">@T("نظرة عامة وتحكم في أقسام عيادتك الصحية.", "Overview and control of your healthcare clinic departments.")</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <!-- Total count pill -->
+            <div class="inline-flex items-center gap-2 bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] rounded-xl px-4 py-2 shadow-sm">
+                <span class="w-7 h-7 rounded-md bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-building"></i>
+                </span>
+                <span class="text-sm font-bold text-[#1A2621] dark:text-[#EAEFEA]">@Model.Count()</span>
+                <span class="text-xs text-[#6B7D75] dark:text-[#9CA8A3]">@T("قسم", "Departments")</span>
+            </div>
+            <a asp-action="Create"
+               class="inline-flex items-center gap-2 px-4 py-2 bg-[#49665A] text-white text-xs font-semibold rounded-xl hover:bg-[#3D574D] transition-colors shadow-sm">
+                <i class="fa-solid fa-plus text-xs"></i>
+                @T("إضافة قسم جديد", "Add New Department")
+            </a>
+        </div>
+    </div>
+
+    <!-- ── Departments Table ── -->
+    <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] rounded-2xl shadow-sm overflow-hidden">
+        @if (Model != null && Model.Any())
+        {
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse text-start">
+                    <thead>
+                        <tr class="bg-[#F4F7F5] dark:bg-[#151E1B] border-b border-[#E5E9E7] dark:border-[#2B3833] text-[11px] font-semibold uppercase tracking-wider text-[#5C6E66] dark:text-[#9CA8A3]">
+                            <th class="py-3 px-5 text-start">
+                                @T("رمز القسم", "Dept Code")
+                            </th>
+                            <th class="py-3 px-5 text-start">
+                                @T("اسم القسم", "Department Name")
+                            </th>
+                            <th class="py-3 px-5 text-start">
+                                @T("وحدة الرعاية", "Care Unit")
+                            </th>
+                            <th class="py-3 px-5 text-end">
+                                @T("الإجراءات", "Actions")
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr class="border-b border-[#E5E9E7] dark:border-[#2B3833] hover:bg-[#F9FBFA] dark:hover:bg-white/[0.02] transition">
+                                <!-- Code Badge -->
+                                <td class="py-3.5 px-5">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#49665A]/10 text-[#49665A] border border-[#49665A]/20">
+                                        <i class="fa-solid fa-layer-group text-[9px]"></i>
+                                        @item.DepartmentAbbr
+                                    </span>
+                                </td>
+                                <!-- Department Name with Avatar -->
+                                <td class="py-3.5 px-5">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-sm font-bold shrink-0">
+                                            @(item.DepartmentName?.Substring(0, 1).ToUpper() ?? "D")
+                                        </div>
+                                        <span class="text-xs font-semibold text-[#1A2621] dark:text-[#EAEFEA]">@item.DepartmentName</span>
+                                    </div>
+                                </td>
+                                <!-- Care Unit -->
+                                <td class="py-3.5 px-5 text-xs text-[#6B7D75] dark:text-[#9CA8A3]">
+                                    @T("وحدة الرعاية التخصصية", "Medical Specialty Care Unit")
+                                </td>
+                                <!-- Actions -->
+                                <td class="py-3.5 px-5 text-end">
+                                    <div class="inline-flex items-center gap-1.5">
+                                        <a asp-action="Details" asp-route-id="@item.DepartmentId"
+                                           class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-xs font-medium transition"
+                                           title="@T("تفاصيل", "Details")">
+                                            <i class="fa-solid fa-eye text-[#49665A] text-[10px]"></i>
+                                            @T("تفاصيل", "Details")
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@item.DepartmentId"
+                                           class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-xs font-medium transition"
+                                           title="@T("تعديل", "Edit")">
+                                            <i class="fa-solid fa-pen text-[#49665A] text-[10px]"></i>
+                                            @T("تعديل", "Edit")
+                                        </a>
+                                        @if (User.IsInRole("Admin"))
+                                        {
+                                            <a asp-action="Delete" asp-route-id="@item.DepartmentId"
+                                               class="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-rose-300 dark:border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs transition"
+                                               title="@T("حذف", "Delete")">
+                                                <i class="fa-solid fa-trash text-[10px]"></i>
+                                            </a>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="py-16 text-center text-[#6B7D75] dark:text-[#9CA8A3]">
+                <i class="fa-solid fa-building-circle-xmark text-3xl block mb-3 text-[#6B7D75]/40 dark:text-[#9CA8A3]/40"></i>
+                <p class="text-sm font-semibold text-[#1A2621] dark:text-[#EAEFEA] m-0">@T("لا توجد أقسام طبية", "No Medical Departments Found")</p>
+                <p class="text-xs text-[#6B7D75] dark:text-[#9CA8A3] mt-1 mb-4">@T("يبدو أنه لا توجد أقسام نشطة حالياً.", "It looks like there are no active departments right now.")</p>
+                <a asp-action="Create"
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-[#49665A] text-white text-xs font-semibold rounded-xl hover:bg-[#3D574D] transition shadow-sm">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    @T("إنشاء أول قسم", "Create First Department")
+                </a>
+            </div>
+        }
+    </div>
+</div>

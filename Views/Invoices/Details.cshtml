@@ -1,0 +1,256 @@
+﻿@model WebApplication1.Models.Invoice
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("تفاصيل الفاتورة - ", "Invoice Details - ") + Model.InvoiceNumber;
+    var isPaid = Model.Status == "Paid";
+}
+
+@* ── Print-only styles injected into the shared layout via Scripts section ── *@
+@section Scripts {
+<style>
+    @@media print {
+        /* Hide sidebar, topbar, and any no-print element */
+        .sidebar,
+        .topbar,
+        .no-print {
+            display: none !important;
+        }
+        /* Stretch main content edge-to-edge */
+        .main-content {
+            margin-left: 0 !important;
+            width: 100% !important;
+        }
+        /* White background */
+        body, .page-content {
+            background: #fff !important;
+        }
+        /* Remove card chrome for clean paper output */
+        .invoice-print-card {
+            box-shadow: none !important;
+            border: none !important;
+        }
+        /* Preserve badge colours */
+        .badge {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .avoid-break {
+            page-break-inside: avoid;
+        }
+    }
+</style>
+}
+
+<div class="container-fluid" dir="@(_isAr ? "rtl" : "ltr")">
+
+    @* ── Screen-only page header ── *@
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+        <div>
+            <h2 class="text-primary fw-bold m-0">
+                <i class="fa-solid fa-file-invoice-dollar @(_isAr ? "ms-2" : "me-2")"></i>@T("تفاصيل الفاتورة", "Invoice Details")
+            </h2>
+            <p class="text-muted m-0 small">
+                @T("تفصيل كامل للفاتورة", "Full breakdown for invoice") <strong>#@Model.InvoiceNumber</strong>
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Index" class="btn btn-outline-secondary rounded-3">
+                <i class="fa-solid fa-arrow-left @(_isAr ? "ms-1" : "me-1")"></i> @T("العودة للقائمة", "Back to List")
+            </a>
+            <a asp-action="Edit" asp-route-id="@Model.InvoiceId"
+               class="btn btn-outline-primary rounded-3">
+                <i class="fa-solid fa-pen-to-square @(_isAr ? "ms-1" : "me-1")"></i> @T("تعديل", "Edit")
+            </a>
+            <button onclick="window.print();"
+                    id="btn-print-invoice"
+                    class="btn btn-primary rounded-3 px-4 fw-semibold shadow-sm">
+                <i class="fa-solid fa-print @(_isAr ? "ms-2" : "me-2")"></i>@T("طباعة / تصدير PDF", "Print / Export PDF")
+            </button>
+        </div>
+    </div>
+
+    @* ── Invoice card ── *@
+    <div class="card shadow-sm border-0 rounded-4 invoice-print-card">
+        <div class="card-body p-4 p-md-5">
+
+            @* Clinic header *@
+            <div class="row align-items-center mb-5 avoid-break">
+                <div class="col-sm-6">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width:52px;height:52px;border-radius:16px;background:#3b82f6;
+                                    display:flex;align-items:center;justify-content:center;
+                                    color:#fff;font-size:22px;">
+                            <i class="fa-solid fa-heart-pulse"></i>
+                        </div>
+                        <div>
+                            <h4 class="fw-bold text-primary m-0">@T("عيادة ميديكير", "MediCare Clinic")</h4>
+                            <p class="text-muted small m-0">@T("نظام إدارة العيادة", "Clinic Management System")</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 @(_isAr ? "text-sm-start" : "text-sm-end") mt-3 mt-sm-0">
+                    <h3 class="text-uppercase fw-bold text-secondary mb-1">@T("إيصال / فاتورة", "Receipt / Invoice")</h3>
+                    <span class="text-muted">@T("رقم الفاتورة:", "Invoice No:") </span>
+                    <span class="fw-bold text-dark fs-5">#@Model.InvoiceNumber</span><br />
+                    <span class="text-muted small">
+                        @Model.InvoiceDate.ToString("dd MMM yyyy, HH:mm")
+                    </span>
+                </div>
+            </div>
+
+            <hr class="my-4" />
+
+            @* Patient & Doctor info *@
+            <div class="row mb-5 avoid-break">
+                <div class="col-sm-6">
+                    <h6 class="text-primary fw-bold text-uppercase mb-3 small">
+                        <i class="fa-solid fa-user-injured @(_isAr ? "ms-1" : "me-1")"></i> @T("فاتورة للمريض", "Billed To (Patient)")
+                    </h6>
+                    <h5 class="fw-bold text-dark mb-1">@Model.Patient?.PatientName</h5>
+                    <p class="text-muted mb-1 small">
+                        <i class="fa-solid fa-phone @(_isAr ? "ms-1" : "me-1")"></i>@Model.Patient?.PhoneNumber
+                    </p>
+                    <p class="text-muted mb-0 small">
+                        <i class="fa-solid fa-id-card @(_isAr ? "ms-1" : "me-1")"></i>
+                        @T("رقم المريض:", "Patient No:") @Model.Patient?.PatientNumber
+                    </p>
+                </div>
+                <div class="col-sm-6 @(_isAr ? "text-sm-start" : "text-sm-end") mt-4 mt-sm-0">
+                    <h6 class="text-primary fw-bold text-uppercase mb-3 small">
+                        <i class="fa-solid fa-user-doctor @(_isAr ? "ms-1" : "me-1")"></i> @T("الطبيب المعالج", "Attending Doctor")
+                    </h6>
+                    <h5 class="fw-bold text-dark mb-1">
+                        @(_isAr ? "د." : "Dr.") @Model.Treatment?.Appointment?.Doctor?.DoctorName
+                    </h5>
+                    <p class="text-muted mb-1 small">
+                        <i class="fa-solid fa-stethoscope @(_isAr ? "ms-1" : "me-1")"></i>
+                        @Model.Treatment?.Appointment?.Doctor?.Specialization
+                    </p>
+                    <p class="text-muted mb-0 small">
+                        <i class="fa-solid fa-calendar-check @(_isAr ? "ms-1" : "me-1")"></i>
+                        @T("تاريخ العلاج:", "Treatment Date:") @Model.Treatment?.TreatmentDate.ToString("dd MMM yyyy")
+                    </p>
+                </div>
+            </div>
+
+            @* Payment status banner *@
+            <div class="mb-4 avoid-break">
+                @if (isPaid)
+                {
+                    <div class="alert d-flex align-items-center gap-3 py-2 rounded-3 border-0 bg-success-subtle">
+                        <i class="fa-solid fa-circle-check fs-4 text-success"></i>
+                        <div>
+                            <strong class="text-success">@T("تم الدفع", "Payment Received")</strong>
+                            <span class="text-muted small @(_isAr ? "me-2" : "ms-2")">@T("تم تسديد هذه الفاتورة بالكامل.", "This invoice has been fully settled.")</span>
+                        </div>
+                        <span class="badge bg-success rounded-pill @(_isAr ? "me-auto" : "ms-auto") px-3 py-2 fs-6">@T("مدفوع", "Paid")</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert d-flex align-items-center gap-3 py-2 rounded-3 border-0 bg-danger-subtle">
+                        <i class="fa-solid fa-triangle-exclamation fs-4 text-danger"></i>
+                        <div>
+                            <strong class="text-danger">@T("بانتظار الدفع", "Payment Pending")</strong>
+                            <span class="text-muted small @(_isAr ? "me-2" : "ms-2")">@T("لم يتم دفع هذه الفاتورة بعد.", "This invoice has not been paid yet.")</span>
+                        </div>
+                        <span class="badge bg-danger rounded-pill @(_isAr ? "me-auto" : "ms-auto") px-3 py-2 fs-6">@T("غير مدفوع", "Unpaid")</span>
+                    </div>
+                }
+            </div>
+
+            @* Treatment items table *@
+            <div class="table-responsive mb-4 avoid-break">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center" style="width:8%">#</th>
+                            <th style="width:58%">@T("وصف الخدمة", "Service Description")</th>
+                            <th class="@(_isAr ? "text-start" : "text-end")" style="width:34%">@T("المبلغ", "Amount")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="text-center text-muted">1</td>
+                            <td>
+                                <strong>@T("رسوم استشارة الطبيب", "Doctor Consultation Fee")</strong><br />
+                                <small class="text-muted">
+                                    @(_isAr ? "د." : "Dr.") @Model.Treatment?.Appointment?.Doctor?.DoctorName
+                                    (@Model.Treatment?.Appointment?.Doctor?.Specialization)
+                                </small>
+                            </td>
+                            <td class="@(_isAr ? "text-start" : "text-end") fw-semibold">
+                                @((Model.Treatment?.Appointment?.Doctor?.ConsultationFee ?? 0).ToString("C2"))
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-center text-muted">2</td>
+                            <td>
+                                <strong>@T("تكلفة العلاج الطبي", "Medical Treatment Cost")</strong><br />
+                                <small class="text-muted">@Model.Treatment?.TreatmentDesc</small>
+                                @if (!string.IsNullOrEmpty(Model.Treatment?.Diagnosis))
+                                {
+                                    <br />
+                                    <small class="text-muted">
+                                        @T("التشخيص:", "Diagnosis:") @Model.Treatment.Diagnosis
+                                    </small>
+                                }
+                            </td>
+                            <td class="@(_isAr ? "text-start" : "text-end") fw-semibold">
+                                @((Model.Treatment?.TreatmentCost ?? 0).ToString("C2"))
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            @* Totals *@
+            <div class="row justify-content-end avoid-break">
+                <div class="col-md-4 col-sm-6">
+                    <div class="border rounded-3 p-3 bg-light">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">@T("المجموع الإجمالي:", "Gross Total:")</span>
+                            <span class="fw-semibold">@Model.Amount.ToString("C2")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">@T("الخصم (-):", "Discount (-):")</span>
+                            <span class="text-danger fw-semibold">@Model.Discount.ToString("C2")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">@T("الضريبة (+):", "Tax (+):")</span>
+                            <span class="text-success fw-semibold">@Model.Tax.ToString("C2")</span>
+                        </div>
+                        <hr class="my-2" />
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fs-5 fw-bold text-dark">@T("صافي المبلغ المستحق:", "Net Amount Due:")</span>
+                            <span class="fs-4 fw-bold text-primary">@Model.NetAmount.ToString("C2")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Footer *@
+            <div class="mt-5 pt-4 border-top text-center text-muted small">
+                <p class="mb-1">
+                    @T("شكراً لاختياركم", "Thank you for choosing") <strong>@T("عيادة ميديكير", "MediCare Clinic")</strong>.
+                </p>
+                <p class="mb-0">@T("هذا إيصال رسمي صادر من نظام العيادة الإلكتروني.", "This is a computer-generated official clinic receipt.")</p>
+            </div>
+
+        </div>
+    </div>
+
+    @* Screen-only bottom bar *@
+    <div class="d-flex justify-content-end gap-2 mt-3 no-print">
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-3">
+            <i class="fa-solid fa-arrow-left @(_isAr ? "ms-1" : "me-1")"></i> @T("العودة للقائمة", "Back to List")
+        </a>
+        <button onclick="window.print();"
+                class="btn btn-primary rounded-3 px-4 fw-semibold">
+            <i class="fa-solid fa-print @(_isAr ? "ms-2" : "me-2")"></i>@T("طباعة / تصدير PDF", "Print / Export PDF")
+        </button>
+    </div>
+
+</div>

@@ -1,0 +1,245 @@
+@model IEnumerable<WebApplication1.Models.Appointment>
+@using System.Globalization
+
+@{
+    ViewData["Title"] = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar" ? "لوحة التحكم السريرية" : "Clinic Dashboard";
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    Func<string, string, string> T = (ar, en) => _isAr ? ar : en;
+
+    var totalPatients      = ViewBag.TotalPatients     ?? 0;
+    var totalDoctors       = ViewBag.TotalDoctors      ?? 0;
+    var todayAppointments  = ViewBag.TodayAppointments ?? 0;
+    var totalRevenue       = ViewBag.TotalRevenue       ?? 0.00m;
+    var pendingRevenue     = ViewBag.PendingRevenue     ?? 0.00m;
+    var totalInvoicesCount = ViewBag.TotalInvoicesCount ?? 0;
+    var totalExpenses      = ViewBag.TotalExpenses      ?? 0.00m;
+}
+
+<div class="space-y-6">
+
+    <!-- ── 1. Top 4 KPI Metric Cards ── -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+
+        <!-- Card 1: Today's Appointments -->
+        <div class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("مواعيد اليوم", "Today's Appointments")</span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]" dir="ltr">
+                    <i class="fa-solid fa-arrow-trend-up text-[9px]"></i> +12%
+                </span>
+            </div>
+            <div class="flex items-end justify-between mt-4">
+                <div class="text-2xl font-bold text-[#202725] tracking-tight">@todayAppointments</div>
+                <div class="w-9 h-9 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+            </div>
+            <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#49665A] inline-block"></span>
+                <span>@T("محدث في الوقت الفعلي", "Live updated slots")</span>
+            </div>
+        </div>
+
+        <!-- Card 2: Collected Revenue -->
+        <div class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("الإيرادات المحصلة", "Collected Revenue")</span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]">
+                    @totalInvoicesCount @T("فاتورة", "bills")
+                </span>
+            </div>
+            <div class="flex items-end justify-between mt-4">
+                <div class="text-2xl font-bold text-[#202725] tracking-tight">
+                    @totalRevenue.ToString("N0") <span class="text-xs font-semibold text-[#727A76]">JOD</span>
+                </div>
+                <div class="w-9 h-9 rounded-lg bg-[#EAF5F0] text-[#2E7D5B] flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                </div>
+            </div>
+            <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#2E7D5B] inline-block"></span>
+                <span>@T("تحصيلات مسددة", "Cleared revenue")</span>
+            </div>
+        </div>
+
+        <!-- Card 3: Active Patients -->
+        <a asp-controller="Patients" asp-action="Index"
+           class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between hover:border-[#49665A]/30 hover:shadow-[0_1px_6px_rgba(73,102,90,0.08)] transition-all group no-underline">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76] group-hover:text-[#49665A]">@T("المرضى المسجلون", "Active Patients")</span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#2E7D5B] inline-block"></span>
+                    @T("سجل", "Active")
+                </span>
+            </div>
+            <div class="flex items-end justify-between mt-4">
+                <div class="text-2xl font-bold text-[#202725] tracking-tight">@totalPatients</div>
+                <div class="w-9 h-9 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+            <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
+                <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                <span>@T("سجلات المرضى (EMR)", "View all patients")</span>
+            </div>
+        </a>
+
+        <!-- Card 4: Cloud Backup Status -->
+        <a asp-controller="Settings" asp-action="Index"
+           class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between hover:border-[#49665A]/30 hover:shadow-[0_1px_6px_rgba(73,102,90,0.08)] transition-all group no-underline">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76] group-hover:text-[#49665A]">@T("النسخ السحابي", "Cloud Backup Status")</span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]">
+                    <i class="fa-solid fa-cloud-check text-[9px]"></i> @T("سليم", "Secure")
+                </span>
+            </div>
+            <div class="flex items-end justify-between mt-4">
+                <div class="text-base font-bold text-[#202725] tracking-tight">@T("متصل وسليم", "Synced & Secure")</div>
+                <div class="w-9 h-9 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                </div>
+            </div>
+            <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#2E7D5B] inline-block"></span>
+                <span>@T("تشفير سحابي بنجاح", "AES-256 encrypted")</span>
+            </div>
+        </a>
+    </div>
+
+    <!-- ── 2. Appointments Schedule Table Card ── -->
+    <div class="bg-white rounded-xl border border-[#DDE3DF] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
+
+        <!-- Table Card Header -->
+        <div class="px-5 py-4 border-b border-[#DDE3DF] flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h3 class="text-sm font-bold text-[#202725] m-0">@T("جدول المواعيد والكشوفات", "Appointments Schedule")</h3>
+                <p class="text-[11px] text-[#727A76] m-0 mt-0.5">@T("استعراض وتتبع مواعيد المرضى المسجلة لليوم والزيارات القادمة", "Overview and tracking of scheduled patient appointments")</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F6F7F5] border border-[#DDE3DF] text-[11px] font-semibold text-[#727A76]">
+                    <i class="fa-regular fa-calendar text-[#49665A]"></i>
+                    <span>@DateTime.Today.ToString("dd MMMM yyyy", CultureInfo.CurrentCulture)</span>
+                </span>
+                <a asp-controller="Appointments" asp-action="Create"
+                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#49665A] text-white hover:bg-[#3D574D] text-xs font-medium transition-colors shadow-sm">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>@T("موعد جديد", "Add Appointment")</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Appointments Table -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-start border-collapse">
+                <thead>
+                    <tr class="bg-[#F6F7F5] border-b border-[#DDE3DF]">
+                        <th class="py-3 px-5 text-start text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("الوقت", "Time")</th>
+                        <th class="py-3 px-5 text-start text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("المريض", "Patient")</th>
+                        <th class="py-3 px-5 text-start text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("الطبيب والعيادة", "Doctor & Department")</th>
+                        <th class="py-3 px-5 text-start text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("الحالة", "Status")</th>
+                        <th class="py-3 px-5 text-end text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("إجراءات", "Actions")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var appt in Model)
+                        {
+                            var isCompleted = appt.Status?.Equals("Completed", StringComparison.OrdinalIgnoreCase) == true;
+                            var isConfirmed = appt.Status?.Equals("Confirmed", StringComparison.OrdinalIgnoreCase) == true;
+                            var isCancelled = appt.Status?.Equals("Cancelled", StringComparison.OrdinalIgnoreCase) == true;
+
+                            <tr class="bg-white hover:bg-[#F6F7F5]/60 border-b border-[#DDE3DF] transition-colors">
+                                <td class="py-3.5 px-5 whitespace-nowrap">
+                                    <div class="inline-flex items-center gap-1.5 font-mono text-xs text-[#202725] font-semibold">
+                                        <i class="fa-regular fa-clock text-[#727A76] text-[11px]"></i>
+                                        @appt.AppointmentTime.ToString(@"hh\:mm")
+                                    </div>
+                                </td>
+                                <td class="py-3.5 px-5">
+                                    <a asp-controller="Patients" asp-action="Details" asp-route-id="@appt.PatientId"
+                                       class="text-sm font-semibold text-[#202725] hover:text-[#49665A] transition-colors block truncate max-w-[180px]">
+                                        @(appt.Patient?.PatientName ?? T("مريض غير محدد", "Unknown Patient"))
+                                    </a>
+                                    <span class="text-[11px] text-[#727A76] block">ID: #@appt.PatientId</span>
+                                </td>
+                                <td class="py-3.5 px-5">
+                                    <span class="text-sm font-medium text-[#202725] block truncate max-w-[180px]">Dr. @(appt.Doctor?.DoctorName ?? "General")</span>
+                                    <span class="inline-block px-1.5 py-0.5 bg-[#F6F7F5] border border-[#DDE3DF] rounded text-[10px] text-[#727A76] mt-0.5">
+                                        @(appt.Doctor?.Department?.DepartmentName ?? "General Practice")
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-5 whitespace-nowrap">
+                                    @if (isConfirmed)
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#49665A]/10 text-[#49665A] border border-[#49665A]/20">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-[#49665A] animate-pulse inline-block"></span>
+                                            @T("في الكشف", "In Consultation")
+                                        </span>
+                                    }
+                                    else if (isCompleted)
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]">
+                                            <i class="fa-solid fa-check text-[9px]"></i>
+                                            @T("مكتمل", "Completed")
+                                        </span>
+                                    }
+                                    else if (isCancelled)
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FCEEEE] text-[#B83A38]">
+                                            <i class="fa-solid fa-xmark text-[9px]"></i>
+                                            @T("ملغى", "Cancelled")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FDF6EC] text-[#B47318]">
+                                            <i class="fa-regular fa-clock text-[9px]"></i>
+                                            @T("مجدول", "Scheduled")
+                                        </span>
+                                    }
+                                </td>
+                                <td class="py-3.5 px-5 text-end whitespace-nowrap">
+                                    <div class="inline-flex items-center gap-1.5">
+                                        <a asp-controller="Appointments" asp-action="Details" asp-route-id="@appt.AppointmentId"
+                                           class="px-2.5 py-1 rounded-md bg-[#F6F7F5] border border-[#DDE3DF] hover:bg-[#DDE3DF] text-[#727A76] text-xs font-medium transition-colors"
+                                           title="@T("تفاصيل", "Details")">
+                                            @T("تفاصيل", "Details")
+                                        </a>
+                                        @if (!isCompleted && !isCancelled)
+                                        {
+                                            <a asp-controller="Appointments" asp-action="Edit" asp-route-id="@appt.AppointmentId"
+                                               class="px-2.5 py-1 rounded-md bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-medium transition-colors"
+                                               title="@T("بدء الكشف", "Start Consult")">
+                                                @T("كشف", "Consult")
+                                            </a>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="py-14 text-center">
+                                <i class="fa-solid fa-calendar-xmark text-3xl mb-3 block text-[#DDE3DF]"></i>
+                                <span class="text-sm font-medium text-[#727A76]">@T("لا توجد مواعيد مسجلة اليوم", "No appointments scheduled for today.")</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Table Card Footer -->
+        <div class="px-5 py-3 bg-[#F6F7F5] border-t border-[#DDE3DF] flex items-center justify-between">
+            <span class="text-[11px] text-[#727A76]">@T("عرض أحدث المواعيد المسجلة", "Showing registered appointment slots")</span>
+            <a asp-controller="Appointments" asp-action="Index"
+               class="text-xs font-semibold text-[#49665A] hover:text-[#3D574D] transition-colors">
+                @T("عرض الجدول الكامل للمواعيد", "View Full Schedule") &rarr;
+            </a>
+        </div>
+    </div>
+
+</div>

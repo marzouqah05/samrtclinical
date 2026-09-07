@@ -1,0 +1,121 @@
+@model WebApplication1.Models.Doctor
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("تفاصيل الطبيب", "Doctor Details");
+}
+
+<div class="max-w-3xl mx-auto px-4 py-8" dir="@(_isAr ? "rtl" : "ltr")">
+
+    @* ── Back Navigation Link ── *@
+    <div class="mb-5">
+        <a asp-action="Index" class="inline-flex items-center gap-2 text-xs font-medium text-[#727A76] dark:text-[#9CA8A3] hover:text-[#202725] dark:hover:text-[#EAEFEA] transition-colors">
+            <i class="fa-solid @(_isAr ? "fa-arrow-right" : "fa-arrow-left")"></i>
+            <span>@T("العودة إلى قائمة الأطباء", "Back to Doctors List")</span>
+        </a>
+    </div>
+
+    @* ── Unified Dark Olive Card ── *@
+    <div class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl shadow-sm max-w-3xl mx-auto overflow-hidden">
+
+        @* ── Profile Header ── *@
+        <div class="p-6 bg-[#F6F7F5] dark:bg-[#151E1B] border-b border-[#DDE3DF] dark:border-[#2B3833] flex items-center gap-4">
+            <div class="w-16 h-16 rounded-2xl bg-[#49665A]/15 border border-[#49665A]/30 text-[#49665A] font-bold text-xl flex items-center justify-center shrink-0">
+                @(!string.IsNullOrEmpty(Model.DoctorName) ? Model.DoctorName.Substring(0, 1).ToUpper() : "D")
+            </div>
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="text-base sm:text-lg font-bold text-[#202725] dark:text-[#EAEFEA] m-0">
+                        @(_isAr ? "د." : "Dr.") @Model.DoctorName
+                    </h1>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#49665A]/10 text-[#49665A] border border-[#49665A]/20">
+                        ID: #@Model.DoctorNumber
+                    </span>
+                </div>
+                <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0 mt-1">
+                    @Model.Specialization • @(Model.Department?.DepartmentName ?? T("غير مخصص", "Unassigned"))
+                </p>
+            </div>
+        </div>
+
+        @* ── Details Grid ── *@
+        <div class="p-6">
+            <span class="text-xs font-bold uppercase tracking-wider text-[#49665A] dark:text-[#9CA8A3] mb-4 block">
+                @T("معلومات الطبيب المعتمدة", "Doctor Profile Overview")
+            </span>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Doctor Number -->
+                <div class="p-3.5 rounded-xl bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833]">
+                    <div class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase">
+                        @T("رقم الطبيب", "Doctor Number")
+                    </div>
+                    <div class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA] mt-1">
+                        #@Model.DoctorNumber
+                    </div>
+                </div>
+
+                <!-- Doctor Name -->
+                <div class="p-3.5 rounded-xl bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833]">
+                    <div class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase">
+                        @T("الاسم الكامل", "Full Name")
+                    </div>
+                    <div class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA] mt-1">
+                        @(_isAr ? "د." : "Dr.") @Model.DoctorName
+                    </div>
+                </div>
+
+                <!-- Specialization -->
+                <div class="p-3.5 rounded-xl bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833]">
+                    <div class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase">
+                        @T("التخصص الطبي", "Specialization")
+                    </div>
+                    <div class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA] mt-1">
+                        @Model.Specialization
+                    </div>
+                </div>
+
+                <!-- Consultation Fee -->
+                <div class="p-3.5 rounded-xl bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833]">
+                    <div class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase">
+                        @T("رسوم الكشفية", "Consultation Fee")
+                    </div>
+                    <div class="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                        @Model.ConsultationFee.ToString("N2") @T("د.أ", "JOD")
+                    </div>
+                </div>
+
+                <!-- Department -->
+                <div class="sm:col-span-2 p-3.5 rounded-xl bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833]">
+                    <div class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase">
+                        @T("القسم المسند", "Assigned Department")
+                    </div>
+                    <div class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA] mt-1 flex items-center gap-2">
+                        <i class="fa-solid fa-building-medical text-[#49665A]"></i>
+                        <span>@(Model.Department?.DepartmentName ?? T("غير مخصص لقسم", "Unassigned to any department"))</span>
+                        @if (!string.IsNullOrEmpty(Model.Department?.DepartmentAbbr))
+                        {
+                            <span class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] font-normal">(@Model.Department.DepartmentAbbr)</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-[#DDE3DF] dark:border-[#2B3833]">
+                <a asp-action="Index"
+                   class="px-4 py-2.5 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] text-[#1A2621] dark:text-[#EAEFEA] text-xs font-semibold transition flex items-center gap-1.5">
+                    <i class="fa-solid @(_isAr ? "fa-arrow-right" : "fa-arrow-left") text-xs"></i>
+                    <span>@T("العودة للقائمة", "Back to List")</span>
+                </a>
+                <a asp-action="Edit" asp-route-id="@Model.DoctorId"
+                   class="px-5 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-pen text-xs"></i>
+                    <span>@T("تعديل الطبيب", "Edit Doctor")</span>
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>

@@ -1,0 +1,319 @@
+@model WebApplication1.Models.ClinicSettingsViewModel
+@using System.Globalization
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("النسخ الاحتياطي وحماية الحساب", "Backups & Account Security");
+}
+
+@* ── Toast Notifications ──────────────────────────────────────────────── *@
+@if (TempData["Success"] != null)
+{
+    <div class="mb-4 p-3 rounded-lg border flex items-center gap-3 text-sm font-medium" 
+         style="background:var(--clinic-emerald-bg);border-color:rgba(46,125,91,0.25);color:var(--clinic-emerald-text);">
+        <i class="fa-solid fa-circle-check text-base"></i>
+        <span>@TempData["Success"]</span>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 p-3 rounded-lg border flex items-center gap-3 text-sm font-medium" 
+
+         style="background:var(--clinic-rose-bg);border-color:rgba(184,58,56,0.25);color:var(--clinic-rose-text);">
+        <i class="fa-solid fa-circle-exclamation text-base"></i>
+        <span>@TempData["Error"]</span>
+    </div>
+}
+
+<div class="container-fluid py-2 max-w-4xl mx-auto" dir="@(_isAr ? "rtl" : "ltr")">
+
+    @* ── Header Bar ──────────────────────────────────────────────────── *@
+    <div class="clinic-page-header">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <a asp-controller="Settings" asp-action="Index" class="text-xs font-semibold hover:underline" style="color:var(--clinic-muted)">
+                    <i class="fa-solid fa-arrow-right-long me-1"></i>
+                    @T("مركز الإعدادات", "Settings Hub")
+                </a>
+                <span style="color:var(--clinic-border)">/</span>
+                <span class="text-xs font-semibold" style="color:var(--clinic-primary)">@T("النسخ الاحتياطي والأمان", "Security & Backups")</span>
+            </div>
+            <h1 class="clinic-page-title">
+                @T("النسخ الاحتياطي وحماية وأمان الحساب", "Database Vault & Account Security")
+            </h1>
+            <p class="clinic-page-subtitle">
+                @T("المزامنة السحابية اليومية مع Google Drive، لقطات وتصدير قواعد البيانات، وتغيير كلمة المرور",
+                   "Automated Google Drive cloud backups, live database archives, and account password management")
+            </p>
+        </div>
+        <a asp-controller="Settings" asp-action="Index" class="btn-clinic-secondary">
+            <i class="fa-solid fa-arrow-left"></i>
+            @T("العودة للإعدادات", "Back to Hub")
+        </a>
+    </div>
+
+    @* ── Monthly Offline Advisory Banner ──────────────────────────────── *@
+    @if (Model.IsMonthlyReminderActive)
+    {
+        <div class="p-4 rounded-xl mb-5 flex items-center justify-between gap-4 border"
+             style="background:var(--clinic-amber-bg);border-color:rgba(180,115,24,0.25);">
+            <div class="flex items-center gap-3">
+                <div class="text-2xl" style="color:var(--clinic-amber-text)">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <h4 class="text-xs font-bold m-0" style="color:var(--clinic-amber-text)">
+                        @T("تذكير بداية الشهر: يُنصح بتحميل نسخة احتياطية محلية شاملة (Offline Archive)", "Monthly Reminder: Full Offline Backup Recommended")
+                    </h4>
+                    <p class="text-[11px] m-0 mt-0.5 text-gray-700">
+                        @T("يُنصح بتحميل الأرشيف الشامل وتخزينه على قرص خارجي مستقل لضمان أمان السجلات الطبية.",
+                           "Download a full offline system archive and store it securely on local media.")
+                    </p>
+                </div>
+            </div>
+            <a asp-action="DownloadMonthlyArchive" class="btn-clinic-secondary text-nowrap text-xs">
+                <i class="fa-solid fa-file-zipper"></i>
+                @T("تحميل الأرشيف الشامل", "Download Full Archive")
+            </a>
+        </div>
+    }
+
+    @* ── Section 1: Cloud Sync (Google Drive Vault) ───────────────────── *@
+    <div class="clinic-card p-6 mb-5">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-5 pb-3 border-b" style="border-color:var(--clinic-border)">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base"
+                     style="background:rgba(16,185,129,0.12);color:#10b981">
+                    <i class="fa-brands fa-google-drive"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold m-0" style="color:var(--clinic-text)">
+                        @T("المزامنة السحابية اليومية (Google Drive Vault)", "Automated Daily Cloud Sync (Google Drive)")
+                    </h3>
+                    <p class="text-xs m-0" style="color:var(--clinic-muted)">
+                        @T("يتم تشفير لقطة النظام ورفعها تلقائياً للسحابة يومياً الساعة 02:00 صباحاً", "Automated encrypted cloud backups scheduled daily at 02:00 AM UTC")
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="clinic-badge clinic-badge-emerald">
+                    <i class="fa-solid fa-circle-dot me-1" style="font-size:6px"></i>
+                    @T("متصل ومزامن", "Connected & Synced")
+                </span>
+                <form asp-action="SyncToGoogleDriveNow" method="post" class="inline m-0">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn-clinic-secondary text-xs">
+                        <i class="fa-solid fa-rotate"></i>
+                        @T("مزامنة فورية الآن", "Sync to Cloud Now")
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="p-3.5 rounded-lg border" style="background:var(--clinic-bg);border-color:var(--clinic-border)">
+                <div class="text-[11px] font-semibold uppercase tracking-wider" style="color:var(--clinic-muted)">
+                    @T("مزود التخزين السحابي", "Cloud Provider")
+                </div>
+                <div class="text-xs font-bold mt-1 flex items-center gap-1.5" style="color:var(--clinic-text)">
+                    <i class="fa-brands fa-google-drive text-emerald-600"></i>
+                    @Model.CloudSync.ProviderName
+                </div>
+            </div>
+
+            <div class="p-3.5 rounded-lg border" style="background:var(--clinic-bg);border-color:var(--clinic-border)">
+                <div class="text-[11px] font-semibold uppercase tracking-wider" style="color:var(--clinic-muted)">
+                    @T("آخر مزامنة ناجحة", "Last Successful Sync")
+                </div>
+                <div class="text-xs font-bold mt-1 text-emerald-700 flex items-center gap-1.5">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    @(Model.CloudSync.LastSyncTime.HasValue ? Model.CloudSync.LastSyncTime.Value.ToLocalTime().ToString("yyyy-MM-dd hh:mm tt") : "Scheduled (02:00 AM UTC)")
+                </div>
+            </div>
+
+            <div class="p-3.5 rounded-lg border" style="background:var(--clinic-bg);border-color:var(--clinic-border)">
+                <div class="text-[11px] font-semibold uppercase tracking-wider" style="color:var(--clinic-muted)">
+                    @T("آخر ملف مزامن", "Last Synced File")
+                </div>
+                <div class="text-xs font-bold mt-1 truncate" style="color:var(--clinic-text)">
+                    <i class="fa-solid fa-file-shield text-indigo-600 me-1"></i>
+                    @Model.CloudSync.LastSyncedFile
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ── Section 2: Database Metric Counters (4-Column Grid) ─────────── *@
+    <div class="clinic-card p-6 mb-5">
+        <div class="flex items-center gap-3 mb-5 pb-3 border-b" style="border-color:var(--clinic-border)">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base"
+                 style="background:rgba(245,158,11,0.12);color:#f59e0b">
+                <i class="fa-solid fa-database"></i>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold m-0" style="color:var(--clinic-text)">
+                    @T("حالة قاعدة البيانات وأدوات التصدير الفوري", "Database Metrics & Export Tools")
+                </h3>
+                <p class="text-xs m-0" style="color:var(--clinic-muted)">
+                    @T("إحصائيات السجلات المسجلة بالنظام وأدوات تنزيل لقطات البيانات الحية", "System entity totals and instantaneous local backup download actions")
+                </p>
+            </div>
+        </div>
+
+        @* 4-Column Metric Grid *@
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="p-4 rounded-xl border text-center" style="background:var(--clinic-bg);border-color:var(--clinic-border)">
+                <div class="text-2xl font-bold" style="color:#6366f1">@Model.TotalPatients</div>
+                <div class="text-xs font-semibold mt-1" style="color:var(--clinic-muted)">@T("مريض مسجل", "Patients")</div>
+            </div>
+            <div class="p-4 rounded-xl border text-center" style="background:var(--clinic-bg);border-color:var(--clinic-border)">
+                <div class="text-2xl font-bold" style="color:#10b981">@Model.TotalDoctors</div>
+                <div class="text-xs font-semibold mt-1" style="color:var(--clinic-muted)">@T("طبيب وممارس", "Doctors")</div>
+            </div>
+            <div class="p-4 rounded-xl border text-center" style="background:var(--clinic-bg);border-color:var(--clinic-border)">
+                <div class="text-2xl font-bold" style="color:#f59e0b">@Model.TotalAppointments</div>
+                <div class="text-xs font-semibold mt-1" style="color:var(--clinic-muted)">@T("موعد محجوز", "Appointments")</div>
+            </div>
+            <div class="p-4 rounded-xl border text-center" style="background:var(--clinic-bg);border-color:var(--clinic-border)">
+                <div class="text-2xl font-bold" style="color:#3b82f6">@Model.TotalInvoices</div>
+                <div class="text-xs font-semibold mt-1" style="color:var(--clinic-muted)">@T("فاتورة وسند", "Invoices")</div>
+            </div>
+        </div>
+
+        @* Export Actions (2 Columns) *@
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="p-4 rounded-xl border flex flex-col justify-between"
+                 style="background:var(--clinic-bg);border-color:var(--clinic-border)">
+                <div class="mb-3">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-file-zipper text-blue-600 text-sm"></i>
+                        <h4 class="text-xs font-bold m-0" style="color:var(--clinic-text)">
+                            @T("لقطة اليوم الحية (.ZIP)", "Today's Live Snapshot (.ZIP)")
+                        </h4>
+                    </div>
+                    <p class="text-[11px] m-0" style="color:var(--clinic-muted)">
+                        @T("تفريغ فوري لقاعدة البيانات بصيغة JSON مضغوطة قابلة للاستعادة", "Instant compressed JSON database export for emergency restore")
+                    </p>
+                </div>
+                <a asp-action="DownloadDailySnapshot" class="btn-clinic-secondary justify-center text-xs w-full">
+                    <i class="fa-solid fa-cloud-arrow-down"></i>
+                    @T("تنزيل اللقطة الفورية", "Download Snapshot")
+                </a>
+            </div>
+
+            <div class="p-4 rounded-xl border flex flex-col justify-between"
+                 style="background:var(--clinic-bg);border-color:var(--clinic-border)">
+                <div class="mb-3">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-box-archive text-amber-600 text-sm"></i>
+                        <h4 class="text-xs font-bold m-0" style="color:var(--clinic-text)">
+                            @T("الأرشيف الشهري الكامل (.ZIP)", "Full Monthly Archive (.ZIP)")
+                        </h4>
+                    </div>
+                    <p class="text-[11px] m-0" style="color:var(--clinic-muted)">
+                        @T("حزمة متكاملة تحتوي قاعدة البيانات والمرفقات وشعارات العيادة", "Complete package including full database tables, uploads, and assets")
+                    </p>
+                </div>
+                <a asp-action="DownloadMonthlyArchive" class="btn-clinic-secondary justify-center text-xs w-full">
+                    <i class="fa-solid fa-file-zipper"></i>
+                    @T("تنزيل الأرشيف الشامل", "Download Full Archive")
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @* ── Section 3: Change Password Form ─────────────────────────────── *@
+    <div class="clinic-card p-6 mb-5">
+        <div class="flex items-center gap-3 mb-5 pb-3 border-b" style="border-color:var(--clinic-border)">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base"
+                 style="background:rgba(239,68,68,0.12);color:#ef4444">
+                <i class="fa-solid fa-key"></i>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold m-0" style="color:var(--clinic-text)">
+                    @T("تغيير كلمة مرور الحساب الحالي", "Change Account Password")
+                </h3>
+                <p class="text-xs m-0" style="color:var(--clinic-muted)">
+                    @T("تحديث بيانات الأمان وكلمة المرور الخاصة بحساب المسؤول الحالي", "Update security credentials for your currently logged-in admin account")
+                </p>
+            </div>
+        </div>
+
+        <form asp-action="ChangePassword" method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="clinic-label">
+                        @T("كلمة المرور الحالية", "Current Password") <span class="text-rose-500">*</span>
+                    </label>
+                    <input asp-for="CurrentPassword" type="password" class="clinic-input" required />
+                </div>
+
+                <div>
+                    <label class="clinic-label">
+                        @T("كلمة المرور الجديدة", "New Password") <span class="text-rose-500">*</span>
+                    </label>
+                    <input asp-for="NewPassword" type="password" class="clinic-input" minlength="6" required id="newPasswordField" />
+                    @* Strength bar *@
+                    <div class="mt-1.5">
+                        <div class="h-1 rounded-full overflow-hidden" style="background:var(--clinic-border)">
+                            <div id="pwStrengthBar" class="h-full w-0 transition-all duration-300"></div>
+                        </div>
+                        <span id="pwStrengthLabel" class="text-[10px] text-gray-500 mt-0.5 block"></span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="clinic-label">
+                        @T("تأكيد كلمة المرور الجديدة", "Confirm New Password") <span class="text-rose-500">*</span>
+                    </label>
+                    <input asp-for="ConfirmPassword" type="password" class="clinic-input" minlength="6" required />
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button type="submit" class="btn-clinic-primary">
+                    <i class="fa-solid fa-lock"></i>
+                    @T("تحديث كلمة المرور", "Update Password")
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var pwField = document.getElementById("newPasswordField");
+        var bar     = document.getElementById("pwStrengthBar");
+        var label   = document.getElementById("pwStrengthLabel");
+        if (!pwField || !bar || !label) return;
+
+        pwField.addEventListener("input", function () {
+            var pw = this.value;
+            var score = 0;
+            if (pw.length >= 6)  score++;
+            if (pw.length >= 10) score++;
+            if (/[0-9]/.test(pw)) score++;
+            if (/[A-Z]/.test(pw)) score++;
+            if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+            var levels = [
+                { color: "#ef4444", text: "Weak",        pct: "20%" },
+                { color: "#f97316", text: "Fair",        pct: "40%" },
+                { color: "#f59e0b", text: "Good",        pct: "60%" },
+                { color: "#10b981", text: "Strong",      pct: "80%" },
+                { color: "#059669", text: "Very Strong", pct: "100%" },
+            ];
+            var lvl = levels[Math.max(0, score - 1)];
+            bar.style.width      = pw.length ? lvl.pct : "0";
+            bar.style.background = pw.length ? lvl.color : "";
+            label.textContent    = pw.length ? lvl.text : "";
+            label.style.color    = pw.length ? lvl.color : "";
+        });
+    });
+</script>
+}

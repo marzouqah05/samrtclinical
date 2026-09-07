@@ -1,0 +1,115 @@
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("استيراد بيانات الأطباء", "Bulk Import Doctors");
+}
+
+<div class="max-w-3xl mx-auto px-4 py-8" dir="@(_isAr ? "rtl" : "ltr")">
+
+    @* ── Back navigation link ── *@
+    <div class="mb-5">
+        <a asp-action="Index" class="inline-flex items-center gap-2 text-xs font-medium text-[#727A76] dark:text-[#9CA8A3] hover:text-[#202725] dark:hover:text-[#EAEFEA] transition-colors">
+            <i class="fa-solid @(_isAr ? "fa-arrow-right" : "fa-arrow-left")"></i>
+            <span>@T("العودة إلى قائمة الأطباء", "Back to Doctors List")</span>
+        </a>
+    </div>
+
+    @* ── Main Import Card ── *@
+    <div class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+
+        @* Header *@
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-[#49665A]/10 border border-[#49665A]/20 flex items-center justify-center text-[#49665A] shrink-0">
+                <i class="fa-solid fa-file-arrow-up text-base"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-[#202725] dark:text-[#EAEFEA] m-0">
+                    @T("استيراد بيانات الأطباء (Bulk Import)", "Bulk Import Doctors")
+                </h1>
+                <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0 mt-1">
+                    @T("رفع ملف CSV لإضافة وتحديث سجلات الأطباء دفعة واحدة في النظام", "Upload a CSV file to register and update multiple doctors at once in the system")
+                </p>
+            </div>
+        </div>
+
+        @* ─── Notification Alerts ─── *@
+        @if (TempData["Success"] != null)
+        {
+            <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2.5">
+                <i class="fa-solid fa-circle-check text-sm shrink-0"></i>
+                <div><strong>@T("تم بنجاح!", "Success!")</strong> @TempData["Success"]</div>
+            </div>
+        }
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2.5">
+                <i class="fa-solid fa-circle-exclamation text-sm shrink-0"></i>
+                <div><strong>@T("خطأ:", "Error:")</strong> @TempData["Error"]</div>
+            </div>
+        }
+
+        @* ── Sample Template Card ── *@
+        <div class="bg-white dark:bg-[#1B2421] border border-[#D5DDD8] dark:border-[#2B3833] rounded-2xl p-5 flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shrink-0">
+                    <i class="fa-solid fa-file-csv text-xl"></i>
+                </div>
+                <div>
+                    <div class="text-[#1A2621] dark:text-[#EAEFEA] font-bold text-sm">@T("قالب أطباء جاهز", "Sample Template")</div>
+                    <div class="text-[#6B7D75] dark:text-[#9CA8A3] text-xs mt-0.5">@T("تحميل ملف CSV بأعمدة الأطباء المطلوبة وتنسيقها المعتمد", "Download CSV template with doctor headers and correct format")</div>
+                </div>
+            </div>
+            <a asp-action="DownloadTemplate"
+               class="px-3.5 py-2 bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-xs font-semibold rounded-xl flex items-center gap-2 transition shrink-0">
+                <i class="fa-solid fa-download text-xs"></i>
+                <span>@T("تحميل القالب", "Download Template")</span>
+            </a>
+        </div>
+
+        @* ── Required Columns Panel ── *@
+        <div class="bg-[#F8FAF9] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] rounded-xl p-4 text-xs text-[#6B7D75] dark:text-[#9CA8A3]">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="fa-solid fa-circle-info text-[#49665A]"></i>
+                <span class="font-bold text-xs text-[#1A2621] dark:text-[#EAEFEA]">@T("الأعمدة المطلوبة في ملف الـ CSV:", "Required Columns in CSV:")</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div><span class="text-[#1A2621] dark:text-[#EAEFEA] font-semibold">DoctorName:</span> @T("اسم الطبيب (إلزامي، 3-150 حرف)", "Doctor Name (Required, 3-150 chars)")</div>
+                <div><span class="text-[#1A2621] dark:text-[#EAEFEA] font-semibold">Specialization:</span> @T("التخصص الطبي (إلزامي)", "Specialization (Required)")</div>
+                <div><span class="text-[#1A2621] dark:text-[#EAEFEA] font-semibold">ConsultationFee:</span> @T("سعر الكشف (اختياري، رقمي)", "Consultation Fee (Optional, numeric)")</div>
+                <div><span class="text-[#1A2621] dark:text-[#EAEFEA] font-semibold">DepartmentName:</span> @T("اسم القسم (ينشأ تلقائياً إذا لم يتوفر)", "Department Name (auto-created if missing)")</div>
+            </div>
+        </div>
+
+        @* ── Upload Form ── *@
+        <form asp-action="Import" method="post" enctype="multipart/form-data" class="space-y-4">
+            @Html.AntiForgeryToken()
+
+            <div>
+                <label class="block font-bold text-xs text-[#1A2621] dark:text-[#EAEFEA] mb-2">
+                    @T("اختر ملف CSV للرفع:", "Select CSV File to Upload:")
+                </label>
+                <input type="file" name="file" accept=".csv" required
+                       class="w-full text-xs text-[#6B7D75] dark:text-[#9CA8A3]
+                              file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0
+                              file:text-xs file:font-semibold file:bg-[#49665A] file:text-white hover:file:bg-[#3D574D]
+                              bg-[#F8FAF9] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833]
+                              rounded-xl p-2 cursor-pointer focus:outline-none" />
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-[#E5E9E7] dark:border-[#2B3833] mt-6">
+                <a asp-action="Index"
+                   class="px-4 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/20 text-[#6B7D75] hover:text-rose-600 dark:text-[#9CA8A3] dark:hover:text-rose-400 text-xs font-semibold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                    <span>@T("إلغاء", "Cancel")</span>
+                </a>
+                <button type="submit"
+                        class="px-5 py-2 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-upload text-xs"></i>
+                    <span>@T("بدء الاستيراد", "Import Doctors")</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>

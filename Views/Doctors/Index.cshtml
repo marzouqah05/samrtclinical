@@ -1,0 +1,296 @@
+@model IEnumerable<WebApplication1.Models.Doctor>
+@using System.Text.Json
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("إدارة الأطباء", "Doctors Management");
+
+    List<string>? importErrors = null;
+    if (TempData["ImportErrors"] != null)
+    {
+        try
+        {
+            importErrors = JsonSerializer.Deserialize<List<string>>(TempData["ImportErrors"]!.ToString()!);
+        }
+        catch { }
+    }
+}
+
+<style>
+    /* Theme overrides handled via utility classes */
+</style>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" dir="@(_isAr ? "rtl" : "ltr")">
+
+    <!-- الترويسة وأزرار العمليات المجمعة -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+            <h2 class="text-[#202725] dark:text-[#EAEFEA] font-bold text-xl m-0 flex items-center gap-2">
+                <i class="fa-solid fa-user-doctor text-[#49665A]"></i>
+                <span>@T("إدارة الأطباء", "Doctors Management")</span>
+            </h2>
+            <p class="text-[#727A76] dark:text-[#9CA8A3] text-xs m-0 mt-1">@T("عرض وبحث وإدارة أطباء العيادة وتخصصاتهم واستيراد الملفات", "View, search, and manage clinic physicians, specialties, and bulk files")</p>
+        </div>
+        <div class="flex items-center gap-2.5 flex-wrap">
+            <!-- 📥 Import Doctors Button -->
+            <button type="button" class="bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#importDoctorsModal" title="@T("استيراد بيانات الأطباء من CSV", "Bulk import doctors from CSV")">
+                <i class="fa-solid fa-file-import text-[#49665A]"></i>
+                <span>@T("استيراد أطباء", "Import Doctors")</span>
+            </button>
+
+            <!-- 📤 Export Doctors Button -->
+            <a asp-action="Export" class="bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-2 shadow-sm" title="@T("تصدير جميع الأطباء إلى CSV", "Export all doctors to CSV")">
+                <i class="fa-solid fa-file-excel text-emerald-500"></i>
+                <span>@T("تصدير CSV", "Export to CSV")</span>
+            </a>
+
+            <!-- ➕ Add Doctor Button -->
+            <a asp-action="Create" class="px-4 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl transition flex items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span>@T("إضافة طبيب جديد", "Add New Doctor")</span>
+            </a>
+        </div>
+    </div>
+
+    @* ─── Notification Alerts ─── *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-xl shadow-sm border-0 d-flex align-items-center mb-4 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" role="alert">
+            <i class="fa-solid fa-circle-check fs-5 @(_isAr ? "ms-3" : "me-3") text-emerald-600 dark:text-emerald-400"></i>
+            <div class="text-xs">
+                <strong>@T("تم بنجاح!", "Success!")</strong> @TempData["Success"]
+            </div>
+            <button type="button" class="btn-close dark:invert @(_isAr ? "me-auto ms-0" : "ms-auto me-0")" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Warning"] != null)
+    {
+        <div class="alert alert-warning alert-dismissible fade show rounded-xl shadow-sm border-0 d-flex align-items-center mb-4 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" role="alert">
+            <i class="fa-solid fa-triangle-exclamation fs-5 @(_isAr ? "ms-3" : "me-3") text-amber-600 dark:text-amber-400"></i>
+            <div class="text-xs">
+                <strong>@T("تنبيه:", "Notice:")</strong> @TempData["Warning"]
+            </div>
+            <button type="button" class="btn-close dark:invert @(_isAr ? "me-auto ms-0" : "ms-auto me-0")" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-xl shadow-sm border-0 d-flex align-items-center mb-4 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" role="alert">
+            <i class="fa-solid fa-circle-exclamation fs-5 @(_isAr ? "ms-3" : "me-3") text-rose-600 dark:text-rose-400"></i>
+            <div class="text-xs">
+                <strong>@T("خطأ:", "Error:")</strong> @TempData["Error"]
+            </div>
+            <button type="button" class="btn-close dark:invert @(_isAr ? "me-auto ms-0" : "ms-auto me-0")" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @* ─── Detailed Import Error Log (if any rows were skipped) ─── *@
+    @if (importErrors != null && importErrors.Any())
+    {
+        <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] rounded-2xl shadow-sm p-4 mb-4 border-s-4 border-s-amber-400">
+            <div class="d-flex justify-content-between align-items-center cursor-pointer" data-bs-toggle="collapse" data-bs-target="#doctorImportErrorsCollapse" style="cursor: pointer;">
+                <div class="font-bold text-xs text-[#1A2621] dark:text-[#EAEFEA] d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-list-check text-amber-500"></i>
+                    <span>@T("تفاصيل الصفوف المستبعدة أثناء استيراد الأطباء", "Details of Skipped Rows During Import") (@importErrors.Count)</span>
+                </div>
+                <span class="px-2.5 py-1 rounded-lg text-[11px] bg-[#F4F7F5] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] text-[#6B7D75] dark:text-[#9CA8A3]">@T("اضغط للتفاصيل", "Click to view") <i class="fa-solid fa-chevron-down ms-1"></i></span>
+            </div>
+            <div class="collapse mt-3" id="doctorImportErrorsCollapse">
+                <ul class="list-group list-group-flush small" style="max-height: 220px; overflow-y: auto;">
+                    @foreach (var err in importErrors)
+                    {
+                        <li class="list-group-item bg-transparent text-rose-600 dark:text-rose-400 px-0 py-1 d-flex align-items-start gap-2 border-b border-[#E5E9E7] dark:border-[#2B3833]">
+                            <i class="fa-solid fa-circle-xmark mt-1 text-xs"></i>
+                            <span class="text-xs">@err</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+
+    <!-- شريط البحث -->
+    <form method="get" class="flex items-center gap-2 max-w-md w-full mb-6">
+        <div class="relative flex-1">
+            <i class="fa-solid fa-magnifying-glass absolute start-3.5 top-1/2 -translate-y-1/2 text-xs text-[#8A9992] dark:text-[#727A76]"></i>
+            <input type="text" name="search" value="@ViewContext.HttpContext.Request.Query["search"]"
+                   placeholder="@T("ابحث بالاسم أو التخصص أو القسم...", "Search by name, specialization, department...")" 
+                   class="w-full ps-9 pe-4 py-2.5 text-xs bg-[#F8FAF9] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] rounded-xl text-[#1A2621] dark:text-[#EAEFEA] placeholder-[#8A9992] dark:placeholder-[#727A76] focus:outline-none focus:ring-1 focus:ring-[#49665A]" />
+        </div>
+        <button type="submit" class="px-4 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shrink-0">
+            <i class="fa-solid fa-magnifying-glass text-[10px]"></i>
+            <span>@T("بحث", "Search")</span>
+        </button>
+    </form>
+
+    <!-- جدول الأطباء -->
+    <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] rounded-2xl shadow-sm overflow-hidden w-full">
+        <div class="overflow-x-auto">
+            <table class="w-full text-start text-xs table-auto border-collapse">
+                <thead>
+                    <tr class="bg-[#F4F7F5] dark:bg-[#151E1B] border-b border-[#E5E9E7] dark:border-[#2B3833] text-[11px] uppercase tracking-wider text-[#5C6E66] dark:text-[#9CA8A3] font-semibold">
+                        <th class="ps-6 text-start w-[32%] py-3.5">@T("اسم الطبيب", "Doctor Name")</th>
+                        <th class="text-start w-[28%] py-3.5">@T("التخصص", "Specialization")</th>
+                        <th class="text-start w-[20%] py-3.5">@T("القسم", "Department")</th>
+                        <th class="pe-6 text-end w-[20%] py-3.5">@T("الإجراءات", "Actions")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr class="border-b border-[#E5E9E7] dark:border-[#2B3833] hover:bg-[#F9FBFA] dark:hover:bg-white/[0.02] transition">
+                                <!-- قسم الاسم مع أيكون دكتور مصغر تفاعلي -->
+                                <td class="ps-6 py-3.5">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-xl bg-[#49665A]/10 border border-[#49665A]/20 text-[#49665A] flex items-center justify-center shrink-0">
+                                            <i class="fa-solid fa-user-doctor text-xs"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-[#1A2621] dark:text-[#EAEFEA] font-semibold text-xs">Dr. @item.DoctorName</div>
+                                            <div class="text-[#6B7D75] dark:text-[#9CA8A3] text-[10px]">ID: #@item.DoctorNumber</div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- التخصص -->
+                                <td class="py-3.5 text-[#1A2621] dark:text-[#EAEFEA] text-xs font-medium">
+                                    @item.Specialization
+                                </td>
+
+                                <!-- القسم -->
+                                <td class="py-3.5">
+                                    @if (item.Department != null)
+                                    {
+                                        <span class="px-2.5 py-1 rounded-full bg-[#F4F7F5] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] text-[#5C6E66] dark:text-[#9CA8A3] text-[11px] font-medium inline-flex items-center gap-1.5">
+                                            <i class="fa-solid fa-building-medical text-[10px] text-[#49665A]"></i>
+                                            <span>@item.Department.DepartmentName</span>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="px-2.5 py-1 rounded-full bg-[#F4F7F5] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] text-[#6B7D75] dark:text-[#727A76] text-[11px] font-medium inline-flex items-center gap-1.5">
+                                            @T("غير مخصص", "Unassigned")
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- أزرار التحكم -->
+                                <td class="py-3.5 text-end">
+                                    <div class="flex items-center justify-end gap-1.5 pe-6">
+                                        <a asp-action="Edit" asp-route-id="@item.DoctorId"
+                                           class="px-2.5 py-1 rounded-lg text-xs bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] flex items-center gap-1.5 transition"
+                                           title="@T("تعديل", "Edit")">
+                                            <i class="fa-solid fa-pen text-[10px] text-[#49665A]"></i>
+                                            <span>@T("تعديل", "Edit")</span>
+                                        </a>
+                                        <a asp-action="Details" asp-route-id="@item.DoctorId"
+                                           class="px-2.5 py-1 rounded-lg text-xs bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] flex items-center gap-1.5 transition"
+                                           title="@T("تفاصيل", "Details")">
+                                            <i class="fa-solid fa-circle-info text-[10px] text-[#49665A]"></i>
+                                            <span>@T("تفاصيل", "Details")</span>
+                                        </a>
+
+                                        <form asp-action="Delete" asp-route-id="@item.DoctorId" method="post" class="inline m-0">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit"
+                                                    class="w-7 h-7 flex items-center justify-center rounded-lg border border-rose-300 dark:border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs transition"
+                                                    onclick="return confirm('@T("هل أنت متأكد من حذف الدكتور بشكل نهائي?", "Are you sure you want to permanently delete Dr. " + item.DoctorName + "?")');" title="@T("حذف", "Delete")">
+                                                <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center text-[#6B7D75] dark:text-[#9CA8A3] py-12">
+                                <i class="fa-solid fa-user-slash text-3xl d-block mb-3 opacity-40"></i>
+                                <span class="text-xs">@T("لا يوجد أطباء مطابقون لمعايير البحث.", "No doctor records matched your search criteria.")</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+@* ─── 📥 Import Doctors Modal ─── *@
+<div class="modal fade" id="importDoctorsModal" tabindex="-1" aria-labelledby="importDoctorsModalLabel" aria-hidden="true" dir="@(_isAr ? "rtl" : "ltr")">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-2xl rounded-2xl bg-white dark:bg-[#1B2421] dark:border dark:border-[#2B3833]">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-xl bg-[#49665A]/10 p-2 d-flex align-items-center justify-content-center text-[#49665A]" style="width: 40px; height: 40px;">
+                        <i class="fa-solid fa-file-arrow-up fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title font-bold text-sm text-[#1A2621] dark:text-[#EAEFEA] m-0" id="importDoctorsModalLabel">@T("استيراد بيانات الأطباء (Bulk Import)", "Bulk Import Doctors")</h5>
+                        <p class="text-[#6B7D75] dark:text-[#9CA8A3] text-xs m-0">@T("رفع ملف CSV لإضافة الأطباء وتخصصاتهم دفعة واحدة", "Upload CSV to register multiple doctors at once")</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close dark:invert dark:opacity-60" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form asp-action="Import" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-body py-4 space-y-4">
+
+                    <!-- Template Download Link Box -->
+                    <div class="bg-white dark:bg-[#1B2421] border border-[#D5DDD8] dark:border-[#2B3833] rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-file-csv text-3xl text-emerald-500"></i>
+                            <div>
+                                <div class="text-[#1A2621] dark:text-[#EAEFEA] font-bold text-sm">@T("قالب أطباء جاهز", "Sample Template")</div>
+                                <div class="text-[#6B7D75] dark:text-[#9CA8A3] text-xs mt-0.5">@T("تحميل ملف CSV بأعمدة الأطباء المطلوبة", "Download CSV template with doctor headers")</div>
+                            </div>
+                        </div>
+                        <a asp-action="DownloadTemplate" class="px-3.5 py-2 bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-xs font-semibold rounded-xl flex items-center gap-2 transition shrink-0">
+                            <i class="fa-solid fa-download"></i>
+                            <span>@T("تحميل القالب", "Download Template")</span>
+                        </a>
+                    </div>
+
+                    <!-- File Selector -->
+                    <div>
+                        <label class="block font-bold text-xs text-[#1A2621] dark:text-[#EAEFEA] mb-2">@T("اختر ملف CSV:", "Select CSV File:")</label>
+                        <input type="file" name="file" class="w-full text-xs text-[#6B7D75] dark:text-[#9CA8A3] file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#49665A] file:text-white hover:file:bg-[#3D574D] bg-[#F8FAF9] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] rounded-xl p-2 cursor-pointer" accept=".csv" required />
+                    </div>
+
+                    <!-- Hints / Required Columns Panel -->
+                    <div class="bg-[#F8FAF9] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] rounded-xl p-4 text-xs text-[#6B7D75] dark:text-[#9CA8A3]">
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="fa-solid fa-circle-info text-[#49665A]"></i>
+                            <span class="font-bold text-xs text-[#1A2621] dark:text-[#EAEFEA]">@T("الأعمدة المطلوبة:", "Required Columns:")</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                            <div><span class="text-[#1A2621] dark:text-[#EAEFEA] font-semibold">DoctorName:</span> @T("اسم الطبيب (3 - 150 حرفاً)", "Doctor Name (3 - 150 chars)")</div>
+                            <div><span class="text-[#1A2621] dark:text-[#EAEFEA] font-semibold">Specialization:</span> @T("التخصص (مثل Cardiology)", "Specialization (e.g. Cardiology)")</div>
+                            <div><span class="text-[#1A2621] dark:text-[#EAEFEA] font-semibold">ConsultationFee:</span> @T("سعر الكشف (اختياري)", "Consultation Fee (Optional)")</div>
+                            <div><span class="text-[#1A2621] dark:text-[#EAEFEA] font-semibold">DepartmentName:</span> @T("اسم القسم (تلقائي إن لم يتوفر)", "Department name (auto-created)")</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-[#E5E9E7] dark:border-[#2B3833] mt-6 px-6 pb-6">
+                    <button type="button" class="px-4 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/20 text-[#6B7D75] hover:text-rose-600 dark:text-[#9CA8A3] dark:hover:text-rose-400 text-xs font-semibold transition flex items-center gap-1.5" data-bs-dismiss="modal">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                        <span>@T("إلغاء", "Cancel")</span>
+                    </button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-upload text-xs"></i>
+                        <span>@T("بدء الاستيراد", "Import Doctors")</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

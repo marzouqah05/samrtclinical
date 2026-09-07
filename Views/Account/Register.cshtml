@@ -1,0 +1,292 @@
+@using System.Globalization
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    Func<string, string, string> T = (ar, en) => _isAr ? ar : en;
+    ViewData["Title"] = T("إضافة مستخدم جديد للنظام", "Add New System User");
+
+    // Build a safe doctors JSON for the JS auto-fill logic
+    var doctors = ViewBag.Doctors as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+}
+
+<div class="container-fluid py-3" dir="@(_isAr ? "rtl" : "ltr")">
+    <div class="clinic-card max-w-2xl mx-auto p-6 md:p-8">
+
+        @* Header *@
+        <div class="flex items-center gap-3 mb-6 pb-4 border-b" style="border-color:var(--clinic-border)">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                 style="background:rgba(73,102,90,0.12);color:var(--clinic-primary)">
+                <i class="fa-solid fa-user-plus"></i>
+            </div>
+            <div>
+                <h2 class="text-base font-bold m-0" style="color:var(--clinic-text)">
+                    @T("إضافة موظف / مستخدم جديد للنظام", "Add New System User")
+                </h2>
+                <p class="text-xs m-0 mt-0.5" style="color:var(--clinic-muted)">
+                    @T("إنشاء حسابات تسجيل دخول جديدة للأطباء، موظفي الاستقبال، والمسؤولين",
+                       "Create login accounts with designated roles for doctors, receptionists, and admins")
+                </p>
+            </div>
+        </div>
+
+        @* ── Alerts ── *@
+        @if (ViewBag.Success != null)
+        {
+            <div class="mb-4 p-3 rounded-lg border flex items-center gap-3 text-xs font-medium" 
+                 style="background:var(--clinic-emerald-bg);border-color:rgba(46,125,91,0.25);color:var(--clinic-emerald-text);" id="successAlert">
+                <i class="fa-solid fa-circle-check text-sm flex-shrink-0"></i>
+                <span>@ViewBag.Success</span>
+            </div>
+        }
+        @if (ViewBag.Error != null)
+        {
+            <div class="mb-4 p-3 rounded-lg border flex items-center gap-3 text-xs font-medium" 
+                 style="background:var(--clinic-rose-bg);border-color:rgba(184,58,56,0.25);color:var(--clinic-rose-text);">
+                <i class="fa-solid fa-circle-exclamation text-sm flex-shrink-0"></i>
+                <span>@ViewBag.Error</span>
+            </div>
+        }
+
+        <form asp-controller="Account" asp-action="Register" method="post" id="registerForm">
+            @Html.AntiForgeryToken()
+
+            @* ── Role Selection ── *@
+            <div class="mb-4">
+                <label for="role" class="clinic-label">
+                    @T("الدور والصلاحية", "Assigned Role") <span class="text-rose-500">*</span>
+                </label>
+                <select class="clinic-input" id="role" name="role" required>
+                    <option value="" disabled selected>@T("اختر صلاحية الحساب...", "Select system role...")</option>
+                    <option value="Admin">@T("مدير النظام (Admin)", "System Administrator (Admin)")</option>
+                    <option value="Doctor">@T("طبيب ممارس (Doctor)", "Doctor (Doctor)")</option>
+                    <option value="Receptionist">@T("موظف استقبال (Receptionist)", "Receptionist (Receptionist)")</option>
+                </select>
+            </div>
+
+            @* ── Doctor selection panel ── *@
+            <div id="doctorPanel" class="hidden p-4 rounded-xl border mb-4"
+                 style="background:var(--clinic-bg);border-color:var(--clinic-border)">
+                <div class="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5" style="color:var(--clinic-primary)">
+                    <i class="fa-solid fa-user-doctor"></i>
+                    @T("اختر الطبيب من السجلات المسجلة مسبقاً", "Select registered doctor profile")
+                </div>
+                <select class="clinic-input mb-2" id="doctorSelect">
+                    <option value="">@T("-- اختر طبيباً --", "-- Choose a doctor --")</option>
+                    @foreach (var d in doctors)
+                    {
+                        <option value="@d.DoctorId" data-name="@d.DoctorName" data-spec="@d.Specialization">
+                            @d.DoctorName — @d.Specialization
+                        </option>
+                    }
+                </select>
+                <input type="hidden" id="doctorId" name="doctorId" />
+                <div id="selectedDoctorPill" class="hidden mt-2 p-2 rounded-lg text-xs font-medium items-center gap-2"
+                     style="background:var(--clinic-emerald-bg);border:1px solid rgba(46,125,91,0.25);color:var(--clinic-emerald-text)">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span id="selectedDoctorName"></span>
+                </div>
+                <p class="text-[11px] mt-2 mb-0" style="color:var(--clinic-muted)">
+                    @T("سيتم ربط حساب تسجيل الدخول الجديد بسجل هذا الطبيب في قاعدة البيانات تلقائياً.",
+                       "The new login credentials will be attached to this doctor's medical records.")
+                </p>
+            </div>
+
+            @* ── Username + Email (2 cols) ── *@
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="username" class="clinic-label">
+                        @T("اسم المستخدم للدخول", "Username") <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" class="clinic-input" id="username" name="username"
+                           placeholder="@T("مثال: dr_ahmed", "e.g. dr_ahmed")"
+                           required autocomplete="username" />
+                    <p class="text-[11px] mt-1 mb-0" style="color:var(--clinic-muted)">
+                        @T("يستخدم لتسجيل الدخول بالنظام.", "Used for system authentication.")
+                    </p>
+                </div>
+                <div>
+                    <label for="email" class="clinic-label">
+                        @T("البريد الإلكتروني", "Email Address")
+                    </label>
+                    <input type="email" class="clinic-input" id="email" name="email"
+                           placeholder="ahmed@@clinic.com"
+                           autocomplete="email" />
+                </div>
+            </div>
+
+            @* ── Password ── *@
+            <div class="mb-6">
+                <label for="password" class="clinic-label">
+                    @T("كلمة المرور", "Password") <span class="text-rose-500">*</span>
+                </label>
+                <div class="relative">
+                    <input type="password" class="clinic-input pr-10" id="password" name="password"
+                           placeholder="@T("6 خانات على الأقل مع رقم", "Min 6 chars with a digit")"
+                           required autocomplete="new-password" />
+                    <button type="button" id="togglePwd"
+                            class="absolute inset-y-0 end-0 px-3 flex items-center text-xs"
+                            style="color:var(--clinic-muted)"
+                            title="@T("إظهار/إخفاء كلمة المرور", "Toggle password visibility")">
+                        <i class="fa-solid fa-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
+                <p class="text-[11px] mt-1 mb-0" style="color:var(--clinic-muted)">
+                    @T("يجب أن تتكون من 6 خانات على الأقل وتحتوي على رقم واحد.", "Must be at least 6 characters with at least one digit.")
+                </p>
+            </div>
+
+            <hr class="clinic-divider" />
+
+            <div class="flex items-center justify-end gap-3 flex-wrap">
+                <a asp-controller="Account" asp-action="StaffList" class="btn-clinic-secondary">
+                    <i class="fa-solid fa-xmark"></i>
+                    @T("إلغاء", "Cancel")
+                </a>
+                <button type="submit" class="btn-clinic-primary">
+                    <i class="fa-solid fa-user-check"></i>
+                    @T("إنشاء الحساب وتفعيله", "Create & Activate Account")
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    'use strict';
+
+    const isAr         = @(_isAr ? "true" : "false");
+    const roleSelect   = document.getElementById('role');
+    const doctorPanel  = document.getElementById('doctorPanel');
+    const doctorSelect = document.getElementById('doctorSelect');
+    const doctorIdHid  = document.getElementById('doctorId');
+    const usernameInp  = document.getElementById('username');
+    const emailInp     = document.getElementById('email');
+    const pillBox      = document.getElementById('selectedDoctorPill');
+    const pillName     = document.getElementById('selectedDoctorName');
+    const togglePwd    = document.getElementById('togglePwd');
+    const eyeIcon      = document.getElementById('eyeIcon');
+    const pwdInp       = document.getElementById('password');
+    const successAlert = document.getElementById('successAlert');
+
+    // ── Auto-dismiss success alert after 6s ───────────────────────────────────
+    if (successAlert) {
+        setTimeout(() => {
+            successAlert.style.transition = 'opacity .5s';
+            successAlert.style.opacity = '0';
+            setTimeout(() => successAlert.remove(), 500);
+        }, 6000);
+    }
+
+    // ── Password toggle ───────────────────────────────────────────────────────
+    if (togglePwd) {
+        togglePwd.addEventListener('click', () => {
+            const show = pwdInp.type === 'password';
+            pwdInp.type = show ? 'text' : 'password';
+            eyeIcon.className = show ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+        });
+    }
+
+    // ── Role change: toggle Doctor panel ─────────────────────────────────────
+    let isEmailManual = false;
+    emailInp.addEventListener('input', () => { isEmailManual = emailInp.value.trim() !== ''; });
+
+    function onRoleChange() {
+        const role = roleSelect.value;
+
+        if (role === 'Doctor') {
+            doctorPanel.classList.remove('hidden');
+            // Clear manual username/email when switching to Doctor mode
+            usernameInp.value = '';
+            emailInp.value    = '';
+            isEmailManual     = false;
+        } else {
+            doctorPanel.classList.add('hidden');
+            // Clear any doctor-linked state
+            doctorSelect.value = '';
+            doctorIdHid.value  = '';
+            pillBox.classList.add('hidden');
+            // Auto-suggest email for non-Doctor roles
+            autoSuggestEmail(role);
+        }
+    }
+
+    roleSelect.addEventListener('change', onRoleChange);
+
+    // ── Doctor selected from dropdown: auto-fill username + email ─────────────
+    function onDoctorSelected() {
+        const opt = doctorSelect.options[doctorSelect.selectedIndex];
+        if (!opt || !opt.value) {
+            doctorIdHid.value = '';
+            pillBox.classList.add('hidden');
+            return;
+        }
+
+        const id   = opt.value;
+        const name = opt.getAttribute('data-name') || '';
+        const spec = opt.getAttribute('data-spec') || '';
+
+        // Bind hidden field
+        doctorIdHid.value = id;
+
+        // Generate a clean slug from the doctor's name
+        const slug = name
+            .toLowerCase()
+            .replace(/\s+/g, '.')
+            .replace(/[^\w.]/g, '');
+
+        usernameInp.value = 'dr.' + slug;
+
+        if (!isEmailManual) {
+            emailInp.value = 'dr.' + slug + '@@medicare.com';
+        }
+
+        // Show confirmation pill
+        pillBox.classList.remove('hidden');
+        pillBox.classList.add('flex');
+        pillName.textContent = isAr
+            ? `تم اختيار: ${name} — ${spec}`
+            : `Selected: ${name} — ${spec}`;
+    }
+
+    doctorSelect.addEventListener('change', onDoctorSelected);
+
+    // ── Auto email suggestion for non-Doctor roles ────────────────────────────
+    function autoSuggestEmail(role) {
+        const username = usernameInp.value.trim().toLowerCase().replace(/\s+/g, '.');
+        let prefix = role === 'Admin' ? 'admin.' : role === 'Receptionist' ? 'rec.' : '';
+
+        emailInp.placeholder = username
+            ? `${prefix}${username}@@medicare.com`
+            : `${prefix || 'user.'}name@@medicare.com`;
+
+        if (!isEmailManual && username)
+            emailInp.value = `${prefix}${username}@@medicare.com`;
+    }
+
+    usernameInp.addEventListener('input', () => {
+        if (roleSelect.value !== 'Doctor') autoSuggestEmail(roleSelect.value);
+    });
+
+    // ── Form submit guard: ensure Doctor has doctor selected ─────────────────
+    document.getElementById('registerForm').addEventListener('submit', function (e) {
+        if (roleSelect.value === 'Doctor' && !doctorIdHid.value) {
+            e.preventDefault();
+            const msg = isAr
+                ? 'الرجاء اختيار طبيب من القائمة أولاً.'
+                : 'Please select a doctor from the list first.';
+            let err = document.getElementById('doctorValidationMsg');
+            if (!err) {
+                err = document.createElement('div');
+                err.id = 'doctorValidationMsg';
+                err.style.cssText = 'color:#f87171;font-size:12px;margin-top:6px;';
+                doctorPanel.appendChild(err);
+            }
+            err.textContent = msg;
+            doctorSelect.focus();
+        }
+    });
+})();
+</script>
+}

@@ -1,0 +1,263 @@
+@model WebApplication1.Models.Appointment
+@using System.Globalization
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("تفاصيل الموعد", "Appointment Details");
+
+    var status = "";
+    var badgeClass = "";
+
+    if (Model.AppointmentDate.Date == DateTime.Today)
+    {
+        status = T("اليوم", "Today");
+        badgeClass = "bg-[#49665A]/10 text-[#49665A]";
+    }
+    else if (Model.AppointmentDate.Date > DateTime.Today)
+    {
+        status = T("قادم", "Upcoming");
+        badgeClass = "bg-[#FDF6EC] text-[#B47318]";
+    }
+    else
+    {
+        status = T("مكتمل", "Completed");
+        badgeClass = "bg-[#EAF5F0] text-[#2E7D5B]";
+    }
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="flex items-start gap-3 bg-[#EAF5F0] border border-[#2E7D5B]/20 rounded-xl p-4 mb-5">
+        <i class="fa-solid fa-circle-check text-[#2E7D5B] text-base mt-0.5 shrink-0"></i>
+        <span class="text-sm text-[#2E7D5B]">@TempData["Success"]</span>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="flex items-start gap-3 bg-[#FCEEEE] border border-[#B83A38]/20 rounded-xl p-4 mb-5">
+        <i class="fa-solid fa-circle-exclamation text-[#B83A38] text-base mt-0.5 shrink-0"></i>
+        <span class="text-sm text-[#B83A38]">@TempData["Error"]</span>
+    </div>
+}
+
+<div dir="@(_isAr ? "rtl" : "ltr")" class="space-y-5">
+
+    <!-- ── Page Header ── -->
+    <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+            <h2 class="text-lg font-bold text-[#202725] m-0 flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-sm shrink-0">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </span>
+                @T("تفاصيل الموعد", "Appointment Details")
+            </h2>
+            <p class="text-xs text-[#727A76] m-0 mt-1 ms-10">@T("جدولة المواعيد ومعلومات إدارة المرضى.", "Appointment scheduling and patient management information.")</p>
+        </div>
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold @badgeClass">@status</span>
+    </div>
+
+    <!-- ── Main Grid ── -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+        <!-- Left — Appointment Info (2/3 width) -->
+        <div class="lg:col-span-2 space-y-5">
+
+            <!-- Doctor & Patient Card -->
+            <div class="bg-white rounded-xl border border-[#DDE3DF] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
+                <div class="px-6 py-4 border-b border-[#DDE3DF] bg-[#F6F7F5]">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-[#727A76]">@T("معلومات الموعد", "Appointment Information")</span>
+                </div>
+                <div class="p-6 space-y-5">
+
+                    <!-- Doctor Row -->
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-[#EAF5F0] text-[#2E7D5B] flex items-center justify-center text-lg font-bold shrink-0">
+                            @(Model.Doctor?.DoctorName?.Substring(0, 1).ToUpper() ?? "D")
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-[#202725] m-0">@(_isAr ? "د." : "Dr.") @Model.Doctor?.DoctorName</p>
+                            <p class="text-xs text-[#727A76] m-0">@T("الطبيب المعيّن", "Assigned Doctor")</p>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-[#DDE3DF]"></div>
+
+                    <!-- Patient Row -->
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-lg font-bold shrink-0">
+                            @(Model.Patient?.PatientName?.Substring(0, 1).ToUpper() ?? "P")
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-[#202725] m-0">@Model.Patient?.PatientName</p>
+                            <p class="text-xs text-[#727A76] m-0">@T("مريض مسجّل", "Registered Patient")</p>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-[#DDE3DF]"></div>
+
+                    <!-- Date / ID / Time Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                        <div>
+                            <p class="text-xs font-medium text-[#727A76] uppercase tracking-wider mb-1">@T("تاريخ الموعد", "Appointment Date")</p>
+                            <p class="text-sm font-semibold text-[#202725]">@Model.AppointmentDate.ToString("dd MMMM yyyy")</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-[#727A76] uppercase tracking-wider mb-1">@T("معرّف الموعد", "Appointment ID")</p>
+                            <p class="text-sm font-semibold text-[#202725] font-mono">#@Model.AppointmentId</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-[#727A76] uppercase tracking-wider mb-1">@T("وقت الموعد", "Appointment Time")</p>
+                            <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-[#49665A]/10 text-[#49665A] rounded-lg text-sm font-bold font-mono">
+                                <i class="fa-solid fa-clock text-xs"></i>
+                                @Model.AppointmentTime.ToString(@"hh\:mm")
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap gap-3">
+                <a asp-action="Edit" asp-route-id="@Model.AppointmentId"
+                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
+                    <i class="fa-solid fa-pen text-xs"></i>
+                    @T("تعديل الموعد", "Edit Appointment")
+                </a>
+
+                <!-- Send WhatsApp Reminder -->
+                <form asp-action="SendQuickWhatsApp" method="post" style="display:inline;">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id"   value="@Model.AppointmentId" />
+                    <input type="hidden" name="type" value="reminder" />
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#EAF5F0] hover:bg-[#2E7D5B]/20 text-[#2E7D5B] border border-[#2E7D5B]/20 text-sm font-medium rounded-lg transition-colors">
+                        <i class="fa-brands fa-whatsapp"></i>
+                        @T("إرسال تذكير واتسآب", "Send WhatsApp Reminder")
+                    </button>
+                </form>
+
+                <!-- Send Follow-up & Doctor Link -->
+                <form asp-action="SendQuickWhatsApp" method="post" style="display:inline;">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id"   value="@Model.AppointmentId" />
+                    <input type="hidden" name="type" value="followup" />
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-[#DDE3DF] hover:bg-[#F6F7F5] text-[#727A76] text-sm font-medium rounded-lg transition-colors">
+                        <i class="fa-solid fa-link text-xs"></i>
+                        @T("متابعة ورابط الطبيب", "Send Follow-up & Doctor Link")
+                    </button>
+                </form>
+
+                <a asp-action="Index"
+                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-[#DDE3DF] hover:bg-[#F6F7F5] text-[#727A76] text-sm font-medium rounded-lg transition-colors">
+                    <i class="fa-solid fa-arrow-left text-xs"></i>
+                    @T("رجوع", "Back")
+                </a>
+            </div>
+        </div>
+
+        <!-- Right — Timeline + WhatsApp Status (1/3 width) -->
+        <div class="space-y-4">
+
+            <!-- Timeline Card -->
+            <div class="bg-white rounded-xl border border-[#DDE3DF] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
+                <div class="px-5 py-4 border-b border-[#DDE3DF] bg-[#F6F7F5]">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-[#727A76]">@T("جدول الموعد الزمني", "Appointment Timeline")</span>
+                </div>
+                <div class="p-5 space-y-4">
+
+                    <!-- Created -->
+                    <div class="flex gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-sm shrink-0">
+                            <i class="fa-solid fa-calendar-plus"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-[#202725] m-0">@T("تم إنشاء الموعد", "Appointment Created")</p>
+                            <p class="text-xs text-[#727A76] m-0 mt-0.5">@T("تمت جدولة الموعد بنجاح.", "Appointment has been successfully scheduled.")</p>
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="flex gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-[#FDF6EC] text-[#B47318] flex items-center justify-center text-sm shrink-0">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-[#202725] m-0">@T("الحالة الحالية", "Current Status")</p>
+                            <p class="text-xs text-[#727A76] m-0 mt-0.5">@status @T("موعد", "Appointment")</p>
+                        </div>
+                    </div>
+
+                    <!-- Doctor -->
+                    <div class="flex gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-[#EAF5F0] text-[#2E7D5B] flex items-center justify-center text-sm shrink-0">
+                            <i class="fa-solid fa-user-doctor"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-[#202725] m-0">@T("الطبيب المعيّن", "Assigned Doctor")</p>
+                            <p class="text-xs text-[#727A76] m-0 mt-0.5">@(_isAr ? "د." : "Dr.") @Model.Doctor?.DoctorName</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- WhatsApp Notifications Card -->
+            <div class="bg-white rounded-xl border border-[#DDE3DF] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
+                <div class="px-5 py-4 border-b border-[#DDE3DF] bg-[#F6F7F5] flex items-center gap-2">
+                    <i class="fa-brands fa-whatsapp text-[#2E7D5B] text-sm"></i>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-[#727A76]">@T("حالة إشعارات واتسآب", "WhatsApp Notifications")</span>
+                </div>
+                <div class="p-5 space-y-3">
+
+                    <!-- Reminder badge -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-[#727A76]">@T("تذكير", "Reminder")</span>
+                        @if (Model.IsReminderSent)
+                        {
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]">
+                                <i class="fa-solid fa-check text-[9px]"></i> @T("تم الإرسال", "Sent")
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#F6F7F5] text-[#727A76]">
+                                <i class="fa-solid fa-clock text-[9px]"></i> @T("لم يُرسل", "Not Sent")
+                            </span>
+                        }
+                    </div>
+
+                    <!-- Follow-up badge -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-[#727A76]">@T("متابعة", "Follow-up")</span>
+                        @if (Model.IsFollowUpSent)
+                        {
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]">
+                                <i class="fa-solid fa-check text-[9px]"></i> @T("تم الإرسال", "Sent")
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#F6F7F5] text-[#727A76]">
+                                <i class="fa-solid fa-clock text-[9px]"></i> @T("لم يُرسل", "Not Sent")
+                            </span>
+                        }
+                    </div>
+
+                    @if (Model.IsFollowUpSent && Model.FollowUpSentAt.HasValue)
+                    {
+                        <div class="pt-2 border-t border-[#DDE3DF]">
+                            <p class="text-[11px] text-[#727A76] m-0">
+                                @T("أُرسلت في", "Sent at") @Model.FollowUpSentAt.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                            </p>
+                        </div>
+                    }
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

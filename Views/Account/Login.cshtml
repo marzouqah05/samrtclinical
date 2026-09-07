@@ -1,0 +1,539 @@
+@using System.Globalization
+@{
+    Layout = null;
+    var _culture = CultureInfo.CurrentCulture;
+    var _isRtl   = _culture.TextInfo.IsRightToLeft;
+    var _lang    = _culture.TwoLetterISOLanguageName;
+    var _isAr    = _lang == "ar";
+    Func<string, string, string> T = (ar, en) => _isAr ? ar : en;
+}
+<!DOCTYPE html>
+<html lang="@_lang" dir="@(_isRtl ? "rtl" : "ltr")">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@T("تسجيل الدخول - ClinicFlow", "Sign In - ClinicFlow Clinical OS")</title>
+    
+    <!-- Google Fonts: IBM Plex Sans Arabic & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        :root {
+            --font-family: 'IBM Plex Sans Arabic', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --cf-teal-dark: #006a63;
+            --cf-teal-hover: #00504a;
+            --cf-teal-light: #9cf2e8;
+            --cf-teal-subtle: #80d5cb;
+            --cf-blue: #006194;
+            --cf-text-main: #0F172A;
+            --cf-text-muted: #64748B;
+            --cf-border: #E2E8F0;
+            --cf-bg: #F8FAFC;
+        }
+
+        body {
+            font-family: var(--font-family) !important;
+            background-color: var(--cf-bg);
+            color: var(--cf-text-main);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: stretch;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .auth-container {
+            display: flex;
+            width: 100vw;
+            min-height: 100vh;
+        }
+
+        /* ── Left Editorial Showcase Pane ── */
+        .auth-branding-section {
+            flex: 1.1;
+            background-color: var(--cf-teal-dark);
+            color: #ffffff;
+            padding: 48px 56px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-grid-bg {
+            position: absolute;
+            inset: 0;
+            opacity: 0.15;
+            background-image: linear-gradient(to right, rgba(255,255,255,0.15) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255,255,255,0.15) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+
+        .auth-ambient-glow {
+            position: absolute;
+            bottom: -120px;
+            inset-inline-end: -120px;
+            width: 500px;
+            height: 500px;
+            background: var(--cf-teal-subtle);
+            border-radius: 50%;
+            filter: blur(140px);
+            opacity: 0.2;
+            pointer-events: none;
+        }
+
+        .auth-brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .auth-brand-logo-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: var(--cf-teal-light);
+        }
+
+        .auth-brand-logo h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin: 0;
+            color: #ffffff;
+            letter-spacing: -0.02em;
+        }
+
+        .auth-editorial-content {
+            max-width: 540px;
+            margin: auto 0;
+            position: relative;
+            z-index: 2;
+            padding: 32px 0;
+        }
+
+        .auth-editorial-content h2 {
+            font-size: 36px;
+            font-weight: 700;
+            line-height: 1.25;
+            margin-bottom: 16px;
+            color: #ffffff;
+            letter-spacing: -0.02em;
+        }
+
+        .auth-editorial-content p {
+            font-size: 16px;
+            line-height: 1.65;
+            color: var(--cf-teal-light);
+            opacity: 0.95;
+            margin-bottom: 32px;
+        }
+
+        .auth-stats-bar {
+            display: flex;
+            gap: 36px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(0, 80, 74, 0.9);
+        }
+
+        .auth-stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--cf-teal-light);
+            direction: ltr;
+        }
+
+        .auth-stat-label {
+            font-size: 11.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--cf-teal-subtle);
+            font-weight: 600;
+        }
+
+        /* ── Right Form Pane ── */
+        .auth-form-section {
+            flex: 0.9;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 48px;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        .auth-lang-btn {
+            position: absolute;
+            top: 28px;
+            inset-inline-end: 28px;
+            background: #ffffff;
+            border: 1px solid var(--cf-border);
+            color: var(--cf-text-muted);
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.12s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .auth-lang-btn:hover {
+            background: var(--cf-bg);
+            color: var(--cf-text-main);
+        }
+
+        .auth-card-wrap {
+            max-width: 430px;
+            width: 100%;
+        }
+
+        .auth-header {
+            margin-bottom: 24px;
+            text-align: start;
+        }
+
+        .auth-header h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--cf-text-main);
+            margin-bottom: 6px;
+            letter-spacing: -0.02em;
+        }
+
+        .auth-header p {
+            font-size: 14px;
+            color: var(--cf-text-muted);
+            margin: 0;
+        }
+
+        .auth-form-card {
+            background: #ffffff;
+            border: 1px solid var(--cf-border);
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 1px 3px rgba(15,23,42,0.05);
+        }
+
+        /* Demo Role Preset Buttons */
+        .auth-role-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 20px;
+        }
+
+        .auth-role-btn {
+            padding: 8px;
+            border: 1px solid var(--cf-border);
+            border-radius: 6px;
+            background: #ffffff;
+            font-size: 12.5px;
+            font-weight: 500;
+            color: var(--cf-text-muted);
+            cursor: pointer;
+            transition: all 0.12s ease;
+            text-align: center;
+        }
+
+        .auth-role-btn:hover {
+            background: var(--cf-bg);
+            color: var(--cf-text-main);
+        }
+
+        .auth-role-btn.active {
+            border-color: var(--cf-blue);
+            background: #eaedff;
+            color: var(--cf-blue);
+            font-weight: 700;
+        }
+
+        .auth-input-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--cf-text-main);
+            margin-bottom: 6px;
+        }
+
+        .auth-input-field {
+            width: 100%;
+            height: 42px;
+            background: #ffffff;
+            border: 1px solid #CBD5E1;
+            border-radius: 6px;
+            padding: 0 12px;
+            font-size: 14px;
+            color: var(--cf-text-main);
+            font-family: inherit;
+            transition: border-color 0.12s ease, box-shadow 0.12s ease;
+        }
+
+        .auth-input-field:focus {
+            outline: none;
+            border-color: var(--cf-teal-dark);
+            box-shadow: 0 0 0 3px rgba(0, 106, 99, 0.15);
+        }
+
+        .auth-pwd-wrapper {
+            position: relative;
+        }
+
+        .auth-pwd-toggle {
+            position: absolute;
+            inset-inline-end: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--cf-text-muted);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 14px;
+        }
+
+        .auth-pwd-toggle:hover { color: var(--cf-text-main); }
+
+        .auth-submit-btn {
+            width: 100%;
+            height: 44px;
+            background-color: var(--cf-teal-dark);
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background-color 0.12s ease, transform 0.08s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .auth-submit-btn:hover {
+            background-color: var(--cf-teal-hover);
+        }
+
+        .auth-submit-btn:active { transform: scale(0.99); }
+
+        .auth-error-alert {
+            background: #FEE2E2;
+            border: 1px solid #fecaca;
+            color: #991B1B;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        @@media (max-width: 992px) {
+            .auth-branding-section { display: none; }
+            .auth-form-section { padding: 32px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <!-- ── Left: Editorial Branding Section (ClinicFlow) ── -->
+        <div class="auth-branding-section">
+            <div class="auth-grid-bg"></div>
+
+            <!-- Top Logo -->
+            <div class="auth-brand-logo">
+                <div class="auth-brand-logo-icon">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                </div>
+                <h1>ClinicFlow</h1>
+            </div>
+
+            <!-- Center Content -->
+            <div class="auth-editorial-content">
+                <h2>
+                    @T("نظام التشغيل الذكي للعيادات الحديثة.", "The intelligent operating system for modern clinics.")
+                </h2>
+                <p>
+                    @T("قم بتبسيط رعاية المرضى، وأتمتة الإدارة، واكتشاف رؤى عميقة من خلال منصتنا السحابية الشاملة للرعاية الصحية.",
+                       "Streamline patient care, automate administration, and unlock deep clinical insights with our comprehensive healthcare platform.")
+                </p>
+
+                <!-- Stats Bar -->
+                <div class="auth-stats-bar">
+                    <div>
+                        <div class="auth-stat-value">99.9%</div>
+                        <div class="auth-stat-label">@T("ضمان وقت التشغيل", "Uptime Guarantee")</div>
+                    </div>
+                    <div>
+                        <div class="auth-stat-value">10k+</div>
+                        <div class="auth-stat-label">@T("عيادات موثوقة", "Clinics Trusted")</div>
+                    </div>
+                    <div>
+                        <div class="auth-stat-value">256-bit</div>
+                        <div class="auth-stat-label">@T("تشفير آمن", "Encrypted Vault")</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Glow -->
+            <div class="auth-ambient-glow"></div>
+            
+            <div style="font-size: 12px; color: var(--cf-teal-light); opacity: 0.8; z-index:2; position:relative;">
+                &copy; @DateTime.Now.Year ClinicFlow Health Systems · @T("مرخص للمؤسسات الطبية", "Enterprise Grade SaaS")
+            </div>
+        </div>
+
+        <!-- ── Right: Login Form Section ── -->
+        <div class="auth-form-section">
+            <!-- Language Switcher Form -->
+            <form asp-controller="Language" asp-action="SetLanguage" method="post" class="m-0">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="culture" value="@(_isAr ? "en" : "ar")" />
+                <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                <button type="submit" class="auth-lang-btn">
+                    <i class="fa-solid fa-globe text-primary"></i>
+                    <span>@(_isAr ? "English" : "العربية")</span>
+                </button>
+            </form>
+
+            <div class="auth-card-wrap">
+                <!-- Mobile Logo Header -->
+                <div class="d-lg-none d-flex align-items-center gap-2 mb-4">
+                    <div style="width:36px; height:36px; border-radius:8px; background:#006a63; color:#fff; display:flex; align-items:center; justify-content:center; font-size:18px;">
+                        <i class="fa-solid fa-heart-pulse"></i>
+                    </div>
+                    <h2 class="m-0 fw-bold fs-4 text-dark">ClinicFlow</h2>
+                </div>
+
+                <div class="auth-header">
+                    <h2>@T("مرحباً بك مجدداً", "Welcome back")</h2>
+                    <p>@T("يرجى إدخال بياناتك للوصول إلى لوحة التحكم الخاصة بك.", "Please enter your details to access your dashboard.")</p>
+                </div>
+
+                <div class="auth-form-card">
+                    <!-- Demo Role Selector Pills -->
+                    <div class="mb-3">
+                        <label class="text-muted small fw-bold text-uppercase d-block mb-1.5" style="font-size: 11px; letter-spacing:0.05em;">
+                            @T("تعبئة سريعة حسب الدور (تجريبي)", "Select Preset Role (Demo)")
+                        </label>
+                        <div class="auth-role-grid">
+                            <button type="button" class="auth-role-btn active" onclick="presetCredentials('admin', 'Admin', 'admin123')">
+                                @T("مسؤول", "Admin")
+                            </button>
+                            <button type="button" class="auth-role-btn" onclick="presetCredentials('doctor', 'Doctor', 'doctor123')">
+                                @T("طبيب", "Doctor")
+                            </button>
+                            <button type="button" class="auth-role-btn" onclick="presetCredentials('nurse', 'Receptionist', 'reception123')">
+                                @T("استقبال", "Reception")
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (ViewBag.Error != null)
+                    {
+                        <div class="auth-error-alert">
+                            <i class="fa-solid fa-circle-exclamation flex-shrink-0"></i>
+                            <span>@ViewBag.Error</span>
+                        </div>
+                    }
+
+                    <form asp-controller="Account" asp-action="Login" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <!-- Username Input -->
+                        <div class="mb-3">
+                            <label for="username" class="auth-input-label">@T("اسم المستخدم أو البريد الإلكتروني", "Username or Email")</label>
+                            <input type="text" id="username" name="username" class="auth-input-field" required
+                                   placeholder="admin@clinicflow.com" dir="ltr" autofocus />
+                        </div>
+
+                        <!-- Password Input -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label for="password" class="auth-input-label m-0">@T("كلمة المرور", "Password")</label>
+                                <span class="text-muted small" style="font-size: 12px;">@T("الافتراضي: كلمة المرور المعينة", "Secure credentials")</span>
+                            </div>
+                            <div class="auth-pwd-wrapper">
+                                <input type="password" id="password" name="password" class="auth-input-field pe-5" required
+                                       placeholder="••••••••" dir="ltr" />
+                                <button type="button" class="auth-pwd-toggle" id="pwdToggleBtn">
+                                    <i class="fa-regular fa-eye" id="pwdEyeIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Remember Me Checkbox -->
+                        <div class="mb-4 d-flex align-items-center gap-2">
+                            <input type="checkbox" id="rememberMe" name="rememberMe" value="true" class="form-check-input mt-0" style="cursor:pointer;" />
+                            <label for="rememberMe" class="text-muted small m-0" style="cursor:pointer; user-select:none;">
+                                @T("تذكرني لمدة 30 يوماً على هذا الجهاز", "Remember me for 30 days on this device")
+                            </label>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="auth-submit-btn">
+                            <i class="fa-solid fa-lock"></i>
+                            <span>@T("تسجيل الدخول بأمان", "Sign In securely")</span>
+                        </button>
+                    </form>
+                </div>
+
+                <div class="mt-4 text-center text-muted small">
+                    @T("نظام معتمد وفق معايير الأمان الدولية HIPAA & GDPR", "Compliant with international healthcare standards HIPAA & GDPR")
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Password Visibility Toggle
+        document.addEventListener('DOMContentLoaded', function () {
+            const pwdInput = document.getElementById('password');
+            const toggleBtn = document.getElementById('pwdToggleBtn');
+            const eyeIcon = document.getElementById('pwdEyeIcon');
+
+            if (toggleBtn && pwdInput) {
+                toggleBtn.addEventListener('click', function () {
+                    const isPwd = pwdInput.type === 'password';
+                    pwdInput.type = isPwd ? 'text' : 'password';
+                    eyeIcon.className = isPwd ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+                });
+            }
+        });
+
+        // Demo Credentials Helper
+        function presetCredentials(roleKey, username, password) {
+            document.querySelectorAll('.auth-role-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            var userField = document.getElementById('username');
+            var pwdField = document.getElementById('password');
+            if (userField) userField.value = username;
+            if (pwdField) pwdField.value = password;
+        }
+    </script>
+</body>
+</html>

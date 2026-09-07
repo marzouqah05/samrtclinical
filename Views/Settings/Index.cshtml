@@ -1,0 +1,170 @@
+@model WebApplication1.Models.ClinicSettingsViewModel
+@using System.Globalization
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("مركز إعدادات العيادة", "Settings Hub");
+}
+
+@* ── Toast Notifications ──────────────────────────────────────────────── *@
+@if (TempData["Success"] != null)
+{
+    <div class="mb-4 p-3 rounded-lg border flex items-center gap-3 text-sm font-medium" 
+         style="background:var(--clinic-emerald-bg);border-color:rgba(46,125,91,0.25);color:var(--clinic-emerald-text);">
+        <i class="fa-solid fa-circle-check text-base"></i>
+        <span>@TempData["Success"]</span>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 p-3 rounded-lg border flex items-center gap-3 text-sm font-medium" 
+         style="background:var(--clinic-rose-bg);border-color:rgba(184,58,56,0.25);color:var(--clinic-rose-text);">
+        <i class="fa-solid fa-circle-exclamation text-base"></i>
+        <span>@TempData["Error"]</span>
+    </div>
+}
+
+<div class="container-fluid py-2" dir="@(_isAr ? "rtl" : "ltr")">
+
+    @* ── Page Header ──────────────────────────────────────────────────── *@
+    <div class="clinic-page-header">
+        <div>
+            <h1 class="clinic-page-title">
+                <i class="fa-solid fa-gears me-2" style="color:var(--clinic-primary)"></i>
+                @T("مركز إعدادات النظام والعيادة", "Settings Hub")
+            </h1>
+            <p class="clinic-page-subtitle">
+                @T("تخصيص شامل لبيانات العيادة، أوقات العمل، الأتمتة والواتساب، الموظفين، والنسخ الاحتياطي",
+                   "Configure clinic identity, scheduling, WhatsApp automations, staff accounts, backups & security")
+            </p>
+        </div>
+        <div>
+            <span class="clinic-badge clinic-badge-emerald">
+                <i class="fa-solid fa-circle-dot me-1" style="font-size:8px"></i>
+                @T("النظام متصل ونشط", "System Online & Active")
+            </span>
+        </div>
+    </div>
+
+    @* ── Settings Grid (3 Columns) ────────────────────────────────────── *@
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-4">
+
+        @* Card 1: Clinic Profile & Branding *@
+        <div class="clinic-card p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4"
+                     style="background:rgba(99,102,241,0.12);color:#6366f1">
+                    <i class="fa-solid fa-building-user"></i>
+                </div>
+                <h3 class="text-base font-bold mb-1" style="color:var(--clinic-text)">
+                    @T("الملف التعريفي للعيادة", "Clinic Profile & Branding")
+                </h3>
+                <p class="text-xs mb-4 leading-relaxed" style="color:var(--clinic-muted)">
+                    @T("اسم المركز الطبي، الشعار، أرقام الهواتف والطوارئ، العنوان، والعملة والضرائب المستخدمة في الفواتير.",
+                       "Manage clinic name, logo, contact numbers, address, invoicing currency, and tax rate.")
+                </p>
+            </div>
+            <div class="pt-3 border-t" style="border-color:var(--clinic-border)">
+                <a asp-controller="Settings" asp-action="General" class="btn-clinic-primary w-full justify-center">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    @T("تعديل ملف العيادة", "Manage Profile")
+                </a>
+            </div>
+        </div>
+
+        @* Card 2: Operating Hours & Slots *@
+        <div class="clinic-card p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4"
+                     style="background:rgba(16,185,129,0.12);color:#10b981">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+                <h3 class="text-base font-bold mb-1" style="color:var(--clinic-text)">
+                    @T("ساعات العمل والمواعيد", "Working Hours & Slots")
+                </h3>
+                <p class="text-xs mb-4 leading-relaxed" style="color:var(--clinic-muted)">
+                    @T("أوقات فتح وإغلاق العيادة، مدة الكشف الافتراضية، أيام العمل الأسبوعية، وخاصية التأكيد التلقائي.",
+                       "Set opening/closing hours, default slot duration, weekly working days, and auto-confirm bookings.")
+                </p>
+            </div>
+            <div class="pt-3 border-t" style="border-color:var(--clinic-border)">
+                <a asp-controller="Settings" asp-action="Hours" class="btn-clinic-primary w-full justify-center">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    @T("إعداد أوقات العمل", "Manage Schedule")
+                </a>
+            </div>
+        </div>
+
+        @* Card 3: WhatsApp & n8n Automation *@
+        <div class="clinic-card p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4"
+                     style="background:rgba(37,211,102,0.12);color:#25d366">
+                    <i class="fa-brands fa-whatsapp"></i>
+                </div>
+                <h3 class="text-base font-bold mb-1" style="color:var(--clinic-text)">
+                    @T("الواتساب وأتمتة n8n", "WhatsApp & Automations")
+                </h3>
+                <p class="text-xs mb-4 leading-relaxed" style="color:var(--clinic-muted)">
+                    @T("إعدادات n8n Webhook، رسائل التذكير التلقائية، قوالب الرسائل، رمز أمان API، والحجز الذاتي.",
+                       "Configure n8n webhooks, automated appointment reminders, custom templates, and API token security.")
+                </p>
+            </div>
+            <div class="pt-3 border-t" style="border-color:var(--clinic-border)">
+                <a asp-controller="Settings" asp-action="Automation" class="btn-clinic-primary w-full justify-center">
+                    <i class="fa-solid fa-robot"></i>
+                    @T("إعداد الأتمتة", "Manage Automations")
+                </a>
+            </div>
+        </div>
+
+        @* Card 4: Staff & User Management *@
+        <div class="clinic-card p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4"
+                     style="background:rgba(73,102,90,0.12);color:#49665A">
+                    <i class="fa-solid fa-users-gear"></i>
+                </div>
+                <h3 class="text-base font-bold mb-1" style="color:var(--clinic-text)">
+                    @T("إدارة الموظفين والمستخدمين", "Staff & User Accounts")
+                </h3>
+                <p class="text-xs mb-4 leading-relaxed" style="color:var(--clinic-muted)">
+                    @T("إضافة وتعديل وحذف حسابات الأطباء، موظفي الاستقبال، والمسؤولين مع التحكم في الصلاحيات.",
+                       "View, register, edit, and manage login accounts and access roles for doctors, receptionists, and admins.")
+                </p>
+            </div>
+            <div class="pt-3 border-t" style="border-color:var(--clinic-border)">
+                <a asp-controller="Account" asp-action="StaffList" class="btn-clinic-primary w-full justify-center">
+                    <i class="fa-solid fa-user-gear"></i>
+                    @T("إدارة الموظفين", "Manage Staff")
+                </a>
+            </div>
+        </div>
+
+        @* Card 5: Backups & Security *@
+        <div class="clinic-card p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4"
+                     style="background:rgba(239,68,68,0.12);color:#ef4444">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h3 class="text-base font-bold mb-1" style="color:var(--clinic-text)">
+                    @T("النسخ الاحتياطي وحماية الحساب", "Backups & Security")
+                </h3>
+                <p class="text-xs mb-4 leading-relaxed" style="color:var(--clinic-muted)">
+                    @T("المزامنة السحابية اليومية مع Google Drive، تنزيل الأرشيف الشهري، وتغيير كلمة مرور الحساب.",
+                       "Daily Google Drive cloud backups, live database snapshots, offline monthly archive, and password management.")
+                </p>
+            </div>
+            <div class="pt-3 border-t" style="border-color:var(--clinic-border)">
+                <a asp-controller="Settings" asp-action="Security" class="btn-clinic-primary w-full justify-center">
+                    <i class="fa-solid fa-vault"></i>
+                    @T("النسخ الاحتياطي والأمان", "Backups & Security")
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+</div>

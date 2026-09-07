@@ -1,0 +1,53 @@
+﻿@model WebApplication1.Models.Appointment
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("إكمال الموعد", "Complete Appointment");
+}
+
+<div class="container mt-4" style="max-width: 650px;" dir="@(_isAr ? "rtl" : "ltr")">
+    <div class="card shadow">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0">@T("إكمال الموعد وتسجيل العلاج", "Complete Appointment & Register Treatment")</h4>
+        </div>
+        <div class="card-body">
+            <div class="mb-4 pb-3 border-bottom">
+                <p><strong>@T("اسم المريض:", "Patient Name:")</strong> @Model.Patient?.PatientName</p>
+                <p><strong>@T("اسم الطبيب:", "Doctor Name:")</strong> @Model.Doctor?.DoctorName</p>
+                <p><strong>@T("كشفية الطبيب:", "Doctor Consultation Fee:")</strong> <span class="badge bg-primary">@ViewBag.ConsultationFee @T("د.أ", "JOD")</span></p>
+            </div>
+
+            <form asp-action="Complete" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.AppointmentId" />
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">@T("وصف العلاج", "Treatment Description")</label>
+                    <input type="text" name="treatmentDesc" class="form-control" placeholder="@T("مثال: حشوة أسنان، قناة جذر...", "e.g., Dental Filling, Root Canal...")" required />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">@T("تكلفة العلاج (د.أ)", "Treatment Cost (JOD)")</label>
+                    <input type="number" name="treatmentCost" class="form-control" min="0" step="0.01" value="0" required />
+                    <small class="text-muted">@T("ستُضاف هذه التكلفة إلى كشفية الطبيب تلقائياً.", "This cost will be added to the doctor's consultation fee automatically.")</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">@T("التشخيص", "Diagnosis")</label>
+                    <input type="text" name="diagnosis" class="form-control" placeholder="@T("مثال: التهاب لب مزمن، فحص روتيني", "e.g., Chronic Pulpitis, Routine Check")" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">@T("الوصفة الطبية والملاحظات", "Prescription & Notes")</label>
+                    <textarea name="prescriptionNotes" class="form-control" rows="3" placeholder="@T("أدخل الأدوية أو الملاحظات السريرية...", "Enter medications or clinical notes...")"></textarea>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a asp-action="Index" class="btn btn-secondary">@T("إلغاء", "Cancel")</a>
+                    <button type="submit" class="btn btn-success">@T("إكمال وحفظ الفاتورة", "Complete & Save Bill")</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

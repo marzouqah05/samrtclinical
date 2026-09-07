@@ -1,0 +1,170 @@
+@model IEnumerable<WebApplication1.Models.Treatment>
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("سجلات العلاج", "Treatment Records");
+}
+
+<div class="max-w-7xl mx-auto px-4 py-8 space-y-6" dir="@(_isAr ? "rtl" : "ltr")">
+
+    @* ── Alerts ── *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center justify-between gap-3 shadow-sm">
+            <div class="flex items-center gap-2.5">
+                <i class="fa-solid fa-circle-check text-sm shrink-0"></i>
+                <div><strong>@T("تم بنجاح!", "Success!")</strong> @TempData["Success"]</div>
+            </div>
+            <button type="button" class="text-emerald-400 hover:text-emerald-300 text-xs" onclick="this.parentElement.remove()">✕</button>
+        </div>
+    }
+
+    @* ── Page Header ── *@
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-xl font-bold text-[#1A2621] dark:text-[#EAEFEA] m-0 flex items-center gap-2.5">
+                <i class="fa-solid fa-stethoscope text-[#49665A]"></i>
+                <span>@T("سجلات العلاج السريري", "Treatment Records")</span>
+            </h1>
+            <p class="text-xs text-[#6B7D75] dark:text-[#9CA8A3] mt-1 m-0">
+                @T("تتبع الإجراءات السريرية والتشخيصات والوصفات الطبية للمرضى", "Track clinical procedures, diagnoses, prescriptions, and financial billing")
+            </p>
+        </div>
+        <div>
+            <a asp-action="Create"
+               class="px-4 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl transition flex items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span>@T("إضافة علاج", "+ Add Treatment")</span>
+            </a>
+        </div>
+    </div>
+
+    @* ── Search & Filter Toolbar ── *@
+    <form method="get" asp-action="Index"
+          class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] rounded-2xl p-4 flex flex-wrap items-center gap-3 shadow-sm">
+        <div class="relative flex-1 min-w-[220px]">
+            <i class="fa-solid fa-magnifying-glass absolute start-3.5 top-1/2 -translate-y-1/2 text-xs text-[#8A9992] dark:text-[#727A76]"></i>
+            <input type="text" name="searchPatient" value="@ViewBag.CurrentSearch"
+                   class="w-full ps-9 pe-3.5 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-[#F8FAF9] dark:bg-[#151E1B] text-[#1A2621] dark:text-[#EAEFEA] placeholder-[#8A9992] dark:placeholder-[#727A76] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] transition"
+                   placeholder="@T("ابحث باسم المريض...", "Search by patient name...")" />
+        </div>
+
+        <div class="relative min-w-[170px]">
+            <i class="fa-regular fa-calendar absolute start-3.5 top-1/2 -translate-y-1/2 text-xs text-[#8A9992] dark:text-[#727A76]"></i>
+            <input type="date" name="filterDate" value="@ViewBag.CurrentDate"
+                   class="w-full ps-9 pe-3.5 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-[#F8FAF9] dark:bg-[#151E1B] text-[#1A2621] dark:text-[#EAEFEA] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] transition" />
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button type="submit"
+                    class="px-4 py-2 bg-[#49665A] text-white text-xs font-semibold rounded-xl hover:bg-[#3D574D] transition flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-filter text-[10px]"></i>
+                <span>@T("تصفية", "Filter")</span>
+            </button>
+            <a asp-action="Index"
+               class="px-3.5 py-2 border border-[#D5DDD8] dark:border-[#2B3833] bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] text-[#6B7D75] dark:text-[#9CA8A3] hover:text-[#1A2621] dark:hover:text-[#EAEFEA] text-xs font-medium rounded-xl transition flex items-center gap-1">
+                <i class="fa-solid fa-rotate-left text-[10px]"></i>
+                <span>@T("إعادة تعيين", "Reset")</span>
+            </a>
+        </div>
+    </form>
+
+    @* ── Table Container ── *@
+    <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] rounded-2xl shadow-sm overflow-hidden w-full">
+        <div class="overflow-x-auto">
+            <table class="w-full text-start text-xs">
+                <thead class="bg-[#F4F7F5] dark:bg-[#151E1B] border-b border-[#E5E9E7] dark:border-[#2B3833] text-[11px] uppercase tracking-wider text-[#5C6E66] dark:text-[#9CA8A3] font-semibold">
+                    <tr>
+                        <th class="py-3 px-4 text-start">@T("المريض والطبيب", "Patient & Doctor")</th>
+                        <th class="py-3 px-4 text-start">@T("معلومات الإجراء", "Procedure Info")</th>
+                        <th class="py-3 px-4 text-start">@T("الملاحظات الطبية", "Medical Notes")</th>
+                        <th class="py-3 px-4 text-start">@T("التكلفة", "Cost")</th>
+                        <th class="py-3 px-4 text-end pe-4">@T("الإجراءات", "Actions")</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-[#E5E9E7] dark:divide-[#2B3833]">
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-12 text-[#6B7D75] dark:text-[#9CA8A3]">
+                                <i class="fa-solid fa-clipboard-list text-3xl opacity-40 block mb-3"></i>
+                                <span class="text-xs">@T("لا توجد سجلات علاج مطابقة للمعايير.", "No treatment records found matching the criteria.")</span>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr class="border-b border-[#E5E9E7] dark:border-[#2B3833] hover:bg-[#F9FBFA] dark:hover:bg-white/[0.02] transition">
+                                @* Patient & Doctor *@
+                                <td class="py-3.5 px-4 whitespace-nowrap">
+                                    <div class="text-[#1A2621] dark:text-[#EAEFEA] font-bold text-xs">
+                                        @(item.Appointment?.Patient?.PatientName ?? T("مريض غير محدد", "Unknown Patient"))
+                                    </div>
+                                    <div class="text-[#6B7D75] dark:text-[#9CA8A3] text-[11px] flex items-center gap-1 mt-0.5">
+                                        <i class="fa-solid fa-user-doctor text-[#49665A]"></i>
+                                        <span>Dr. @(item.Appointment?.Doctor?.DoctorName ?? T("طبيب عام", "General"))</span>
+                                    </div>
+                                </td>
+
+                                @* Procedure Info *@
+                                <td class="py-3.5 px-4">
+                                    <div class="text-[#1A2621] dark:text-[#EAEFEA] font-medium text-xs flex items-center gap-1.5">
+                                        <i class="fa-regular fa-calendar-days text-[#49665A]"></i>
+                                        <span>@item.TreatmentDate.ToString("dd MMM yyyy")</span>
+                                    </div>
+                                    <div class="text-[#6B7D75] dark:text-[#9CA8A3] text-[11px] truncate max-w-xs mt-0.5" title="@item.TreatmentDesc">
+                                        @item.TreatmentDesc
+                                    </div>
+                                </td>
+
+                                @* Medical Notes *@
+                                <td class="py-3.5 px-4">
+                                    <div class="text-[#1A2621] dark:text-[#EAEFEA] font-medium text-xs truncate max-w-xs flex items-center gap-1.5" title="@item.Diagnosis">
+                                        <i class="fa-solid fa-stethoscope text-[#49665A] text-[11px] shrink-0"></i>
+                                        <span>@(string.IsNullOrEmpty(item.Diagnosis) ? T("لا يوجد تشخيص", "No diagnosis") : item.Diagnosis)</span>
+                                    </div>
+                                    <div class="text-[#6B7D75] dark:text-[#9CA8A3] text-[11px] truncate max-w-xs mt-0.5 flex items-center gap-1.5" title="@item.PrescriptionNotes">
+                                        <i class="fa-solid fa-pills text-[#49665A] text-[10px] shrink-0"></i>
+                                        <span>@(string.IsNullOrEmpty(item.PrescriptionNotes) ? T("لا توجد وصفة", "No prescriptions") : item.PrescriptionNotes)</span>
+                                    </div>
+                                </td>
+
+                                @* Cost Badge *@
+                                <td class="py-3.5 px-4 whitespace-nowrap">
+                                    <span class="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-xs inline-flex items-center gap-1">
+                                        <span>@item.TreatmentCost.ToString("N2")</span>
+                                        <span class="text-[10px] font-normal text-emerald-600/80 dark:text-emerald-400/80">JOD</span>
+                                    </span>
+                                </td>
+
+                                @* Actions *@
+                                <td class="py-3.5 px-4 text-end whitespace-nowrap">
+                                    <div class="flex items-center justify-end gap-1.5 pe-4">
+                                        <a asp-action="Edit" asp-route-id="@item.TreatmentId"
+                                           class="w-7 h-7 flex items-center justify-center rounded-lg bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-xs transition"
+                                           title="@T("تعديل السجل", "Edit Record")">
+                                            <i class="fa-solid fa-pen text-[10px] text-[#49665A]"></i>
+                                        </a>
+                                        <a asp-action="Details" asp-route-id="@item.TreatmentId"
+                                           class="w-7 h-7 flex items-center justify-center rounded-lg bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-xs transition"
+                                           title="@T("عرض التفاصيل", "View Details")">
+                                            <i class="fa-solid fa-file-lines text-[10px] text-sky-500 dark:text-sky-400"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.TreatmentId"
+                                           class="w-7 h-7 flex items-center justify-center rounded-lg border border-rose-500/30 text-rose-600 dark:text-rose-500 hover:bg-rose-500/10 text-xs transition"
+                                           title="@T("حذف السجل", "Delete Record")">
+                                            <i class="fa-solid fa-trash text-[10px]"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

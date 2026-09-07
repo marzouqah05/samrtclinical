@@ -1,0 +1,114 @@
+@model WebApplication1.Models.Treatment
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("تفاصيل العلاج", "Treatment Details");
+}
+
+<div class="max-w-3xl mx-auto px-4 py-8 space-y-6" dir="@(_isAr ? "rtl" : "ltr")">
+
+    @* ── Back Navigation Link ── *@
+    <div>
+        <a asp-action="Index" class="inline-flex items-center gap-2 text-xs font-medium text-[#727A76] dark:text-[#9CA8A3] hover:text-[#202725] dark:hover:text-[#EAEFEA] transition-colors">
+            <i class="fa-solid @(_isAr ? "fa-arrow-right" : "fa-arrow-left")"></i>
+            <span>@T("العودة إلى قائمة العلاجات", "Back to Treatments List")</span>
+        </a>
+    </div>
+
+    @* ── Details Card ── *@
+    <div class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl shadow-sm overflow-hidden">
+
+        @* ── Card Header ── *@
+        <div class="p-6 bg-[#F6F7F5] dark:bg-[#151E1B] border-b border-[#DDE3DF] dark:border-[#2B3833] flex items-center justify-between flex-wrap gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-[#49665A]/15 border border-[#49665A]/30 text-[#49665A] font-bold text-xl flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-stethoscope"></i>
+                </div>
+                <div>
+                    <h1 class="text-sm sm:text-base font-bold text-[#202725] dark:text-[#EAEFEA] m-0">
+                        @T("تفاصيل الإجراء العلاجي", "Treatment Details")
+                    </h1>
+                    <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0 mt-0.5">
+                        @(Model?.Appointment?.Patient != null ? Model.Appointment.Patient.PatientName : T("سجل علاجي", "Treatment Record"))
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <a asp-action="Edit" asp-route-id="@Model?.TreatmentId"
+                   class="px-4 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-pen text-xs"></i>
+                    <span>@T("تعديل", "Edit")</span>
+                </a>
+            </div>
+        </div>
+
+        @* ── Details Grid ── *@
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 p-6 text-xs">
+
+            <!-- Treatment Date -->
+            <div>
+                <span class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase block mb-1">@T("تاريخ العلاج", "Treatment Date")</span>
+                <span class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA]">@Model?.TreatmentDate.ToString("dd MMMM yyyy")</span>
+            </div>
+
+            <!-- Treatment Cost -->
+            <div>
+                <span class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase block mb-1">@T("تكلفة العلاج", "Treatment Cost")</span>
+                <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-xs inline-block">
+                    @Model?.TreatmentCost.ToString("N2") JOD
+                </span>
+            </div>
+
+            <!-- Linked Patient -->
+            <div>
+                <span class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase block mb-1">@T("المريض", "Patient")</span>
+                <span class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA]">
+                    @(Model?.Appointment?.Patient?.PatientName ?? "—")
+                </span>
+            </div>
+
+            <!-- Attending Doctor -->
+            <div>
+                <span class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase block mb-1">@T("الطبيب المعالج", "Attending Doctor")</span>
+                <span class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA]">
+                    Dr. @(Model?.Appointment?.Doctor?.DoctorName ?? "—")
+                </span>
+            </div>
+
+            <!-- Procedure Description -->
+            <div class="sm:col-span-2">
+                <span class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase block mb-1">@T("وصف الإجراء / العلاج", "Procedure Description")</span>
+                <p class="text-xs font-medium text-[#202725] dark:text-[#EAEFEA] leading-relaxed m-0">
+                    @Model?.TreatmentDesc
+                </p>
+            </div>
+
+            <!-- Diagnosis -->
+            <div class="sm:col-span-2">
+                <span class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase block mb-1">@T("التشخيص السريري", "Clinical Diagnosis")</span>
+                <p class="text-xs font-medium text-[#202725] dark:text-[#EAEFEA] leading-relaxed m-0">
+                    @(string.IsNullOrEmpty(Model?.Diagnosis) ? T("لا يوجد تشخيص مسجّل", "No diagnosis recorded") : Model.Diagnosis)
+                </p>
+            </div>
+
+            <!-- Prescription Notes -->
+            <div class="sm:col-span-2">
+                <span class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase block mb-1">@T("الوصفة الطبية وملاحظات الأدوية", "Prescription & Medication Notes")</span>
+                <p class="text-xs font-medium text-[#202725] dark:text-[#EAEFEA] leading-relaxed whitespace-pre-line m-0">
+                    @(string.IsNullOrEmpty(Model?.PrescriptionNotes) ? T("لا توجد وصفات مسجلة", "No prescriptions recorded") : Model.PrescriptionNotes)
+                </p>
+            </div>
+
+            <!-- Linked Appointment Status -->
+            <div>
+                <span class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase block mb-1">@T("حالة الموعد المرتبط", "Appointment Status")</span>
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#49665A]/10 text-[#49665A] border border-[#49665A]/20">
+                    @(Model?.Appointment?.Status ?? "—")
+                </span>
+            </div>
+        </div>
+
+    </div>
+</div>

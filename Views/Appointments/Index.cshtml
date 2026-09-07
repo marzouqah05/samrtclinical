@@ -1,0 +1,1280 @@
+@model IEnumerable<WebApplication1.Models.Appointment>
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("جدولة المواعيد", "Appointments Scheduling");
+}
+
+<!-- FullCalendar CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+<style>
+    /* ─── Page Shell ─── */
+    body { background: #f8fafc; }
+
+    /* ─── Dark Mode: Page Shell ─── */
+    [data-bs-theme="dark"] body { background: #1a1d21 !important; }
+    [data-bs-theme="dark"] .header-title h2 { color: #ffffff !important; }
+    [data-bs-theme="dark"] .header-title p  { color: #94a3b8 !important; }
+    [data-bs-theme="dark"] .custom-table td { color: #e2e8f0 !important; border-bottom-color: #404650 !important; }
+    [data-bs-theme="dark"] .custom-table tbody tr:hover { background-color: #2b3035 !important; }
+    /* Status badge dark overrides — keep colored backgrounds but legible text */
+    html.dark .badge-pending, [data-bs-theme="dark"] .badge-pending     { background: #3d2f0a !important; color: #fbbf24 !important; }
+    html.dark .badge-confirmed, [data-bs-theme="dark"] .badge-confirmed { background: #0f2a4a !important; color: #60a5fa !important; }
+    html.dark .badge-completed, [data-bs-theme="dark"] .badge-completed { background: #0c2f1e !important; color: #34d399 !important; }
+    html.dark .badge-cancelled, [data-bs-theme="dark"] .badge-cancelled { background: #3d0f0f !important; color: #f87171 !important; }
+    html.dark .badge-pending .status-dot, [data-bs-theme="dark"] .badge-pending   .status-dot { background: #fbbf24 !important; }
+    html.dark .badge-confirmed .status-dot, [data-bs-theme="dark"] .badge-confirmed .status-dot { background: #60a5fa !important; }
+    html.dark .badge-completed .status-dot, [data-bs-theme="dark"] .badge-completed .status-dot { background: #34d399 !important; }
+    html.dark .badge-cancelled .status-dot, [data-bs-theme="dark"] .badge-cancelled .status-dot { background: #f87171 !important; }
+
+    .page-container {
+        max-width: 1380px;
+        margin: auto;
+        padding: 28px 18px;
+    }
+
+    /* ─── Header ─── */
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 26px;
+        flex-wrap: wrap;
+        gap: 14px;
+    }
+
+    .header-title h2 {
+        color: #0f172a;
+        font-weight: 800;
+        font-size: 26px;
+        letter-spacing: -0.5px;
+        margin: 0;
+    }
+
+    .header-title p {
+        color: #64748b;
+        margin: 5px 0 0 0;
+        font-size: 14px;
+    }
+
+    .header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    /* ─── Buttons ─── */
+    .btn-book {
+        background: #0f172a;
+        color: white;
+        padding: 9px 18px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 13.5px;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        transition: background .15s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-book:hover { background: #1e293b; color: white; }
+
+    /* ─── View Toggle ─── */
+    /* Segmented pill switcher styles handled via utility classes */
+
+
+    /* ─── Filter Card ─── */
+    .filter-card {
+        background: white;
+        border-radius: 18px;
+        padding: 18px 22px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 10px rgba(148,163,184,.05);
+        margin-bottom: 22px;
+    }
+
+    /* ─── Stats Row ─── */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 14px;
+        margin-bottom: 22px;
+    }
+
+    .stat-chip {
+        background: white;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        transition: all .2s;
+        text-decoration: none;
+    }
+
+    .stat-chip:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.07); }
+
+    .stat-chip.active-chip { border-color: transparent; }
+
+    .stat-chip .chip-icon {
+        width: 42px; height: 42px;
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px;
+    }
+
+    .stat-chip .chip-label { font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+    .stat-chip .chip-count { font-size: 22px; font-weight: 800; color: #0f172a; line-height: 1.1; }
+
+    /* Chip colours */
+    .chip-all    .chip-icon { background:#f1f5f9; color:#475569; }
+    .chip-pending .chip-icon { background:#fef3c7; color:#d97706; }
+    .chip-confirmed .chip-icon { background:#dbeafe; color:#2563eb; }
+    .chip-completed .chip-icon { background:#dcfce7; color:#16a34a; }
+    .chip-cancelled .chip-icon { background:#fee2e2; color:#dc2626; }
+    .chip-all.active-chip { box-shadow: 0 4px 14px rgba(71,85,105,.18); border-color:#cbd5e1; }
+    .chip-pending.active-chip { box-shadow: 0 4px 14px rgba(217,119,6,.18); border-color:#fde68a; }
+    .chip-confirmed.active-chip { box-shadow: 0 4px 14px rgba(37,99,235,.18); border-color:#93c5fd; }
+    .chip-completed.active-chip { box-shadow: 0 4px 14px rgba(22,163,74,.18); border-color:#86efac; }
+    .chip-cancelled.active-chip { box-shadow: 0 4px 14px rgba(220,38,38,.18); border-color:#fca5a5; }
+
+    /* Dark-mode stat chips */
+    html.dark .stat-chip { background-color: #1B2421 !important; border-color: #2B3833 !important; }
+    html.dark .chip-label { color: #9CA8A3 !important; }
+    html.dark .chip-count { color: #EAEFEA !important; }
+    html.dark .chip-all    .chip-icon { background: #202B27 !important; color: #9CA8A3 !important; }
+    html.dark .chip-pending .chip-icon { background: #3d2f0a !important; color: #fbbf24 !important; }
+    html.dark .chip-confirmed .chip-icon { background: #0f2a4a !important; color: #60a5fa !important; }
+    html.dark .chip-completed .chip-icon { background: #0c2f1e !important; color: #34d399 !important; }
+    html.dark .chip-cancelled .chip-icon { background: #3d0f0f !important; color: #f87171 !important; }
+
+    /* ─── Calendar Card ─── */
+    .calendar-card {
+        background: white;
+        border-radius: 22px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 16px rgba(148,163,184,.06);
+        padding: 24px;
+        margin-bottom: 22px;
+    }
+
+    /* FullCalendar overrides */
+    .fc .fc-toolbar-title { font-size: 20px; font-weight: 800; color: #0f172a; }
+    .fc .fc-button-primary { background: #3b82f6 !important; border-color: #3b82f6 !important; border-radius: 9px !important; font-weight: 600 !important; }
+    .fc .fc-button-primary:hover { background: #1d4ed8 !important; border-color: #1d4ed8 !important; }
+    .fc .fc-button-active { background: #1d4ed8 !important; }
+    .fc .fc-daygrid-day-number { font-weight: 600; color: #475569; }
+    .fc .fc-col-header-cell-cushion { font-weight: 700; color: #0f172a; font-size: 13px; }
+    .fc-event { border-radius: 7px !important; padding: 2px 5px !important; font-size: 12px !important; font-weight: 600 !important; border: none !important; cursor: pointer; }
+    .fc .fc-daygrid-day.fc-day-today { background: #eff6ff !important; }
+    .fc .fc-scrollgrid { border-radius: 12px; overflow: hidden; }
+    html.dark .calendar-card { background: #1B2421 !important; border-color: #2B3833 !important; }
+    html.dark .fc .fc-toolbar-title { color: #EAEFEA !important; }
+    html.dark .fc .fc-col-header-cell-cushion,
+    html.dark .fc .fc-daygrid-day-number { color: #9CA8A3 !important; }
+    html.dark .fc .fc-daygrid-day.fc-day-today { background: #202B27 !important; }
+    html.dark .fc td, html.dark .fc th { border-color: #2B3833 !important; }
+    html.dark .fc-theme-standard .fc-scrollgrid { border-color: #2B3833 !important; }
+    html.dark .cal-legend { color: #9CA8A3 !important; border-top-color: #2B3833 !important; }
+
+    /* ─── Table Card ─── */
+    .table-card {
+        background: white;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 16px rgba(148,163,184,.05);
+        overflow: hidden;
+    }
+
+    .custom-table { margin-bottom: 0; vertical-align: middle; }
+
+    .custom-table th {
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: .6px;
+        padding: 15px 22px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .custom-table td {
+        padding: 16px 22px;
+        border-bottom: 1px solid #f1f5f9;
+        color: #334155;
+        font-size: 14px;
+    }
+
+    .custom-table tbody tr:hover { background: #f8fafc; }
+
+    /* ─── Status Badges ─── */
+    .badge-pending   { background:#fef3c7; color:#d97706; }
+    .badge-confirmed { background:#dbeafe; color:#2563eb; }
+    .badge-completed { background:#dcfce7; color:#16a34a; }
+    .badge-cancelled { background:#fee2e2; color:#dc2626; }
+
+    .status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
+    .badge-pending   .status-dot { background:#d97706; }
+    .badge-confirmed .status-dot { background:#2563eb; }
+    .badge-completed .status-dot { background:#16a34a; }
+    .badge-cancelled .status-dot { background:#dc2626; }
+
+    .custom-badge {
+        padding: 5px 13px; border-radius: 10px;
+        font-weight: 700; font-size: 12px;
+        display: inline-flex; align-items: center;
+    }
+
+    /* ─── Table Action Buttons ─── */
+    .patient-meta { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+
+    .btn-status-action {
+        background: #f1f5f9; border: none; color: #475569;
+        padding: 6px 10px; border-radius: 8px; font-size: 12px;
+        font-weight: 600; transition: all .2s;
+    }
+    .btn-status-action:hover { background: #e2e8f0; color: #0f172a; }
+
+    .btn-treatment {
+        background: #10b981; color: white;
+        padding: 6px 12px; border-radius: 8px;
+        font-size: 12px; font-weight: 700;
+        text-decoration: none; transition: all .2s; border: none;
+    }
+    .btn-treatment:hover { background: #059669; color: white; transform: translateY(-1px); }
+
+    /* Details link button */
+    .btn-details {
+        background: #f1f5f9; color: #475569;
+        padding: 6px 11px; border-radius: 8px;
+        font-size: 12px; font-weight: 700;
+        text-decoration: none; transition: all .2s; border: none;
+        display: inline-flex; align-items: center; gap: 5px;
+    }
+    .btn-details:hover { background: #e2e8f0; color: #0f172a; transform: translateY(-1px); }
+
+    /* Compact WhatsApp action buttons */
+    .btn-wa-sm {
+        border: none; border-radius: 8px;
+        padding: 6px 11px; font-size: 12px; font-weight: 700;
+        cursor: pointer; transition: all .2s;
+        display: inline-flex; align-items: center; gap: 5px;
+    }
+    .btn-wa-reminder-sm { background: #dcfce7; color: #15803d; }
+    .btn-wa-reminder-sm:hover { background: #25d366; color: #fff; transform: translateY(-1px); }
+    .btn-wa-followup-sm { background: #ede9fe; color: #7c3aed; }
+    .btn-wa-followup-sm:hover { background: #7c3aed; color: #fff; transform: translateY(-1px); }
+
+    /* "Already sent" micro-badges */
+    .badge-wa-sent {
+        font-size: 11px; font-weight: 700; border-radius: 8px;
+        padding: 5px 10px; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .badge-wa-reminder-sent { background: #dcfce7; color: #15803d; }
+    .badge-wa-followup-sent { background: #ede9fe; color: #7c3aed; }
+
+    /* Dark-mode overrides for new elements */
+    [data-bs-theme="dark"] .btn-details { background: #2b3035; color: #94a3b8; }
+    [data-bs-theme="dark"] .btn-details:hover { background: #374151; color: #e2e8f0; }
+    [data-bs-theme="dark"] .btn-wa-reminder-sm { background: #0c2f1e; color: #34d399; }
+    [data-bs-theme="dark"] .btn-wa-reminder-sm:hover { background: #128c7e; color: #fff; }
+    [data-bs-theme="dark"] .btn-wa-followup-sm { background: #2e1065; color: #c4b5fd; }
+    [data-bs-theme="dark"] .btn-wa-followup-sm:hover { background: #7c3aed; color: #fff; }
+    [data-bs-theme="dark"] .badge-wa-reminder-sent { background: #0c2f1e; color: #34d399; }
+    [data-bs-theme="dark"] .badge-wa-followup-sent { background: #2e1065; color: #c4b5fd; }
+
+    /* ─── Event Tooltip ─── */
+    .fc-event-tooltip {
+        position: fixed;
+        background: #0f172a;
+        color: white;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-size: 13px;
+        z-index: 9999;
+        pointer-events: none;
+        min-width: 220px;
+        box-shadow: 0 10px 30px rgba(0,0,0,.3);
+        display: none;
+    }
+    .fc-event-tooltip.visible { display: block; }
+    .tooltip-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+    .tooltip-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; opacity: .85; }
+
+    /* ─── Calendar Legend ─── */
+    .cal-legend {
+        display: flex; gap: 16px; flex-wrap: wrap;
+        padding: 14px 0 4px;
+        border-top: 1px solid #f1f5f9;
+        margin-top: 14px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #475569; font-weight: 600; }
+    .legend-dot { width: 11px; height: 11px; border-radius: 4px; }
+
+    /* ─── Quick Book Modal ─── */
+    .qb-modal .modal-content {
+        border-radius: 24px;
+        border: none;
+        box-shadow: 0 20px 60px rgba(0,0,0,.15);
+        overflow: hidden;
+    }
+    .qb-modal .modal-header {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        padding: 22px 28px;
+        border: none;
+    }
+    .qb-modal .modal-title { color: white; font-weight: 800; font-size: 20px; }
+    .qb-modal .btn-close { filter: brightness(0) invert(1); opacity: .8; }
+    .qb-modal .modal-body { padding: 28px; background: #f8fafc; }
+    .qb-modal .modal-footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 28px; }
+
+    .qb-label { font-weight: 700; font-size: 13px; color: #334155; margin-bottom: 7px; }
+    .qb-input, .qb-select {
+        background: white; border: 1.5px solid #e2e8f0;
+        border-radius: 12px; padding: 11px 15px;
+        font-size: 14px; transition: .2s; width: 100%;
+    }
+    .qb-input:focus, .qb-select:focus {
+        border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+        outline: none;
+    }
+    .qb-textarea { resize: vertical; min-height: 80px; }
+
+    .btn-submit-qb {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white; border: none; border-radius: 12px;
+        padding: 12px 28px; font-weight: 700; font-size: 14px;
+        transition: .2s; cursor: pointer;
+    }
+    .btn-submit-qb:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(59,130,246,.3); color: white; }
+
+    /* ─── Event Detail Slide-over ─── */
+    #eventPanel {
+        position: fixed; top: 0; right: -420px;
+        width: 380px; height: 100vh;
+        background: white; z-index: 1500;
+        box-shadow: -8px 0 40px rgba(0,0,0,.12);
+        border-left: 1px solid #e2e8f0;
+        transition: right .3s cubic-bezier(.4,0,.2,1);
+        overflow-y: auto;
+        border-radius: 0;
+    }
+    #eventPanel.open { right: 0; }
+
+    .ep-header {
+        padding: 22px 24px;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .ep-header h5 { margin: 0; font-weight: 800; color: #0f172a; }
+
+    .ep-body { padding: 24px; }
+
+    .ep-field { margin-bottom: 20px; }
+    .ep-field-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #94a3b8; margin-bottom: 5px; }
+    .ep-field-value { font-size: 15px; font-weight: 600; color: #0f172a; }
+
+    .ep-actions { padding: 0 24px 24px; display: flex; flex-direction: column; gap: 10px; }
+
+    .btn-ep-complete { background: #10b981; color: white; border: none; border-radius: 12px; padding: 12px; font-weight: 700; font-size: 14px; text-align: center; text-decoration: none; transition: .2s; }
+    .btn-ep-complete:hover { background: #059669; color: white; }
+    .btn-ep-confirm { background: #3b82f6; color: white; border: none; border-radius: 12px; padding: 12px; font-weight: 700; font-size: 14px; cursor: pointer; transition: .2s; }
+    .btn-ep-confirm:hover { background: #1d4ed8; }
+    .btn-ep-cancel { background: #fee2e2; color: #dc2626; border: none; border-radius: 12px; padding: 12px; font-weight: 700; font-size: 14px; cursor: pointer; transition: .2s; }
+    .btn-ep-cancel:hover { background: #fecaca; }
+
+    #panelOverlay {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,.3); z-index: 1400;
+        backdrop-filter: blur(2px);
+    }
+    #panelOverlay.show { display: block; }
+</style>
+
+<div class="page-container">
+
+    @* ─── Flash Messages ─── *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm border-0 mb-4" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fa-solid fa-circle-check fs-5 me-2"></i>
+                <div>@TempData["Success"]</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm border-0 mb-4" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fa-solid fa-circle-exclamation fs-5 me-2"></i>
+                <div>@TempData["Error"]</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @* ─── Page Header ─── *@
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div>
+            <h2 class="text-[#1A2621] dark:text-[#EAEFEA] font-bold text-xl m-0 flex items-center gap-2">
+                <i class="fa-regular fa-calendar-check text-[#49665A]"></i>
+                <span>@T("المواعيد", "Appointments")</span>
+            </h2>
+            <p class="text-[#6B7D75] dark:text-[#9CA8A3] text-xs m-0 mt-1">@T("إدارة زيارات المرضى ومتابعة الجدولة وتحديث حالة الحجز فورياً.", "Manage patient visits, monitor scheduling, and update reservation status live.")</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2.5">
+            <div class="inline-flex items-center p-1 bg-[#F4F7F5] dark:bg-[#151E1B] border border-[#E5E9E7] dark:border-[#2B3833] rounded-xl gap-1" id="viewToggle">
+                <button type="button" id="btnCalView"
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#49665A] text-white shadow-sm flex items-center gap-1.5 transition"
+                        onclick="switchView('calendar')">
+                    <i class="fa-regular fa-calendar"></i>
+                    <span>@T("تقويم", "Calendar")</span>
+                </button>
+                <button type="button" id="btnListView"
+                        class="px-3 py-1.5 rounded-lg text-xs font-medium text-[#6B7D75] dark:text-[#9CA8A3] hover:text-[#1A2621] dark:hover:text-[#EAEFEA] hover:bg-white dark:hover:bg-[#1B2421] flex items-center gap-1.5 transition"
+                        onclick="switchView('list')">
+                    <i class="fa-solid fa-list"></i>
+                    <span>@T("قائمة", "List")</span>
+                </button>
+            </div>
+            <button type="button"
+                    class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] inline-flex items-center gap-1.5 transition shadow-sm"
+                    data-bs-toggle="modal" data-bs-target="#importAppointmentsModal">
+                <i class="fa-solid fa-file-import text-[#49665A]"></i>
+                <span>@T("استيراد", "Import")</span>
+            </button>
+            <a asp-action="Export"
+               class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] inline-flex items-center gap-1.5 transition shadow-sm">
+                <i class="fa-solid fa-file-excel text-[#49665A]"></i>
+                <span>@T("تصدير", "Export")</span>
+            </a>
+            <button type="button"
+                    class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#49665A] hover:bg-[#3D574D] text-white inline-flex items-center gap-1.5 transition shadow-sm"
+                    onclick="document.getElementById('quickBookModal').classList.remove('hidden')">
+                <i class="fa-solid fa-plus"></i>
+                <span>@T("حجز سريع", "Quick Book")</span>
+            </button>
+            <a asp-action="Create"
+               class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#49665A] hover:bg-[#3D574D] text-white inline-flex items-center gap-1.5 transition shadow-sm">
+                <i class="fa-solid fa-calendar-plus"></i>
+                <span>@T("نموذج كامل", "Full Form")</span>
+            </a>
+        </div>
+    </div>
+
+    @* ─── Stats Chips (click-to-filter) ─── *@
+    @{
+        int totalCount     = (int)(ViewBag.TotalAll ?? Model.Count());
+        int pendingCount   = (int)(ViewBag.TotalPending ?? Model.Count(a => a.Status == "Pending"));
+        int confirmedCount = (int)(ViewBag.TotalConfirmed ?? Model.Count(a => a.Status == "Confirmed"));
+        int completedCount = (int)(ViewBag.TotalCompleted ?? Model.Count(a => a.Status == "Completed"));
+        int cancelledCount = (int)(ViewBag.TotalCancelled ?? Model.Count(a => a.Status == "Cancelled"));
+
+        string curStatus = ViewBag.CurrentStatus ?? "";
+        string curSearch = ViewBag.CurrentSearch ?? "";
+        int curDoctor    = ViewBag.CurrentDoctor ?? 0;
+    }
+    <div class="stats-row">
+        <a class="stat-chip chip-all @(curStatus == "" ? "active-chip" : "")"
+           asp-action="Index" asp-route-statusFilter="" asp-route-searchPatient="@curSearch" asp-route-doctorFilter="@(curDoctor > 0 ? curDoctor : "")">
+            <div class="chip-icon"><i class="fa-solid fa-calendar-days"></i></div>
+            <div><div class="chip-label">@T("الكل", "All")</div><div class="chip-count">@totalCount</div></div>
+        </a>
+        <a class="stat-chip chip-pending @(curStatus == "Pending" ? "active-chip" : "")"
+           asp-action="Index" asp-route-statusFilter="Pending" asp-route-searchPatient="@curSearch" asp-route-doctorFilter="@(curDoctor > 0 ? curDoctor : "")">
+            <div class="chip-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+            <div><div class="chip-label">@T("قيد الانتظار", "Pending")</div><div class="chip-count">@pendingCount</div></div>
+        </a>
+        <a class="stat-chip chip-confirmed @(curStatus == "Confirmed" ? "active-chip" : "")"
+           asp-action="Index" asp-route-statusFilter="Confirmed" asp-route-searchPatient="@curSearch" asp-route-doctorFilter="@(curDoctor > 0 ? curDoctor : "")">
+            <div class="chip-icon"><i class="fa-solid fa-check-circle"></i></div>
+            <div><div class="chip-label">@T("مؤكد", "Confirmed")</div><div class="chip-count">@confirmedCount</div></div>
+        </a>
+        <a class="stat-chip chip-completed @(curStatus == "Completed" ? "active-chip" : "")"
+           asp-action="Index" asp-route-statusFilter="Completed" asp-route-searchPatient="@curSearch" asp-route-doctorFilter="@(curDoctor > 0 ? curDoctor : "")">
+            <div class="chip-icon"><i class="fa-solid fa-flag-checkered"></i></div>
+            <div><div class="chip-label">@T("مكتمل", "Completed")</div><div class="chip-count">@completedCount</div></div>
+        </a>
+        <a class="stat-chip chip-cancelled @(curStatus == "Cancelled" ? "active-chip" : "")"
+           asp-action="Index" asp-route-statusFilter="Cancelled" asp-route-searchPatient="@curSearch" asp-route-doctorFilter="@(curDoctor > 0 ? curDoctor : "")">
+            <div class="chip-icon"><i class="fa-solid fa-ban"></i></div>
+            <div><div class="chip-label">@T("ملغى", "Cancelled")</div><div class="chip-count">@cancelledCount</div></div>
+        </a>
+    </div>
+
+    @* ─── Filter Bar ─── *@
+    <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] rounded-2xl p-4 shadow-sm mb-6">
+        <form method="get" asp-action="Index" class="flex flex-wrap items-center gap-3">
+            <div class="relative flex-1 min-w-[220px]">
+                <i class="fa-solid fa-magnifying-glass absolute start-3.5 top-1/2 -translate-y-1/2 text-xs text-[#8A9992] dark:text-[#727A76]"></i>
+                <input type="text" name="searchPatient" value="@ViewBag.CurrentSearch"
+                       placeholder="@T("ابحث باسم المريض أو الهاتف...", "Search by patient name or phone...")"
+                       class="w-full ps-9 pe-3.5 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-[#F8FAF9] dark:bg-[#151E1B] text-[#1A2621] dark:text-[#EAEFEA] placeholder-[#8A9992] dark:placeholder-[#727A76] text-xs focus:ring-1 focus:ring-[#49665A] outline-none transition" />
+            </div>
+            <div class="w-full sm:w-auto min-w-[170px]">
+                <select name="doctorFilter"
+                        class="w-full px-3.5 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-[#F8FAF9] dark:bg-[#151E1B] text-[#1A2621] dark:text-[#EAEFEA] text-xs focus:ring-1 focus:ring-[#49665A] outline-none transition">
+                    <option value="">@T("جميع الأطباء", "All Doctors")</option>
+                    @if (ViewBag.AllDoctors != null)
+                    {
+                        foreach (var doc in ViewBag.AllDoctors)
+                        {
+                            <option value="@doc.DoctorId" selected="@(ViewBag.CurrentDoctor == doc.DoctorId)">
+                                Dr. @doc.DoctorName
+                            </option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="w-full sm:w-auto min-w-[150px]">
+                <select name="statusFilter"
+                        class="w-full px-3.5 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-[#F8FAF9] dark:bg-[#151E1B] text-[#1A2621] dark:text-[#EAEFEA] text-xs focus:ring-1 focus:ring-[#49665A] outline-none transition">
+                    <option value="">@T("جميع الحالات", "All Statuses")</option>
+                    <option value="Pending"   selected="@(ViewBag.CurrentStatus == "Pending")">⏳ @T("قيد الانتظار", "Pending")</option>
+                    <option value="Confirmed" selected="@(ViewBag.CurrentStatus == "Confirmed")">🔹 @T("مؤكد", "Confirmed")</option>
+                    <option value="Completed" selected="@(ViewBag.CurrentStatus == "Completed")">✅ @T("مكتمل", "Completed")</option>
+                    <option value="Cancelled" selected="@(ViewBag.CurrentStatus == "Cancelled")">❌ @T("ملغى", "Cancelled")</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2 shrink-0 ms-auto">
+                <button type="submit"
+                        class="px-4 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-filter"></i>
+                    <span>@T("تصفية", "Filter")</span>
+                </button>
+                <a asp-action="Index"
+                   class="px-3.5 py-2 bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-xs font-medium rounded-xl transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>@T("إعادة تعيين", "Reset")</span>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    @* ─── Calendar View ─── *@
+    <div id="calendarSection">
+        <div class="calendar-card">
+            <div id="appointmentCalendar"></div>
+            <div class="cal-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> @T("قيد الانتظار", "Pending")</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> @T("مؤكد", "Confirmed")</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> @T("مكتمل", "Completed")</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> @T("ملغى", "Cancelled")</div>
+            </div>
+        </div>
+    </div>
+
+    @* ─── List / Table View ─── *@
+    <div id="listSection" style="display:none;">
+        <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] rounded-2xl shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-start align-middle border-collapse">
+                    <thead>
+                        <tr class="bg-[#F4F7F5] dark:bg-[#151E1B] border-b border-[#E5E9E7] dark:border-[#2B3833] text-[10px] uppercase tracking-wider text-[#5C6E66] dark:text-[#9CA8A3] font-semibold">
+                            <th class="py-3 px-4 text-start font-semibold">@T("بيانات المريض", "Patient Details")</th>
+                            <th class="py-3 px-4 text-start font-semibold">@T("الطبيب المسند", "Assigned Doctor")</th>
+                            <th class="py-3 px-4 text-start font-semibold">@T("التاريخ والوقت", "Date & Time")</th>
+                            <th class="py-3 px-4 text-start font-semibold">@T("الحالة", "Status")</th>
+                            <th class="py-3 px-4 text-end font-semibold">@T("الإجراءات", "Actions")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-12 text-[#6B7D75] dark:text-[#9CA8A3]">
+                                    <i class="fa-regular fa-calendar-times text-3xl d-block mb-3 opacity-40"></i>
+                                    <span class="text-xs">@T("لا توجد مواعيد مطابقة للمعايير الحالية.", "No appointments found matching the current criteria.")</span>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model)
+                            {
+                                string badgeClass = item.Status.ToLower() switch
+                                {
+                                    "confirmed" => "badge-confirmed",
+                                    "completed" => "badge-completed",
+                                    "cancelled" => "badge-cancelled",
+                                    _ => "badge-pending"
+                                };
+
+                                <tr class="border-b border-[#E5E9E7] dark:border-[#2B3833] hover:bg-[#F9FBFA] dark:hover:bg-white/[0.02] transition">
+                                    <td class="py-3.5 px-4">
+                                        <div class="text-[#1A2621] dark:text-[#EAEFEA] font-semibold text-xs">@(item.Patient?.PatientName ?? "N/A")</div>
+                                        <div class="text-[#6B7D75] dark:text-[#9CA8A3] text-[11px] mt-0.5"><i class="fa-solid fa-phone me-1"></i>@(item.Patient?.PhoneNumber ?? "N/A")</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <div class="text-[#1A2621] dark:text-[#EAEFEA] text-xs font-medium flex items-center gap-1.5">
+                                            <i class="fa-solid fa-user-doctor text-[#49665A]"></i>
+                                            <span>Dr. @(item.Doctor?.DoctorName ?? "Unassigned")</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <div class="text-[#6B7D75] dark:text-[#9CA8A3] text-xs flex items-center gap-1">
+                                            <i class="fa-regular fa-calendar me-1"></i>@item.AppointmentDate.ToString("dd MMM yyyy")
+                                        </div>
+                                        <div class="text-[#6B7D75] dark:text-[#9CA8A3] text-xs mt-0.5 flex items-center gap-1">
+                                            <i class="fa-regular fa-clock me-1"></i>@DateTime.Today.Add(item.AppointmentTime).ToString("hh:mm tt")
+                                        </div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        @if (item.Status == "Cancelled")
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-[11px] font-semibold">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> @T("ملغى", "Cancelled")
+                                            </span>
+                                        }
+                                        else if (item.Status == "Completed")
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> @T("مكتمل", "Completed")
+                                            </span>
+                                        }
+                                        else if (item.Status == "Confirmed")
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[11px] font-semibold">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> @T("مؤكد", "Confirmed")
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[11px] font-semibold">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> @T("قيد الانتظار", "Pending")
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <div class="flex items-center gap-1.5 justify-end flex-nowrap">
+
+                                            @* ── Details link ─────────────────────────────── *@
+                                            <a asp-action="Details" asp-route-id="@item.AppointmentId"
+                                               class="px-2.5 py-1 rounded-lg text-xs font-medium bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] transition flex items-center gap-1.5"
+                                               title="@T("تفاصيل", "Details")">
+                                                <i class="fa-solid fa-eye text-[#49665A]"></i>
+                                                @T("تفاصيل", "Details")
+                                            </a>
+
+                                            @* ── Complete & Bill (non-terminal statuses) ────── *@
+                                            @if (item.Status != "Completed" && item.Status != "Cancelled")
+                                            {
+                                                <a asp-action="Complete" asp-route-id="@item.AppointmentId"
+                                                   class="px-2.5 py-1 rounded-lg text-xs font-medium bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] inline-flex items-center gap-1.5 transition"
+                                                   title="Complete &amp; Bill">
+                                                    <i class="fa-solid fa-file-invoice-dollar text-[#49665A]"></i>Complete &amp; Bill
+                                                </a>
+                                            }
+
+                                            @* ── Confirm button ─────────────────────────────── *@
+                                            @if (item.Status != "Confirmed" && item.Status != "Completed" && item.Status != "Cancelled")
+                                            {
+                                                <form asp-action="UpdateStatus" method="post" class="d-inline m-0">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@item.AppointmentId" />
+                                                    <input type="hidden" name="newStatus" value="Confirmed" />
+                                                    <button type="submit"
+                                                            class="w-7 h-7 flex items-center justify-center rounded-lg bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-emerald-600 dark:text-emerald-400 text-xs transition"
+                                                            title="Confirm">
+                                                        <i class="fa-solid fa-check"></i>
+                                                    </button>
+                                                </form>
+                                            }
+
+                                            @* ── Cancel button ─────────────────────────────── *@
+                                            @if (item.Status != "Cancelled" && item.Status != "Completed")
+                                            {
+                                                <form asp-action="UpdateStatus" method="post" class="d-inline m-0">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@item.AppointmentId" />
+                                                    <input type="hidden" name="newStatus" value="Cancelled" />
+                                                    <button type="submit"
+                                                            class="w-7 h-7 flex items-center justify-center rounded-lg border border-rose-300 dark:border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs transition"
+                                                            title="Cancel Appointment">
+                                                        <i class="fa-solid fa-xmark"></i>
+                                                    </button>
+                                                </form>
+                                            }
+
+                                            @* ── WhatsApp: Reminder (Pending / Confirmed) ────── *@
+                                            @if (item.Status == "Pending" || item.Status == "Confirmed")
+                                            {
+                                                @if (!item.IsReminderSent)
+                                                {
+                                                    <form asp-action="SendQuickWhatsApp" method="post" class="d-inline m-0">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id"   value="@item.AppointmentId" />
+                                                        <input type="hidden" name="type" value="reminder" />
+                                                        <button type="submit"
+                                                                class="bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-xs px-2.5 py-1 rounded-lg transition inline-flex items-center gap-1.5"
+                                                                title="@T("إرسال تذكير واتسآب", "Send WhatsApp Reminder")">
+                                                            <i class="fa-brands fa-whatsapp text-emerald-500 dark:text-emerald-400"></i>
+                                                            @T("تذكير", "Reminder")
+                                                        </button>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    <span class="bg-[#F4F7F5] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] text-[#6B7D75] dark:text-[#9CA8A3] text-xs px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5 opacity-80"
+                                                          title="@T("تم إرسال التذكير", "Reminder already sent")">
+                                                        <i class="fa-brands fa-whatsapp text-emerald-500 dark:text-emerald-400"></i>
+                                                        @T("تم التذكير", "Reminder Sent")
+                                                    </span>
+                                                }
+                                            }
+
+                                            @* ── WhatsApp: Follow-up (Completed) ───────────── *@
+                                            @if (item.Status == "Completed")
+                                            {
+                                                @if (!item.IsFollowUpSent)
+                                                {
+                                                    <form asp-action="SendQuickWhatsApp" method="post" class="d-inline m-0">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id"   value="@item.AppointmentId" />
+                                                        <input type="hidden" name="type" value="followup" />
+                                                        <button type="submit"
+                                                                class="bg-[#202B27] border border-[#2B3833] text-[#EAEFEA] text-xs px-2.5 py-1 rounded-lg hover:bg-[#2B3833] transition inline-flex items-center gap-1.5"
+                                                                title="@T("إرسال متابعة واتسآب", "Send WhatsApp Follow-up")">
+                                                            <i class="fa-solid fa-link text-[#49665A]"></i>
+                                                            @T("متابعة", "Follow-up")
+                                                        </button>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    <span class="bg-[#202B27] border border-[#2B3833] text-[#EAEFEA] text-xs px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5"
+                                                          title="@T("تمت المتابعة", "Follow-up already sent")">
+                                                        <i class="fa-solid fa-check text-[#49665A]"></i>
+                                                        @T("تمت المتابعة", "Follow-up Sent")
+                                                    </span>
+                                                }
+                                            }
+
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div><!-- end .page-container -->
+
+@* ══════════════════════════════════════════════════════
+   QUICK BOOK MODAL — Tailwind overlay
+══════════════════════════════════════════════════════ *@
+<div id="quickBookModal"
+     class="fixed inset-0 bg-[#202725]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden"
+     onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+
+        @* Header *@
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-9 h-9 rounded-xl bg-[#49665A]/10 flex items-center justify-center text-[#49665A]">
+                    <i class="fa-solid fa-calendar-plus text-sm"></i>
+                </div>
+                <div>
+                    <h5 class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA] m-0">@T("حجز سريع", "Quick Book Appointment")</h5>
+                    <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0">@T("جدولة موعد جديد بسرعة", "Schedule a new appointment instantly")</p>
+                </div>
+            </div>
+            <button type="button"
+                    class="w-7 h-7 rounded-lg flex items-center justify-center text-[#727A76] dark:text-[#9CA8A3] hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] transition-colors"
+                    onclick="document.getElementById('quickBookModal').classList.add('hidden')">
+                <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
+        </div>
+
+        @* Form *@
+        <form asp-action="QuickBook" method="post">
+            @Html.AntiForgeryToken()
+            <div class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                            <i class="fa-regular fa-calendar me-1 text-[#49665A]"></i>@T("تاريخ الموعد", "Appointment Date")
+                        </label>
+                        <input type="date" name="AppointmentDate" id="qbDate"
+                               min="@DateTime.Today.ToString("yyyy-MM-dd")"
+                               class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
+                               required />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                            <i class="fa-regular fa-clock me-1 text-[#49665A]"></i>@T("وقت الموعد", "Appointment Time")
+                        </label>
+                        <input type="time" name="AppointmentTime" id="qbTime"
+                               class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
+                               required />
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                            <i class="fa-solid fa-user-doctor me-1 text-[#49665A]"></i>@T("الطبيب", "Doctor")
+                        </label>
+                        <select name="DoctorId" id="qbDoctor"
+                                class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
+                                required>
+                            <option value="">— @T("اختر الطبيب", "Select Doctor") —</option>
+                            @if (ViewBag.AllDoctors != null)
+                            {
+                                foreach (var doc in ViewBag.AllDoctors)
+                                {
+                                    <option value="@doc.DoctorId">Dr. @doc.DoctorName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                            <i class="fa-solid fa-user me-1 text-[#49665A]"></i>@T("المريض", "Patient")
+                        </label>
+                        <select name="PatientId" id="qbPatient"
+                                class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
+                                required>
+                            <option value="">— @T("اختر المريض", "Select Patient") —</option>
+                            @if (ViewBag.AllPatients != null)
+                            {
+                                foreach (var p in ViewBag.AllPatients)
+                                {
+                                    <option value="@p.PatientId">@p.PatientName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                        <i class="fa-solid fa-notes-medical me-1 text-[#49665A]"></i>@T("ملاحظات (اختياري)", "Notes (Optional)")
+                    </label>
+                    <textarea name="Notes"
+                              class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] resize-none"
+                              rows="3"
+                              placeholder="@T("أدخل الأعراض أو الشكاوى أو الملاحظات...", "Enter any symptoms, complaints, or notes...")">
+                    </textarea>
+                </div>
+            </div>
+
+            @* Footer *@
+            <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-[#E5E9E7] dark:border-[#2B3833] mt-6">
+                <button type="button"
+                        class="px-4 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/20 text-[#6B7D75] hover:text-rose-600 dark:text-[#9CA8A3] dark:hover:text-rose-400 text-xs font-semibold transition flex items-center gap-1.5"
+                        onclick="document.getElementById('quickBookModal').classList.add('hidden')">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                    <span>@T("إلغاء", "Cancel")</span>
+                </button>
+                <button type="submit"
+                        class="px-5 py-2 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-floppy-disk text-xs"></i>
+                    <span>@T("حفظ الموعد", "Save Appointment")</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* ══════════════════════════════════════════════════════
+   BULK IMPORT APPOINTMENTS MODAL
+══════════════════════════════════════════════════════ *@
+<div class="modal fade" id="importAppointmentsModal" tabindex="-1" aria-labelledby="importAppointmentsModalLabel" aria-hidden="true" dir="@(_isAr ? "rtl" : "ltr")">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 bg-white dark:bg-[#1B2421] dark:border dark:border-[#2B3833]">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-[#49665A]/10 p-2 d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+                        <i class="fa-solid fa-file-arrow-up text-[#49665A] fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold m-0 text-[#202725] dark:text-[#EAEFEA]" id="importAppointmentsModalLabel">
+                            @T("استيراد المواعيد (Bulk Import)", "Bulk Import Appointments")
+                        </h5>
+                        <p class="m-0 text-xs text-[#727A76] dark:text-[#9CA8A3]">
+                            @T("رفع ملف CSV لجدولة المواعيد دفعة واحدة", "Upload CSV to schedule multiple appointments at once")
+                        </p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close dark:invert dark:opacity-60" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form asp-action="Import" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-body py-4 space-y-4">
+
+                    @* Template download card *@
+                    <div class="flex items-center justify-between gap-3 p-3 rounded-xl
+                                bg-white dark:bg-[#1B2421]
+                                border border-[#DDE3DF] dark:border-[#2B3833]">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-file-csv text-3xl text-[#2E7D5B]"></i>
+                            <div>
+                                <div class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA]">
+                                    @T("قالب المواعيد الجاهز", "Sample Template")
+                                </div>
+                                <div class="text-xs text-[#727A76] dark:text-[#9CA8A3] mt-0.5">
+                                    @T("تحميل ملف CSV بأعمدة المواعيد المطلوبة", "Download CSV template with appointment headers")
+                                </div>
+                            </div>
+                        </div>
+                        <a asp-action="DownloadTemplate"
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg
+                                  border border-[#2E7D5B] text-[#2E7D5B] hover:bg-[#2E7D5B]/10
+                                  dark:bg-[#151E1B] dark:border-[#2B3833] dark:text-[#EAEFEA] dark:hover:bg-[#2B3833]
+                                  transition-colors shrink-0">
+                            <i class="fa-solid fa-download"></i>
+                            @T("تحميل القالب", "Download Template")
+                        </a>
+                    </div>
+
+                    @* File input *@
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-[#202725] dark:text-[#EAEFEA]">
+                            @T("اختر ملف CSV:", "Select CSV File:")
+                        </label>
+                        <input type="file" name="file" class="form-control" accept=".csv" required />
+                    </div>
+
+                    @* Required columns panel *@
+                    <div class="bg-[#F8FAF9] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] rounded-xl p-4">
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="fa-solid fa-circle-info text-[#49665A] text-xs"></i>
+                            <span class="text-xs font-bold text-[#1A2621] dark:text-[#EAEFEA]">
+                                @T("الأعمدة المطلوبة في الملف", "Required Columns in CSV")
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-[#6B7D75] dark:text-[#9CA8A3]">
+                            <div class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-[#49665A] mt-0.5 shrink-0"></i>
+                                <div>
+                                    <span class="font-bold text-[#1A2621] dark:text-[#EAEFEA]">PatientNationalID</span>
+                                    <div class="mt-0.5">@T("رقم هوية المريض المسجل بالنظام", "Registered Patient National ID")</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-[#49665A] mt-0.5 shrink-0"></i>
+                                <div>
+                                    <span class="font-bold text-[#1A2621] dark:text-[#EAEFEA]">DoctorIDOrNumber</span>
+                                    <div class="mt-0.5">@T("رقم الطبيب أو معرفه", "Doctor ID or Doctor Number")</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-[#49665A] mt-0.5 shrink-0"></i>
+                                <div>
+                                    <span class="font-bold text-[#1A2621] dark:text-[#EAEFEA]">AppointmentDate</span>
+                                    <div class="mt-0.5">@T("تاريخ الموعد (YYYY-MM-DD)", "Appointment Date (YYYY-MM-DD)")</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-[#49665A] mt-0.5 shrink-0"></i>
+                                <div>
+                                    <span class="font-bold text-[#1A2621] dark:text-[#EAEFEA]">AppointmentTime</span>
+                                    <div class="mt-0.5">@T("وقت الموعد (HH:mm)", "Appointment Time (HH:mm)")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-[#E5E9E7] dark:border-[#2B3833] mt-6 px-6 pb-6">
+                    <button type="button"
+                            class="px-4 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/20 text-[#6B7D75] hover:text-rose-600 dark:text-[#9CA8A3] dark:hover:text-rose-400 text-xs font-semibold transition flex items-center gap-1.5"
+                            data-bs-dismiss="modal">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                        <span>@T("إلغاء", "Cancel")</span>
+                    </button>
+                    <button type="submit"
+                            class="px-5 py-2 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-upload text-xs"></i>
+                        <span>@T("بدء الاستيراد", "Import Appointments")</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* ══════════════════════════════════════════════════════
+   EVENT DETAIL PANEL (slide-over)
+══════════════════════════════════════════════════════ *@
+<div id="panelOverlay" onclick="closeEventPanel()"></div>
+<div id="eventPanel">
+    <div class="ep-header">
+        <h5><i class="fa-regular fa-calendar-check me-2 text-primary"></i>Appointment Details</h5>
+        <button onclick="closeEventPanel()" style="background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+    <div class="ep-body">
+        <div class="ep-field">
+            <div class="ep-field-label">Patient</div>
+            <div class="ep-field-value" id="ep-patient">—</div>
+        </div>
+        <div class="ep-field">
+            <div class="ep-field-label">Doctor</div>
+            <div class="ep-field-value" id="ep-doctor">—</div>
+        </div>
+        <div class="ep-field">
+            <div class="ep-field-label">Date &amp; Time</div>
+            <div class="ep-field-value" id="ep-datetime">—</div>
+        </div>
+        <div class="ep-field">
+            <div class="ep-field-label">Status</div>
+            <div id="ep-status">—</div>
+        </div>
+        <div class="ep-field" id="ep-notes-section" style="display:none;">
+            <div class="ep-field-label">Notes</div>
+            <div class="ep-field-value" id="ep-notes" style="font-size:13px;color:#64748b;"></div>
+        </div>
+    </div>
+    <div class="ep-actions" id="ep-actions">
+        <!-- dynamically populated -->
+    </div>
+</div>
+
+@* ─── Tooltip element ─── *@
+<div class="fc-event-tooltip" id="eventTooltip">
+    <div class="tooltip-title" id="tt-title"></div>
+    <div class="tooltip-row"><i class="fa-solid fa-user" style="width:14px;"></i><span id="tt-patient"></span></div>
+    <div class="tooltip-row"><i class="fa-solid fa-user-doctor" style="width:14px;"></i><span id="tt-doctor"></span></div>
+    <div class="tooltip-row"><i class="fa-regular fa-clock" style="width:14px;"></i><span id="tt-time"></span></div>
+</div>
+
+@section Scripts {
+    <!-- FullCalendar -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+    <script>
+        /* ──────────────────────────────────
+           Helpers: serialise current filters
+           ────────────────────────────────── */
+        const currentStatus = '@(ViewBag.CurrentStatus ?? "")';
+        const currentDoctor = '@(ViewBag.CurrentDoctor ?? 0)';
+
+        function calEventsUrl() {
+            let url = '/Appointments/GetCalendarEvents?';
+            if (currentStatus) url += `statusFilter=${encodeURIComponent(currentStatus)}&`;
+            if (currentDoctor && currentDoctor !== '0') url += `doctorFilter=${currentDoctor}&`;
+            return url;
+        }
+
+        /* ──────────────────────────────────
+           FullCalendar init
+           ────────────────────────────────── */
+        let calendar;
+        document.addEventListener('DOMContentLoaded', function () {
+            const calEl = document.getElementById('appointmentCalendar');
+            calendar = new FullCalendar.Calendar(calEl, {
+                initialView: 'dayGridMonth',
+                height: 680,
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                },
+                buttonText: {
+                    today: 'Today',
+                    month: 'Month',
+                    week: 'Week',
+                    day: 'Day',
+                    list: 'Agenda'
+                },
+                nowIndicator: true,
+                navLinks: true,
+                dayMaxEvents: 3,
+                events: calEventsUrl(),
+                eventClick: function (info) {
+                    openEventPanel(info.event);
+                },
+                eventMouseEnter: function (info) {
+                    showTooltip(info.event, info.jsEvent);
+                },
+                eventMouseLeave: function () {
+                    hideTooltip();
+                },
+                eventDidMount: function (info) {
+                    // Add subtle pulse for today's events
+                    const today = new Date();
+                    const evDate = info.event.start;
+                    if (evDate && evDate.toDateString() === today.toDateString()) {
+                        info.el.style.boxShadow = '0 0 0 2px white, 0 0 0 4px ' + info.event.backgroundColor;
+                    }
+                },
+                // Clicking on a blank date opens the modal with pre-filled date
+                dateClick: function (info) {
+                    document.getElementById('qbDate').value = info.dateStr;
+                    var modal = new bootstrap.Modal(document.getElementById('quickBookModal'));
+                    modal.show();
+                }
+            });
+            calendar.render();
+        });
+
+        /* ──────────────────────────────────
+           View toggle (Calendar / List)
+           ────────────────────────────────── */
+        function switchView(view) {
+            const calSec  = document.getElementById('calendarSection');
+            const listSec = document.getElementById('listSection');
+            const btnCal  = document.getElementById('btnCalView');
+            const btnList = document.getElementById('btnListView');
+
+            const activeClasses   = ['font-semibold', 'bg-[#49665A]', 'text-white', 'shadow-sm'];
+            const inactiveClasses = ['font-medium', 'text-[#727A76]', 'hover:text-[#EAEFEA]', 'hover:bg-[#1B2421]'];
+
+            if (view === 'calendar') {
+                calSec.style.display  = 'block';
+                listSec.style.display = 'none';
+                btnCal.classList.remove(...inactiveClasses);
+                btnCal.classList.add(...activeClasses, 'active');
+                btnList.classList.remove(...activeClasses, 'active');
+                btnList.classList.add(...inactiveClasses);
+                if (calendar) calendar.updateSize();
+                localStorage.setItem('apptView', 'calendar');
+            } else {
+                calSec.style.display  = 'none';
+                listSec.style.display = 'block';
+                btnList.classList.remove(...inactiveClasses);
+                btnList.classList.add(...activeClasses, 'active');
+                btnCal.classList.remove(...activeClasses, 'active');
+                btnCal.classList.add(...inactiveClasses);
+                localStorage.setItem('apptView', 'list');
+            }
+        }
+
+        // Restore last chosen view
+        window.addEventListener('DOMContentLoaded', function () {
+            const saved = localStorage.getItem('apptView') || 'calendar';
+            switchView(saved);
+        });
+
+        /* ──────────────────────────────────
+           Tooltip
+           ────────────────────────────────── */
+        const tooltip = document.getElementById('eventTooltip');
+
+        function showTooltip(event, jsEvent) {
+            document.getElementById('tt-title').textContent = event.title;
+            document.getElementById('tt-patient').textContent = event.extendedProps.patientName;
+            document.getElementById('tt-doctor').textContent = 'Dr. ' + event.extendedProps.doctorName;
+            const st = event.start;
+            document.getElementById('tt-time').textContent = st ? st.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+            tooltip.classList.add('visible');
+            moveTooltip(jsEvent);
+        }
+
+        function hideTooltip() { tooltip.classList.remove('visible'); }
+
+        document.addEventListener('mousemove', function (e) {
+            if (tooltip.classList.contains('visible')) moveTooltip(e);
+        });
+
+        function moveTooltip(e) {
+            let x = e.clientX + 14;
+            let y = e.clientY + 14;
+            if (x + 240 > window.innerWidth)  x = e.clientX - 250;
+            if (y + 120 > window.innerHeight) y = e.clientY - 130;
+            tooltip.style.left = x + 'px';
+            tooltip.style.top  = y + 'px';
+        }
+
+        /* ──────────────────────────────────
+           Event Detail Panel
+           ────────────────────────────────── */
+        const statusBadgeMap = {
+            'Pending':   '<span class="custom-badge badge-pending"><span class="status-dot"></span>Pending</span>',
+            'Confirmed': '<span class="custom-badge badge-confirmed"><span class="status-dot"></span>Confirmed</span>',
+            'Completed': '<span class="custom-badge badge-completed"><span class="status-dot"></span>Completed</span>',
+            'Cancelled': '<span class="custom-badge badge-cancelled"><span class="status-dot"></span>Cancelled</span>',
+        };
+
+        function openEventPanel(event) {
+            const p  = event.extendedProps;
+            const st = event.start;
+            const id = event.id;
+
+            document.getElementById('ep-patient').textContent  = p.patientName;
+            document.getElementById('ep-doctor').textContent   = 'Dr. ' + p.doctorName;
+            document.getElementById('ep-datetime').textContent = st
+                ? st.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
+                  + ' · '
+                  + st.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : '—';
+            document.getElementById('ep-status').innerHTML = statusBadgeMap[p.status] || p.status;
+
+            const notesSection = document.getElementById('ep-notes-section');
+            if (p.notes) {
+                notesSection.style.display = 'block';
+                document.getElementById('ep-notes').textContent = p.notes;
+            } else {
+                notesSection.style.display = 'none';
+            }
+
+            // Build action buttons
+            const actionsDiv = document.getElementById('ep-actions');
+            actionsDiv.innerHTML = '';
+
+            if (p.status !== 'Completed' && p.status !== 'Cancelled') {
+                actionsDiv.innerHTML += `
+                    <a href="/Appointments/Complete/${id}" class="btn-ep-complete">
+                        <i class="fa-solid fa-file-invoice-dollar me-2"></i>Complete &amp; Bill
+                    </a>`;
+            }
+            if (p.status !== 'Confirmed' && p.status !== 'Completed' && p.status !== 'Cancelled') {
+                actionsDiv.innerHTML += `
+                    <form action="/Appointments/UpdateStatus" method="post" style="margin:0;">
+                        <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
+                        <input type="hidden" name="id" value="${id}" />
+                        <input type="hidden" name="newStatus" value="Confirmed" />
+                        <button type="submit" class="btn-ep-confirm w-100">
+                            <i class="fa-solid fa-check me-2"></i>Confirm Appointment
+                        </button>
+                    </form>`;
+            }
+            if (p.status !== 'Cancelled' && p.status !== 'Completed') {
+                actionsDiv.innerHTML += `
+                    <form action="/Appointments/UpdateStatus" method="post" style="margin:0;">
+                        <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
+                        <input type="hidden" name="id" value="${id}" />
+                        <input type="hidden" name="newStatus" value="Cancelled" />
+                        <button type="submit" class="btn-ep-cancel w-100">
+                            <i class="fa-solid fa-ban me-2"></i>Cancel Appointment
+                        </button>
+                    </form>`;
+            }
+
+            // Show panel + overlay
+            document.getElementById('eventPanel').classList.add('open');
+            document.getElementById('panelOverlay').classList.add('show');
+        }
+
+        function closeEventPanel() {
+            document.getElementById('eventPanel').classList.remove('open');
+            document.getElementById('panelOverlay').classList.remove('show');
+        }
+
+        function getAntiForgeryToken() {
+            const el = document.querySelector('input[name="__RequestVerificationToken"]');
+            return el ? el.value : '';
+        }
+
+        /* Pre-fill date when Quick Book modal opens */
+        document.getElementById('quickBookModal').addEventListener('show.bs.modal', function () {
+            if (!document.getElementById('qbDate').value) {
+                const today = new Date();
+                document.getElementById('qbDate').value = today.toISOString().split('T')[0];
+            }
+        });
+    </script>
+}

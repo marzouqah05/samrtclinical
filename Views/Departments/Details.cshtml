@@ -1,0 +1,99 @@
+@model WebApplication1.Models.Department
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("تفاصيل القسم", "Department Details");
+}
+
+<div class="max-w-3xl mx-auto px-4 py-8" dir="@(_isAr ? "rtl" : "ltr")">
+
+    @* ── Back Navigation Link ── *@
+    <div class="mb-5">
+        <a asp-action="Index" class="inline-flex items-center gap-2 text-xs font-medium text-[#727A76] dark:text-[#9CA8A3] hover:text-[#202725] dark:hover:text-[#EAEFEA] transition-colors">
+            <i class="fa-solid @(_isAr ? "fa-arrow-right" : "fa-arrow-left")"></i>
+            <span>@T("العودة إلى قائمة الأقسام", "Back to Departments List")</span>
+        </a>
+    </div>
+
+    @* ── Unified Dark Olive Card ── *@
+    <div class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl shadow-sm max-w-3xl mx-auto overflow-hidden">
+
+        @* ── Profile Header ── *@
+        <div class="p-6 bg-[#F6F7F5] dark:bg-[#151E1B] border-b border-[#DDE3DF] dark:border-[#2B3833] flex items-center gap-4">
+            <div class="w-16 h-16 rounded-2xl bg-[#49665A]/15 border border-[#49665A]/30 text-[#49665A] font-bold text-xl flex items-center justify-center shrink-0">
+                @(!string.IsNullOrEmpty(Model.DepartmentName) ? Model.DepartmentName.Substring(0, 1).ToUpper() : "D")
+            </div>
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="text-base sm:text-lg font-bold text-[#202725] dark:text-[#EAEFEA] m-0">
+                        @Model.DepartmentName
+                    </h1>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#49665A]/10 text-[#49665A] border border-[#49665A]/20">
+                        @Model.DepartmentAbbr
+                    </span>
+                </div>
+                <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0 mt-1">
+                    @T("قسم طبي منظم في العيادة", "Registered Clinic Medical Department")
+                </p>
+            </div>
+        </div>
+
+        @* ── Details Grid ── *@
+        <div class="p-6">
+            <span class="text-xs font-bold uppercase tracking-wider text-[#49665A] dark:text-[#9CA8A3] mb-4 block">
+                @T("معلومات القسم المعتمدة", "Department Information Overview")
+            </span>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Department Name -->
+                <div class="p-3.5 rounded-xl bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833]">
+                    <div class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase">
+                        @T("اسم القسم", "Department Name")
+                    </div>
+                    <div class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA] mt-1 flex items-center gap-2">
+                        <i class="fa-solid fa-building-columns text-[#49665A]"></i>
+                        <span>@Model.DepartmentName</span>
+                    </div>
+                </div>
+
+                <!-- Department Abbreviation -->
+                <div class="p-3.5 rounded-xl bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833]">
+                    <div class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase">
+                        @T("رمز الاختصار الطبي", "Department Abbreviation")
+                    </div>
+                    <div class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA] mt-1 flex items-center gap-2">
+                        <i class="fa-solid fa-code text-[#49665A]"></i>
+                        <span>@Model.DepartmentAbbr</span>
+                    </div>
+                </div>
+
+                <!-- Status / Role -->
+                <div class="sm:col-span-2 p-3.5 rounded-xl bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833]">
+                    <div class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase">
+                        @T("حالة القسم وسير العمل", "Department Status & Clinical Workflow")
+                    </div>
+                    <div class="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>@T("قسم نشط ومعتمد في نظام حجز المواعيد وإدارة الأطباء", "Active department in scheduling and physician assignment system")</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-[#DDE3DF] dark:border-[#2B3833]">
+                <a asp-action="Index"
+                   class="px-4 py-2.5 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] text-[#1A2621] dark:text-[#EAEFEA] text-xs font-semibold transition flex items-center gap-1.5">
+                    <i class="fa-solid @(_isAr ? "fa-arrow-right" : "fa-arrow-left") text-xs"></i>
+                    <span>@T("العودة للقائمة", "Back to List")</span>
+                </a>
+                <a asp-action="Edit" asp-route-id="@Model.DepartmentId"
+                   class="px-5 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-pen text-xs"></i>
+                    <span>@T("تعديل القسم", "Edit Department")</span>
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>

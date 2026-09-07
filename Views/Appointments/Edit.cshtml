@@ -1,0 +1,173 @@
+@model WebApplication1.Models.Appointment
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("تعديل الموعد", "Edit Appointment");
+
+    var status = "";
+
+    if (Model.AppointmentDate.Date == DateTime.Today)
+    {
+        status = T("اليوم", "Today");
+    }
+    else if (Model.AppointmentDate.Date > DateTime.Today)
+    {
+        status = T("قادم", "Upcoming");
+    }
+    else
+    {
+        status = T("مكتمل", "Completed");
+    }
+}
+
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+<style>
+    body { background: #f5f7fb; }
+    .form-container { max-width: 1150px; margin: auto; }
+    .form-card { background: white; border-radius: 14px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .form-header { background: #0f172a; padding: 24px 30px; color: white; }
+    .form-header h2 { margin: 0; font-weight: 700; font-size: 20px; }
+    .form-header p { margin-top: 4px; opacity: 0.8; font-size: 13.5px; }
+    .form-body { padding: 35px; }
+    .section-title { font-size: 20px; font-weight: bold; margin-bottom: 30px; color: #0f172a; }
+    .form-label { font-weight: 600; margin-bottom: 10px; color: #1e293b; }
+    .custom-input, .custom-select { border: none; background: #f1f5f9; border-radius: 16px; padding: 14px 18px; font-size: 15px; transition: 0.3s; }
+    .custom-input:focus, .custom-select:focus { background: #eef2ff; box-shadow: none; border: 2px solid #6366f1; }
+    .input-group-custom { position: relative; }
+    .input-icon { position: absolute; top: 17px; @(_isAr ? "right: 16px;" : "left: 16px;") color: #64748b; z-index: 5; }
+    .input-with-icon { @(_isAr ? "padding-right: 45px;" : "padding-left: 45px;") }
+    .submit-btn { background: #6366f1; border: none; border-radius: 16px; padding: 14px 28px; font-weight: 600; transition: 0.3s; }
+    .submit-btn:hover { background: #4f46e5; transform: translateY(-2px); }
+    .back-btn { border-radius: 16px; padding: 14px 24px; }
+    .appointment-preview { background: #f8fafc; border-radius: 24px; padding: 30px; text-align: center; height: 100%; }
+    .appointment-icon { width: 100px; height: 100px; border-radius: 50%; background: #6366f1; color: white; display: flex; justify-content: center; align-items: center; margin: auto; font-size: 40px; margin-bottom: 20px; }
+    .status-badge { background: #dbeafe; color: #2563eb; padding: 8px 16px; border-radius: 30px; display: inline-block; font-size: 13px; font-weight: 600; margin-top: 12px; }
+    .preview-text { color: #64748b; font-size: 14px; }
+</style>
+
+<div class="form-container" dir="@(_isAr ? "rtl" : "ltr")">
+
+    <div class="form-card">
+
+        <!-- Header -->
+        <div class="form-header">
+            <h2>
+                <i class="fa-solid fa-calendar-pen"></i>
+                @T("تعديل الموعد", "Edit Appointment")
+            </h2>
+            <p>@T("تحديث جدول الموعد وتعيين المريض.", "Update appointment schedule and patient assignment.")</p>
+        </div>
+
+        <!-- Body -->
+        <div class="form-body">
+
+            <form asp-action="Edit" method="post">
+
+                <input type="hidden" asp-for="AppointmentId" />
+
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
+
+                <div class="row g-5">
+
+                    <!-- Left -->
+                    <div class="col-lg-8">
+
+                        <div class="section-title">@T("معلومات الموعد", "Appointment Information")</div>
+
+                        <div class="row g-4">
+
+                            <!-- Date -->
+                            <div class="col-md-6">
+                                <label class="form-label">@T("تاريخ الموعد", "Appointment Date")</label>
+                                <div class="input-group-custom">
+                                    <i class="fa-solid fa-calendar-days input-icon"></i>
+                                    <input asp-for="AppointmentDate" type="date" min="@DateTime.Today.ToString("yyyy-MM-dd")" class="form-control custom-input input-with-icon" />
+                                </div>
+                                <span asp-validation-for="AppointmentDate" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Time -->
+                            <div class="col-md-6">
+                                <label class="form-label">@T("وقت الموعد", "Appointment Time")</label>
+                                <div class="input-group-custom">
+                                    <i class="fa-solid fa-clock input-icon"></i>
+                                    <input asp-for="AppointmentTime" type="time" class="form-control custom-input input-with-icon" />
+                                </div>
+                                <span asp-validation-for="AppointmentTime" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Doctor -->
+                            <div class="col-md-6">
+                                <label class="form-label">@T("الطبيب", "Doctor")</label>
+                                <select asp-for="DoctorId" asp-items="ViewBag.DoctorId" class="form-select custom-select">
+                                    <option value="">@T("-- اختر الطبيب --", "-- Select Doctor --")</option>
+                                </select>
+                                <span asp-validation-for="DoctorId" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Patient -->
+                            <div class="col-md-6">
+                                <label class="form-label">@T("المريض", "Patient")</label>
+                                <select asp-for="PatientId" asp-items="ViewBag.PatientId" class="form-select custom-select">
+                                    <option value="">@T("-- اختر المريض --", "-- Select Patient --")</option>
+                                </select>
+                                <span asp-validation-for="PatientId" class="text-danger small"></span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Right -->
+                    <div class="col-lg-4">
+
+                        <div class="appointment-preview">
+                            <div class="appointment-icon">
+                                <i class="fa-solid fa-calendar-check"></i>
+                            </div>
+                            <h4 class="fw-bold">@T("حالة الموعد", "Appointment Status")</h4>
+                            <span class="status-badge">@status</span>
+                            <p class="preview-text mt-4">
+                                @T("تعديل تاريخ الموعد، الوقت، تعيين الطبيب ومعلومات جدولة المريض.", "Modify appointment date, time, doctor assignment and patient scheduling information.")
+                            </p>
+                            <hr />
+                            <div class="text-start mt-4">
+                                <p><i class="fa-solid fa-check text-success"></i> @T("إدارة الجدول", "Schedule Management")</p>
+                                <p><i class="fa-solid fa-check text-success"></i> @T("إدارة الوقت", "Time Management")</p>
+                                <p><i class="fa-solid fa-check text-success"></i> @T("تعيين الطبيب", "Doctor Assignment")</p>
+                                <p><i class="fa-solid fa-check text-success"></i> @T("تتبع الموعد", "Appointment Tracking")</p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-[#E5E9E7] dark:border-[#2B3833] mt-6">
+                    <a asp-action="Index" class="px-4 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/20 text-[#6B7D75] hover:text-rose-600 dark:text-[#9CA8A3] dark:hover:text-rose-400 text-xs font-semibold transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                        <span>@T("إلغاء", "Cancel")</span>
+                    </a>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk text-xs"></i>
+                        <span>@T("تحديث الموعد", "Update Appointment")</span>
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

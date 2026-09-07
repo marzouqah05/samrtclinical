@@ -1,0 +1,376 @@
+@model IEnumerable<WebApplication1.Models.Patient>
+@using System.Text.Json
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("قائمة المرضى", "Patients List");
+
+    List<string>? importErrors = null;
+    if (TempData["ImportErrors"] != null)
+    {
+        try
+        {
+            importErrors = JsonSerializer.Deserialize<List<string>>(TempData["ImportErrors"]!.ToString()!);
+        }
+        catch { }
+    }
+}
+
+<div dir="@(_isAr ? "rtl" : "ltr")" class="space-y-5">
+
+    @* ─── Header & Top Actions ─── *@
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h2 class="text-lg font-bold text-[#202725] m-0 flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-sm shrink-0">
+                    <i class="fa-solid fa-users"></i>
+                </span>
+                @T("قائمة المرضى", "Patients List")
+            </h2>
+            <p class="text-[#727A76] text-xs m-0 mt-1 ms-10">@T("عرض وبحث وإدارة سجلات المرضى والبيانات الطبية", "View, search, and manage patient records and medical histories")</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+            <!-- 📥 Import Patients Button -->
+            <button type="button"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#DDE3DF] text-[#49665A] text-sm font-medium rounded-lg hover:bg-[#F6F7F5] transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                    data-bs-toggle="modal" data-bs-target="#importPatientsModal"
+                    title="@T("استيراد بيانات المرضى من ملف CSV", "Bulk import patients from CSV")">
+                <i class="fa-solid fa-file-import text-sm"></i>
+                <span>@T("استيراد المرضى", "Import Patients")</span>
+            </button>
+
+            <!-- 📤 Export to CSV Button -->
+            <a asp-action="Export"
+               class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#DDE3DF] text-[#2E7D5B] text-sm font-medium rounded-lg hover:bg-[#EAF5F0] transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+               title="@T("تصدير جميع بيانات المرضى إلى ملف CSV", "Export all patients to CSV")">
+                <i class="fa-solid fa-file-excel text-sm"></i>
+                <span>@T("تصدير CSV", "Export to CSV")</span>
+            </a>
+
+            <!-- ➕ Add New Patient Button -->
+            <a asp-action="Create"
+               class="inline-flex items-center gap-2 px-4 py-2 bg-[#49665A] text-white text-sm font-medium rounded-lg hover:bg-[#3D574D] transition-colors shadow-sm">
+                <i class="fa-solid fa-user-plus text-sm"></i>
+                <span>@T("إضافة مريض جديد", "Add New Patient")</span>
+            </a>
+        </div>
+    </div>
+
+    @* ─── Notification Alerts ─── *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="flex items-start gap-3 bg-[#EAF5F0] border border-[#2E7D5B]/20 rounded-xl p-4">
+            <i class="fa-solid fa-circle-check text-[#2E7D5B] text-base mt-0.5 shrink-0"></i>
+            <div class="flex-1 min-w-0">
+                <span class="text-sm font-semibold text-[#2E7D5B]">@T("تم بنجاح!", "Success!")</span>
+                <span class="text-sm text-[#2E7D5B]/80 ms-1">@TempData["Success"]</span>
+            </div>
+        </div>
+    }
+
+    @if (TempData["Warning"] != null)
+    {
+        <div class="flex items-start gap-3 bg-[#FDF6EC] border border-[#B47318]/20 rounded-xl p-4">
+            <i class="fa-solid fa-triangle-exclamation text-[#B47318] text-base mt-0.5 shrink-0"></i>
+            <div class="flex-1 min-w-0">
+                <span class="text-sm font-semibold text-[#B47318]">@T("تنبيه:", "Notice:")</span>
+                <span class="text-sm text-[#B47318]/80 ms-1">@TempData["Warning"]</span>
+            </div>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="flex items-start gap-3 bg-[#FCEEEE] border border-[#B83A38]/20 rounded-xl p-4">
+            <i class="fa-solid fa-circle-exclamation text-[#B83A38] text-base mt-0.5 shrink-0"></i>
+            <div class="flex-1 min-w-0">
+                <span class="text-sm font-semibold text-[#B83A38]">@T("خطأ:", "Error:")</span>
+                <span class="text-sm text-[#B83A38]/80 ms-1">@TempData["Error"]</span>
+            </div>
+        </div>
+    }
+
+    @* ─── Detailed Import Error Log ─── *@
+    @if (importErrors != null && importErrors.Any())
+    {
+        <div class="bg-white border border-[#DDE3DF] rounded-xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <button type="button"
+                    class="w-full flex items-center justify-between px-5 py-3.5 hover:bg-[#F6F7F5] transition-colors"
+                    onclick="this.nextElementSibling.classList.toggle('hidden')">
+                <div class="flex items-center gap-2 text-sm font-semibold text-[#202725]">
+                    <i class="fa-solid fa-list-check text-[#B47318]"></i>
+                    <span>@T("تفاصيل الصفوف المستبعدة والملاحظات أثناء الاستيراد", "Details of Skipped Rows & Validation Notes") (@importErrors.Count)</span>
+                </div>
+                <span class="text-[11px] text-[#727A76] border border-[#DDE3DF] px-2 py-0.5 rounded-md">@T("اضغط للتفاصيل", "Click to view") <i class="fa-solid fa-chevron-down ms-1"></i></span>
+            </button>
+            <div class="hidden border-t border-[#DDE3DF]">
+                <ul class="divide-y divide-[#DDE3DF] max-h-52 overflow-y-auto">
+                    @foreach (var err in importErrors)
+                    {
+                        <li class="flex items-start gap-2 px-5 py-2.5 text-xs text-[#B83A38]">
+                            <i class="fa-solid fa-circle-xmark mt-0.5 shrink-0"></i>
+                            <span>@err</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+
+    @* ─── Search Bar ─── *@
+    <form asp-action="Index" method="get">
+        <div class="flex max-w-xl">
+            <input type="text" name="search"
+                   class="flex-1 bg-white border border-[#DDE3DF] border-e-0 text-[#202725] text-sm rounded-s-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#49665A] focus:border-[#49665A] placeholder:text-[#727A76]"
+                   placeholder="@T("ابحث بالاسم أو رقم الهاتف أو الهوية...", "Search by name, phone, or national ID...")"
+                   value="@ViewContext.HttpContext.Request.Query["search"]" />
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-sm font-medium rounded-e-lg transition-colors">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <span>@T("بحث", "Search")</span>
+            </button>
+        </div>
+    </form>
+
+    @* ─── Patients Table ─── *@
+    <div class="bg-white rounded-xl border border-[#DDE3DF] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-start">
+                <thead>
+                    <tr class="bg-[#F6F7F5] border-b border-[#DDE3DF]">
+                        <th class="py-3 px-5 text-start text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">
+                            @T("اسم المريض", "Patient Name")
+                        </th>
+                        <th class="py-3 px-5 text-start text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">
+                            @T("رقم الهاتف", "Phone Number")
+                        </th>
+                        <th class="py-3 px-5 text-start text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">
+                            @T("رقم الهوية", "National ID")
+                        </th>
+                        <th class="py-3 px-5 text-end text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">
+                            @T("الإجراءات", "Actions")
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var item in Model)
+                        {
+                            <tr class="bg-white hover:bg-[#F6F7F5]/60 border-b border-[#DDE3DF] transition-colors">
+                                <td class="py-3.5 px-5">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-7 h-7 rounded-full bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-xs font-bold shrink-0">
+                                            @(item.PatientName?.Length > 0 ? item.PatientName.Substring(0, 1).ToUpper() : "P")
+                                        </div>
+                                        <span class="text-sm font-semibold text-[#202725]">@item.PatientName</span>
+                                    </div>
+                                </td>
+                                <td class="py-3.5 px-5 text-sm text-[#727A76]">@item.PhoneNumber</td>
+                                <td class="py-3.5 px-5 text-sm text-[#727A76] font-mono">@item.NationalId</td>
+                                <td class="py-3.5 px-5 text-end">
+                                    <div class="inline-flex items-center gap-1.5">
+                                        <a asp-action="Edit" asp-route-id="@item.PatientId"
+                                           class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#F6F7F5] border border-[#DDE3DF] hover:bg-[#DDE3DF] text-[#727A76] text-xs font-medium transition-colors"
+                                           title="@T("تعديل", "Edit")">
+                                            <i class="fa-solid fa-pen text-[10px]"></i>
+                                            @T("تعديل", "Edit")
+                                        </a>
+                                        <a asp-action="Details" asp-route-id="@item.PatientId"
+                                           class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#49665A]/10 border border-[#49665A]/20 hover:bg-[#49665A]/20 text-[#49665A] text-xs font-medium transition-colors"
+                                           title="@T("تفاصيل", "Details")">
+                                            <i class="fa-solid fa-circle-info text-[10px]"></i>
+                                            @T("تفاصيل", "Details")
+                                        </a>
+                                        <form asp-action="Delete" asp-route-id="@item.PatientId" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit"
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white border border-[#DDE3DF] hover:bg-[#FCEEEE] hover:border-[#B83A38]/20 text-[#727A76] hover:text-[#B83A38] text-xs font-medium transition-colors"
+                                                    onclick="return confirm('@T("هل أنت متأكد من حذف هذا المريض؟ سيتم حذف جميع المواعيد المرتبطة به أيضاً!", "Are you sure you want to delete this patient? All related appointments will be permanently deleted as well!")')"
+                                                    title="@T("حذف", "Delete")">
+                                                <i class="fa-solid fa-trash text-[10px]"></i>
+                                                @T("حذف", "Delete")
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" class="py-16 text-center">
+                                <i class="fa-solid fa-user-slash text-3xl block mb-3 text-[#DDE3DF]"></i>
+                                <span class="text-sm text-[#727A76]">@T("لا يوجد مرضى مطابقون لمعايير البحث.", "No patient records matched your search criteria.")</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@* ─── 📥 Import Patients Modal ─── *@
+<div class="modal fade" id="importPatientsModal" tabindex="-1" aria-labelledby="importPatientsModalLabel" aria-hidden="true" dir="@(_isAr ? "rtl" : "ltr")">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 bg-white dark:bg-[#1B2421] dark:border dark:border-[#2B3833]">
+
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-[#49665A]/10 p-2 d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+                        <i class="fa-solid fa-file-arrow-up text-[#49665A] fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold m-0 text-[#202725] dark:text-[#EAEFEA]" id="importPatientsModalLabel">
+                            @T("استيراد بيانات المرضى (Bulk Import)", "Bulk Import Patients")
+                        </h5>
+                        <p class="m-0 text-xs text-[#727A76] dark:text-[#9CA8A3]">
+                            @T("قم برفع ملف CSV لإضافة المرضى دفعة واحدة إلى النظام", "Upload a CSV file to register multiple patients at once")
+                        </p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close dark:invert dark:opacity-60" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form asp-action="Import" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-body py-4 space-y-4">
+
+                    <div class="flex items-center justify-between gap-3 p-3 rounded-xl
+                                bg-white dark:bg-[#1B2421]
+                                border border-[#DDE3DF] dark:border-[#2B3833]">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-file-csv text-3xl text-[#2E7D5B]"></i>
+                            <div>
+                                <div class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA]">
+                                    @T("قالب ملف الاستيراد الجاهز", "Sample Import Template")
+                                </div>
+                                <div class="text-xs text-[#727A76] dark:text-[#9CA8A3] mt-0.5">
+                                    @T("حمّل القالب النموذجي بالأعمدة والبيانات التوضيحية", "Download the CSV template with correct headers")
+                                </div>
+                            </div>
+                        </div>
+                        <a asp-action="DownloadTemplate"
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg
+                                  border border-[#2E7D5B] text-[#2E7D5B] hover:bg-[#2E7D5B]/10
+                                  dark:bg-[#151E1B] dark:border-[#2B3833] dark:text-[#EAEFEA] dark:hover:bg-[#2B3833]
+                                  transition-colors shrink-0">
+                            <i class="fa-solid fa-download"></i>
+                            @T("تحميل القالب", "Download Template")
+                        </a>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-[#202725] dark:text-[#EAEFEA]">
+                            @T("اختر ملف CSV:", "Select CSV File:")
+                        </label>
+                        <div id="fileDropzone"
+                             class="relative rounded-2xl text-center cursor-pointer transition-all duration-200
+                                    border-2 border-dashed border-[#DDE3DF] dark:border-[#2B3833]
+                                    bg-white dark:bg-[#151E1B]
+                                    hover:border-[#49665A] dark:hover:border-[#49665A]
+                                    p-7">
+                            <input type="file" name="file" id="patientCsvFile" accept=".csv" required
+                                   onchange="handleFileSelected(this)"
+                                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                            <i class="fa-solid fa-cloud-arrow-up text-4xl mb-2 text-[#49665A]"></i>
+                            <div class="font-semibold text-sm text-[#202725] dark:text-[#EAEFEA] file-name-display">
+                                @T("اسحب الملف هنا أو اضغط للتصفح", "Drag & drop CSV file here or click to browse")
+                            </div>
+                            <div class="text-xs mt-1 text-[#727A76] dark:text-[#9CA8A3]">
+                                @T("الصيغة المدعومة: .csv فقط (بحد أقصى 10 ميغابايت)", "Supported format: .csv only (max 10MB)")
+                            </div>
+                        </div>
+                    </div>
+
+                    @* ─── Data Validation Guidelines ─── *@
+                    <div class="bg-[#151E1B] border border-[#2B3833] rounded-xl p-4 mt-4">
+
+                        @* Header *@
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="fa-solid fa-circle-info text-[#49665A] text-xs"></i>
+                            <span class="text-xs font-bold text-[#EAEFEA]">
+                                @T("إرشادات التحقق من البيانات", "Data Validation Guidelines")
+                            </span>
+                        </div>
+
+                        @* 2×2 Rule Grid *@
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-[#9CA8A3]">
+
+                            @* Full Name *@
+                            <div class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-[#49665A] mt-0.5 shrink-0"></i>
+                                <div>
+                                    <span class="font-bold text-[#EAEFEA]">@T("الاسم الكامل", "Full Name")</span>
+                                    <code class="font-mono bg-[#2B3833] text-[#9CA8A3] px-1 rounded ms-1 text-[10px]">FullName</code>
+                                    <div class="mt-0.5">@T("إجباري — من 3 إلى 150 حرفاً", "Required · 3 – 150 characters")</div>
+                                </div>
+                            </div>
+
+                            @* National ID *@
+                            <div class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-[#49665A] mt-0.5 shrink-0"></i>
+                                <div>
+                                    <span class="font-bold text-[#EAEFEA]">@T("رقم الهوية", "National ID")</span>
+                                    <code class="font-mono bg-[#2B3833] text-[#9CA8A3] px-1 rounded ms-1 text-[10px]">NationalID</code>
+                                    <div class="mt-0.5">@T("إجباري — 10 خانات، غير مكرر", "Required · 10 digits, unique")</div>
+                                </div>
+                            </div>
+
+                            @* Phone Number *@
+                            <div class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-[#49665A] mt-0.5 shrink-0"></i>
+                                <div>
+                                    <span class="font-bold text-[#EAEFEA]">@T("رقم الهاتف", "Phone Number")</span>
+                                    <code class="font-mono bg-[#2B3833] text-[#9CA8A3] px-1 rounded ms-1 text-[10px]">PhoneNumber</code>
+                                    <div class="mt-0.5">@T("إجباري — من 9 إلى 15 خانة", "Required · 9 – 15 digits")</div>
+                                </div>
+                            </div>
+
+                            @* Date of Birth *@
+                            <div class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-[#49665A] mt-0.5 shrink-0"></i>
+                                <div>
+                                    <span class="font-bold text-[#EAEFEA]">@T("تاريخ الميلاد", "Date of Birth")</span>
+                                    <code class="font-mono bg-[#2B3833] text-[#9CA8A3] px-1 rounded ms-1 text-[10px]">DateOfBirth</code>
+                                    <div class="mt-0.5">@T("إجباري — بصيغة YYYY-MM-DD", "Required · YYYY-MM-DD format")</div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+                <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-[#E5E9E7] dark:border-[#2B3833] mt-6 px-6 pb-6">
+                    <button type="button"
+                            class="px-4 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/20 text-[#6B7D75] hover:text-rose-600 dark:text-[#9CA8A3] dark:hover:text-rose-400 text-xs font-semibold transition flex items-center gap-1.5"
+                            data-bs-dismiss="modal">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                        <span>@T("إلغاء", "Cancel")</span>
+                    </button>
+                    <button type="submit"
+                            class="px-5 py-2 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5"
+                            id="btnSubmitImport">
+                        <i class="fa-solid fa-upload text-xs"></i>
+                        <span>@T("بدء الاستيراد", "Import Patients")</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function handleFileSelected(input) {
+        if (input.files && input.files[0]) {
+            var fileName = input.files[0].name;
+            var display = document.querySelector('.file-name-display');
+            if (display) {
+                display.innerHTML = '<i class="fa-solid fa-file-csv text-success me-1"></i> ' + fileName;
+            }
+        }
+    }
+</script>

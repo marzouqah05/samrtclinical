@@ -1,0 +1,95 @@
+﻿@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+
+    ViewData["Title"] = T("الرئيسية", "Home");
+}
+
+<div class="text-center mt-5">
+    <h1 class="display-4">@T("نظام إدارة العيادة", "Clinic Management System")</h1>
+    <p class="lead">@T("نظام متكامل لإدارة الأقسام والأطباء والمرضى والمواعيد", "A complete system to manage departments, doctors, patients, and appointments")</p>
+</div>
+
+@* ── Stats row ─────────────────────────────────────────────────── *@
+<div class="row mt-4 text-center">
+    <div class="col-md-3 mb-3">
+        <div class="card shadow border-0">
+            <div class="card-body">
+                <h5 class="card-title">@T("الأقسام", "Departments")</h5>
+                <h2>@ViewBag.DepartmentsCount</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card shadow border-0">
+            <div class="card-body">
+                <h5 class="card-title">@T("الأطباء", "Doctors")</h5>
+                <h2>@ViewBag.DoctorsCount</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card shadow border-0">
+            <div class="card-body">
+                <h5 class="card-title">@T("المرضى", "Patients")</h5>
+                <h2>@ViewBag.PatientsCount</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card shadow border-0">
+            <div class="card-body">
+                <h5 class="card-title">@T("المواعيد", "Appointments")</h5>
+                <h2>@ViewBag.AppointmentsCount</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── Quick-nav cards ────────────────────────────────────────────── *@
+<div class="row mt-4">
+
+    <div class="col-md-3 mb-3">
+        <div class="card text-center shadow">
+            <div class="card-body">
+                <h5 class="card-title">@T("الأقسام", "Departments")</h5>
+                <p class="card-text">@T("إدارة أقسام العيادة", "Manage clinic departments")</p>
+                <a asp-controller="Departments" asp-action="Index" class="btn btn-primary">@T("انتقال", "Go")</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card text-center shadow">
+            <div class="card-body">
+                <h5 class="card-title">@T("الأطباء", "Doctors")</h5>
+                <p class="card-text">@T("إدارة بيانات الأطباء", "Manage doctors information")</p>
+                <a asp-controller="Doctors" asp-action="Index" class="btn btn-success">@T("انتقال", "Go")</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card text-center shadow">
+            <div class="card-body">
+                <h5 class="card-title">@T("المرضى", "Patients")</h5>
+                <p class="card-text">@T("إدارة سجلات المرضى", "Manage patients records")</p>
+                <a asp-controller="Patients" asp-action="Index" class="btn btn-warning">@T("انتقال", "Go")</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card text-center shadow">
+            <div class="card-body">
+                <h5 class="card-title">@T("المواعيد", "Appointments")</h5>
+                <p class="card-text">@T("إدارة المواعيد", "Manage appointments")</p>
+                <a asp-controller="Appointments" asp-action="Index" class="btn btn-danger">@T("انتقال", "Go")</a>
+            </div>
+        </div>
+    </div>
+
+</div>

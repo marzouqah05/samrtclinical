@@ -1,0 +1,231 @@
+@model WebApplication1.Models.ClinicSettingsViewModel
+@using System.Globalization
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("الملف التعريفي للعيادة", "Clinic Profile & Branding");
+}
+
+@* ── Toast Notifications ──────────────────────────────────────────────── *@
+@if (TempData["Success"] != null)
+{
+    <div class="mb-4 p-3 rounded-lg border flex items-center gap-3 text-sm font-medium" 
+         style="background:var(--clinic-emerald-bg);border-color:rgba(46,125,91,0.25);color:var(--clinic-emerald-text);">
+        <i class="fa-solid fa-circle-check text-base"></i>
+        <span>@TempData["Success"]</span>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 p-3 rounded-lg border flex items-center gap-3 text-sm font-medium" 
+         style="background:var(--clinic-rose-bg);border-color:rgba(184,58,56,0.25);color:var(--clinic-rose-text);">
+        <i class="fa-solid fa-circle-exclamation text-base"></i>
+        <span>@TempData["Error"]</span>
+    </div>
+}
+
+<div class="container-fluid py-2 max-w-4xl mx-auto" dir="@(_isAr ? "rtl" : "ltr")">
+
+    @* ── Header Bar ──────────────────────────────────────────────────── *@
+    <div class="clinic-page-header">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <a asp-controller="Settings" asp-action="Index" class="text-xs font-semibold hover:underline" style="color:var(--clinic-muted)">
+                    <i class="fa-solid fa-arrow-right-long me-1"></i>
+                    @T("مركز الإعدادات", "Settings Hub")
+                </a>
+                <span style="color:var(--clinic-border)">/</span>
+                <span class="text-xs font-semibold" style="color:var(--clinic-primary)">@T("الملف والعيادة", "Clinic Profile")</span>
+            </div>
+            <h1 class="clinic-page-title">
+                @T("الملف التعريفي للعيادة والشعار", "Clinic Profile & Branding")
+            </h1>
+            <p class="clinic-page-subtitle">
+                @T("تعديل الاسم الرسمي للمركز الطبي، معلومات التواصل، الشعار، والعملة والضرائب المستخدمة",
+                   "Manage clinic identity, official contact details, logo, and invoicing parameters")
+            </p>
+        </div>
+        <a asp-controller="Settings" asp-action="Index" class="btn-clinic-secondary">
+            <i class="fa-solid fa-arrow-left"></i>
+            @T("العودة للإعدادات", "Back to Hub")
+        </a>
+    </div>
+
+    <form asp-controller="Settings" asp-action="UpdateClinicProfile" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+
+        @* ── Section 1: Clinic Identity ───────────────────────────────── *@
+        <div class="clinic-card p-6 mb-5">
+            <div class="flex items-center gap-3 mb-5 pb-3 border-b" style="border-color:var(--clinic-border)">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base"
+                     style="background:rgba(99,102,241,0.12);color:#6366f1">
+                    <i class="fa-solid fa-building-user"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold m-0" style="color:var(--clinic-text)">
+                        @T("بيانات هوية العيادة والتواصل", "Clinic Identity & Contact Information")
+                    </h3>
+                    <p class="text-xs m-0" style="color:var(--clinic-muted)">
+                        @T("تظهر هذه البيانات في رأس التقارير والفواتير وبطاقات المواعيد", "These details appear on header reports, invoices, and appointment slips")
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="clinic-label">
+                        @T("اسم العيادة / المركز الطبي", "Clinic Name") <span class="text-rose-500">*</span>
+                    </label>
+                    <input asp-for="ClinicName" class="clinic-input" placeholder="MediCare Clinic" required />
+                </div>
+
+                <div>
+                    <label class="clinic-label">
+                        @T("البريد الإلكتروني الرسمي", "Official Email") <span class="text-rose-500">*</span>
+                    </label>
+                    <input asp-for="ClinicEmail" type="email" class="clinic-input" placeholder="info@clinic.com" required />
+                </div>
+
+                <div>
+                    <label class="clinic-label">
+                        @T("رقم هاتف الاستقبال", "Clinic Phone") <span class="text-rose-500">*</span>
+                    </label>
+                    <input asp-for="ClinicPhone" class="clinic-input" placeholder="+962 6 000 0000" required />
+                </div>
+
+                <div>
+                    <label class="clinic-label">
+                        @T("رقم الطوارئ", "Emergency Phone")
+                    </label>
+                    <input asp-for="EmergencyPhone" class="clinic-input" placeholder="+962 799 000 000" />
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="clinic-label">
+                        @T("العنوان والموقع الجغرافي", "Physical Address")
+                    </label>
+                    <input asp-for="ClinicAddress" class="clinic-input" placeholder="Amman, Jordan" />
+                </div>
+            </div>
+        </div>
+
+        @* ── Section 2: Logo & Financial ──────────────────────────────── *@
+        <div class="clinic-card p-6 mb-5">
+            <div class="flex items-center gap-3 mb-5 pb-3 border-b" style="border-color:var(--clinic-border)">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base"
+                     style="background:rgba(245,158,11,0.12);color:#f59e0b">
+                    <i class="fa-solid fa-palette"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold m-0" style="color:var(--clinic-text)">
+                        @T("شعار العيادة والإعدادات المالية", "Branding & Financial Settings")
+                    </h3>
+                    <p class="text-xs m-0" style="color:var(--clinic-muted)">
+                        @T("التحكم في الشعار الرسمي، عملة النظام، ونسبة ضريبة القيمة المضافة", "Configure official logo, currency token, and VAT percentage")
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                @* Logo Upload *@
+                <div class="md:col-span-5">
+                    <label class="clinic-label">@T("شعار العيادة (Logo)", "Clinic Logo")</label>
+                    <div class="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition hover:border-[#49665A]"
+                         style="background:var(--clinic-bg);border-color:var(--clinic-border)"
+                         onclick="document.getElementById('logoFile').click()">
+                        @if (!string.IsNullOrEmpty(Model.LogoPath) && Model.LogoPath != "/images/logo.png")
+                        {
+                            <img src="@Model.LogoPath" class="max-h-20 max-w-full mx-auto mb-2 rounded object-contain" id="logoPreview" alt="Logo" />
+                        }
+                        else
+                        {
+                            <img src="/images/logo.png" class="max-h-20 max-w-full mx-auto mb-2 rounded object-contain" id="logoPreview" alt="Logo" onerror="this.style.display='none'" />
+                        }
+                        <div id="logoUploadHint">
+                            <i class="fa-solid fa-cloud-arrow-up text-2xl mb-1 block" style="color:var(--clinic-muted)"></i>
+                            <div class="text-xs font-semibold" style="color:var(--clinic-text)">@T("انقر لتغيير الشعار", "Click to upload logo")</div>
+                            <div class="text-[11px]" style="color:var(--clinic-muted)">PNG, JPG, WEBP, SVG (Max 2MB)</div>
+                        </div>
+                    </div>
+                    <input type="file" id="logoFile" name="logoFile" accept=".png,.jpg,.jpeg,.webp,.svg" class="hidden" />
+                    <input asp-for="LogoPath" type="hidden" />
+                </div>
+
+                @* Currency & Tax *@
+                <div class="md:col-span-7 flex flex-col justify-between">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="clinic-label">
+                                @T("رمز العملة في الفواتير", "Currency Symbol") <span class="text-rose-500">*</span>
+                            </label>
+                            <select asp-for="CurrencySymbol" class="clinic-input">
+                                <option value="JOD" selected="@(Model.CurrencySymbol=="JOD")">🇯🇴 JOD — Jordanian Dinar</option>
+                                <option value="SAR" selected="@(Model.CurrencySymbol=="SAR")">🇸🇦 SAR — Saudi Riyal</option>
+                                <option value="AED" selected="@(Model.CurrencySymbol=="AED")">🇦🇪 AED — UAE Dirham</option>
+                                <option value="EGP" selected="@(Model.CurrencySymbol=="EGP")">🇪🇬 EGP — Egyptian Pound</option>
+                                <option value="KWD" selected="@(Model.CurrencySymbol=="KWD")">🇰🇼 KWD — Kuwaiti Dinar</option>
+                                <option value="QAR" selected="@(Model.CurrencySymbol=="QAR")">🇶🇦 QAR — Qatari Riyal</option>
+                                <option value="BHD" selected="@(Model.CurrencySymbol=="BHD")">🇧🇭 BHD — Bahraini Dinar</option>
+                                <option value="USD" selected="@(Model.CurrencySymbol=="USD")">🇺🇸 USD — US Dollar</option>
+                                <option value="EUR" selected="@(Model.CurrencySymbol=="EUR")">🇪🇺 EUR — Euro</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="clinic-label">
+                                @T("نسبة الضريبة (%)", "VAT / Tax Rate (%)") <span class="text-rose-500">*</span>
+                            </label>
+                            <input asp-for="TaxPercentage" type="number" step="0.1" min="0" max="100" class="clinic-input" placeholder="16.0" required />
+                        </div>
+                    </div>
+
+                    <div class="p-3 rounded-lg mt-4 text-xs flex items-center gap-2" style="background:var(--clinic-bg);color:var(--clinic-muted)">
+                        <i class="fa-solid fa-circle-info text-sm" style="color:var(--clinic-primary)"></i>
+                        <span>@T("سيتم تطبيق العملة ونسبة الضريبة فوراً على كافة الفواتير وسندات القبض الجديدة.", "Currency and VAT rates will apply immediately to new invoices and receipts.")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ── Actions Footer ───────────────────────────────────────────── *@
+        <div class="flex items-center justify-between pt-2">
+            <a asp-controller="Settings" asp-action="Index" class="btn-clinic-secondary">
+                <i class="fa-solid fa-xmark"></i>
+                @T("إلغاء", "Cancel")
+            </a>
+            <button type="submit" class="btn-clinic-primary">
+                <i class="fa-solid fa-floppy-disk"></i>
+                @T("حفظ بيانات العيادة", "Save Clinic Profile")
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var fileInput = document.getElementById("logoFile");
+        var preview   = document.getElementById("logoPreview");
+        var hint      = document.getElementById("logoUploadHint");
+
+        if (fileInput) {
+            fileInput.addEventListener("change", function () {
+                var file = this.files[0];
+                if (!file) return;
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    if (preview) {
+                        preview.src = e.target.result;
+                        preview.style.display = "block";
+                    }
+                    if (hint) {
+                        hint.innerHTML = '<div class="font-semibold text-emerald-600 text-xs"><i class="fa-solid fa-check me-1"></i>' + file.name + '</div>';
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+    });
+</script>
+}

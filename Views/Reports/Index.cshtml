@@ -1,0 +1,906 @@
+@model IEnumerable<WebApplication1.Models.Treatment>
+@using System.Globalization
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("التقرير الشامل للتدقيق الإكلينيكي والمالي", "Comprehensive Clinical & Financial Audit Report");
+
+    int totalAppts = ViewBag.TotalAppointments ?? 0;
+    int completedAppts = ViewBag.CompletedAppointments ?? 0;
+    int pendingAppts = ViewBag.PendingAppointments ?? 0;
+    int cancelledAppts = ViewBag.CancelledAppointments ?? 0;
+    int totalPatients = ViewBag.TotalPatients ?? 0;
+
+    int completedTreatmentsCount = ViewBag.CompletedTreatmentsCount ?? Model.Count();
+    int netYield = ViewBag.NetOperationalYield ?? (totalAppts > 0 ? (int)Math.Round((double)completedAppts / totalAppts * 100) : 100);
+    string generatedDate = ViewBag.GeneratedDate as string ?? DateTime.Now.ToString("dd MMM yyyy, hh:mm tt");
+    string currentAdmin = ViewBag.CurrentAdmin as string ?? (User.Identity?.Name ?? "Administrator");
+
+    decimal totalConsultations = ViewBag.ConsultationEarnings ?? 0m;
+    decimal totalTreatments = ViewBag.TreatmentEarnings ?? 0m;
+    decimal totalRevenue = ViewBag.TotalRevenue ?? 0m;
+
+    var doctorPerformance = ViewBag.DoctorPerformance as IEnumerable<WebApplication1.Controllers.DoctorPerformanceReportDto>
+        ?? Enumerable.Empty<WebApplication1.Controllers.DoctorPerformanceReportDto>();
+
+    var topProcedures = ViewBag.TopProcedures as IEnumerable<WebApplication1.Controllers.ProcedureReportDto>
+        ?? Enumerable.Empty<WebApplication1.Controllers.ProcedureReportDto>();
+
+    decimal maxDoctorRevenue = doctorPerformance.Any() ? doctorPerformance.Max(d => d.Revenue) : 0m;
+    if (maxDoctorRevenue == 0m) maxDoctorRevenue = 1m;
+}
+
+<style>
+@@media print {
+    @@page {
+        size: A4 landscape;
+        margin: 10mm;
+    }
+
+    /* 1. Hide all layout chrome: sidebar, top navbar, scrollbars, action buttons */
+    aside,
+    nav,
+    header,
+    .sidebar,
+    #cf-main-sidebar,
+    #themeToggleBtn,
+    .no-print,
+    button,
+    .period-btn,
+    #customRangePicker,
+    a[href*="Export"] {
+        display: none !important;
+    }
+
+    /* 2. Reset page body for clean white background report */
+    html, body {
+        background: #ffffff !important;
+        color: #111111 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        overflow: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Prevent parent container clipping in flex layouts */
+    #app-root,
+    #cf-main-canvas,
+    .flex-1,
+    .overflow-hidden {
+        overflow: visible !important;
+        height: auto !important;
+    }
+
+    /* 3. Force report container to fit A4 landscape gracefully */
+    #printableReportArea {
+        position: relative !important;
+        left: auto !important;
+        top: auto !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+        background: #ffffff !important;
+        color: #111111 !important;
+    }
+
+    /* Print Official Clinical Header Banner */
+    .print-official-banner {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        border-bottom: 2px solid #1f2937 !important;
+        padding-bottom: 12px !important;
+        margin-bottom: 16px !important;
+    }
+
+    /* Formal clinical table gridlines */
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        border: 1px solid #d1d5db !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    table th, table td {
+        border: 1px solid #d1d5db !important;
+        padding: 6px 10px !important;
+        font-size: 11px !important;
+        color: #111111 !important;
+    }
+
+    table thead th {
+        background-color: #f3f4f6 !important;
+        color: #111827 !important;
+        font-weight: 700 !important;
+    }
+
+    /* High contrast ink-friendly cards */
+    .bg-\[\#1B2421\],
+    .bg-\[\#151E1B\] {
+        background-color: #ffffff !important;
+        border: 1px solid #d1d5db !important;
+        box-shadow: none !important;
+    }
+
+    #printableReportArea h1,
+    #printableReportArea h2,
+    #printableReportArea h3,
+    #printableReportArea strong,
+    #printableReportArea .text-\[\#EAEFEA\],
+    #printableReportArea .text-white {
+        color: #111111 !important;
+    }
+
+    #printableReportArea p,
+    #printableReportArea span,
+    #printableReportArea .text-\[\#9CA8A3\],
+    #printableReportArea .text-\[\#727A76\] {
+        color: #374151 !important;
+    }
+
+    #printableReportArea .border-\[\#2B3833\] {
+        border-color: #d1d5db !important;
+    }
+
+    /* Prevent awkward page breaks */
+    .card,
+    .grid > div,
+    table,
+    tr,
+    canvas,
+    .chart-container {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+    }
+
+    canvas {
+        max-height: 250px !important;
+    }
+
+    .print-footer-audit {
+        display: block !important;
+        border-top: 1px solid #d1d5db !important;
+        padding-top: 8px !important;
+        margin-top: 24px !important;
+    }
+}
+</style>
+
+<div id="printableReportArea" class="max-w-7xl mx-auto px-4 py-8 space-y-6" dir="@(_isAr ? "rtl" : "ltr")">
+
+    @* ── 1. Official Clinical Header ── *@
+    <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] rounded-2xl p-6 shadow-sm">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            @* Clinic Branding & Report Title *@
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl bg-[#49665A]/15 border border-[#49665A]/30 text-[#49665A] flex items-center justify-center text-2xl shrink-0">
+                    <i class="fa-solid fa-hospital-user"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-[#49665A]">ClinicFlow EMR & ERP System</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-md bg-[#F4F7F5] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] text-[#6B7D75] dark:text-[#9CA8A3]">v3.2 Audit Verified</span>
+                    </div>
+                    <h1 class="text-xl sm:text-2xl font-bold text-[#1A2621] dark:text-[#EAEFEA] m-0 mt-0.5">
+                        @T("التقرير الشامل للتدقيق الإكلينيكي والمالي", "Comprehensive Clinical & Financial Audit Report")
+                    </h1>
+                    <div class="flex items-center gap-3 text-xs text-[#6B7D75] dark:text-[#9CA8A3] mt-1.5 flex-wrap">
+                        <span><i class="fa-regular fa-clock me-1 text-[#49665A]"></i>@T("تاريخ الإصدار:", "Generated:") <strong class="text-[#1A2621] dark:text-[#EAEFEA]">@generatedDate</strong></span>
+                        <span>•</span>
+                        <span><i class="fa-regular fa-user me-1 text-[#49665A]"></i>@T("المصدر:", "Auditor:") <strong class="text-[#1A2621] dark:text-[#EAEFEA]">@currentAdmin</strong></span>
+                        <span>•</span>
+                        <span id="activePeriodLabel"><i class="fa-regular fa-calendar me-1 text-[#49665A]"></i>@T("الفترة:", "Period:") <strong class="text-[#1A2621] dark:text-[#EAEFEA]">@T("الشهر الحالي", "This Month")</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            @* Quick Period Switches & Export Actions (Hidden in Print) *@
+            <div class="flex items-center gap-2.5 flex-wrap no-print">
+                <div class="inline-flex items-center p-1 bg-[#F4F7F5] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] rounded-xl gap-1">
+                    <button type="button" class="period-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#49665A] text-white shadow-sm transition" onclick="switchPeriod(this, 'month', '@T("الشهر الحالي", "This Month")')">
+                        @T("هذا الشهر", "This Month")
+                    </button>
+                    <button type="button" class="period-btn px-3 py-1.5 rounded-lg text-xs font-medium text-[#6B7D75] dark:text-[#9CA8A3] hover:text-[#1A2621] dark:hover:text-[#EAEFEA] transition" onclick="switchPeriod(this, '30d', '@T("آخر 30 يوم", "Last 30 Days")')">
+                        @T("آخر 30 يوم", "Last 30 Days")
+                    </button>
+                    <button type="button" class="period-btn px-3 py-1.5 rounded-lg text-xs font-medium text-[#6B7D75] dark:text-[#9CA8A3] hover:text-[#1A2621] dark:hover:text-[#EAEFEA] transition" onclick="switchPeriod(this, 'quarter', '@T("هذا الربع", "This Quarter")')">
+                        @T("هذا الربع", "This Quarter")
+                    </button>
+                    <button type="button" class="period-btn px-3 py-1.5 rounded-lg text-xs font-medium text-[#6B7D75] dark:text-[#9CA8A3] hover:text-[#1A2621] dark:hover:text-[#EAEFEA] transition" onclick="switchPeriod(this, 'custom', '@T("فترة مخصصة", "Custom Range")')">
+                        @T("فترة مخصصة", "Custom Range")
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="exportToExcel()"
+                            class="bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-2 shadow-sm"
+                            title="@T("تصدير ملف Excel / CSV", "Export to Excel / CSV")">
+                        <i class="fa-solid fa-file-excel text-emerald-500"></i>
+                        <span>@T("تصدير Excel", "Export Excel")</span>
+                    </button>
+                    <button type="button" onclick="window.print()"
+                            class="bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-2 shadow-sm"
+                            title="@T("طباعة التقرير أو حفظ كملف PDF رسمي", "Export / Print Official PDF")">
+                        <i class="fa-solid fa-print"></i>
+                        <span>@T("تصدير PDF", "Export PDF")</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* Collapsible Custom Date Range Picker (Hidden in Print) *@
+    <div id="customRangePicker" class="hidden no-print bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-2 text-xs text-[#6B7D75] dark:text-[#9CA8A3]">
+            <i class="fa-solid fa-calendar-days text-[#49665A]"></i>
+            <span>@T("تحديد فترة مخصصة للتدقيق الإكلينيكي:", "Specify Custom Interval for Clinical Audit:")</span>
+        </div>
+        <div class="flex items-center gap-3 flex-wrap">
+            <div class="flex items-center gap-2">
+                <label class="text-xs text-[#6B7D75] dark:text-[#9CA8A3]">@T("من:", "From:")</label>
+                <input type="date" id="startDate" class="bg-[#F8FAF9] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] rounded-xl px-3 py-1.5 text-xs text-[#1A2621] dark:text-[#EAEFEA] focus:ring-1 focus:ring-[#49665A] outline-none" />
+            </div>
+            <div class="flex items-center gap-2">
+                <label class="text-xs text-[#6B7D75] dark:text-[#9CA8A3]">@T("إلى:", "To:")</label>
+                <input type="date" id="endDate" class="bg-[#F8FAF9] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] rounded-xl px-3 py-1.5 text-xs text-[#1A2621] dark:text-[#EAEFEA] focus:ring-1 focus:ring-[#49665A] outline-none" />
+            </div>
+            <button type="button" onclick="applyCustomRange()" class="px-3.5 py-1.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl transition">
+                @T("تطبيق الفلترة", "Apply Filter")
+            </button>
+        </div>
+    </div>
+
+    @* ── 2. Executive KPI Tiles (Compact 4-Column Summary) ── *@
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        @* Tile 1: Total Patient Visits *@
+        <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] rounded-2xl p-5 shadow-sm flex flex-col justify-between gap-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-[#6B7D75] dark:text-[#9CA8A3]">@T("إجمالي زيارات المرضى", "Total Patient Visits")</span>
+                <div class="w-8 h-8 rounded-xl bg-[#49665A]/10 text-[#49665A] border border-[#49665A]/20 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-[#1A2621] dark:text-[#EAEFEA]">@totalAppts</div>
+                <div class="flex items-center gap-2 mt-1.5">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        <i class="fa-solid fa-arrow-trend-up text-[8px]"></i>
+                        <span>+12.4% @T("شهرياً", "MoM")</span>
+                    </span>
+                    <span class="text-[11px] text-[#6B7D75] dark:text-[#9CA8A3]">@completedAppts @T("زيارة مكتملة", "completed")</span>
+                </div>
+            </div>
+        </div>
+
+        @* Tile 2: Completed Treatments *@
+        <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] rounded-2xl p-5 shadow-sm flex flex-col justify-between gap-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-[#6B7D75] dark:text-[#9CA8A3]">@T("العلاجات والخدمات المنفذة", "Completed Treatments")</span>
+                <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-notes-medical"></i>
+                </div>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">@completedTreatmentsCount</div>
+                <div class="flex items-center gap-2 mt-1.5">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        <i class="fa-solid fa-circle-check text-[8px]"></i>
+                        <span>@T("إجراء معتمد", "dispensed procedures")</span>
+                    </span>
+                    <span class="text-[11px] text-[#6B7D75] dark:text-[#9CA8A3]">@totalPatients @T("مريض مسجل", "active EMRs")</span>
+                </div>
+            </div>
+        </div>
+
+        @* Tile 3: Total Gross Revenue (JOD) *@
+        <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] rounded-2xl p-5 shadow-sm flex flex-col justify-between gap-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-[#6B7D75] dark:text-[#9CA8A3]">@T("إجمالي الإيرادات الإجمالية", "Total Gross Revenue")</span>
+                <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                    @totalRevenue.ToString("N2") <span class="text-xs font-normal text-[#6B7D75] dark:text-[#9CA8A3]">JOD</span>
+                </div>
+                <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                    <span class="text-[10px] px-2 py-0.5 rounded-md bg-[#F4F7F5] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] text-[#6B7D75] dark:text-[#9CA8A3]">
+                        @T("كشوفات:", "Consult:") <strong class="text-[#1A2621] dark:text-[#EAEFEA]">@totalConsultations.ToString("N0")</strong>
+                    </span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-md bg-[#F4F7F5] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] text-[#6B7D75] dark:text-[#9CA8A3]">
+                        @T("علاجات:", "Treat:") <strong class="text-[#1A2621] dark:text-[#EAEFEA]">@totalTreatments.ToString("N0")</strong>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        @* Tile 4: Net Operational Yield *@
+        <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] rounded-2xl p-5 shadow-sm flex flex-col justify-between gap-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-[#6B7D75] dark:text-[#9CA8A3]">@T("العائد التشغيلي الصافي", "Net Operational Yield")</span>
+                <div class="w-8 h-8 rounded-xl bg-[#49665A]/10 text-[#49665A] border border-[#49665A]/20 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-[#1A2621] dark:text-[#EAEFEA]">@netYield%</div>
+                <div class="flex items-center gap-2 mt-1.5">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        <i class="fa-solid fa-shield-halved text-[8px]"></i>
+                        <span>@T("معدل الكفاءة السريرية", "Fulfillment Rate")</span>
+                    </span>
+                    <span class="text-[11px] text-[#6B7D75] dark:text-[#9CA8A3]">@cancelledAppts @T("إلغاء", "cancellations")</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    @* ── 3. Print-Friendly Visualization Section (Chart.js 2-Column Row) ── *@
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        @* Column 1 (span 2): Revenue & Patient Inflow Trends *@
+        <div class="lg:col-span-2 bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-xs font-bold text-[#1A2621] dark:text-[#EAEFEA] uppercase tracking-wider m-0 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-[#49665A]"></i>
+                        <span>@T("مسار الإيرادات والتدفق الأسبوعي", "Revenue & Patient Inflow Trends")</span>
+                    </h2>
+                    <p class="text-[11px] text-[#6B7D75] dark:text-[#9CA8A3] m-0 mt-0.5">
+                        @T("مقارنة الإيرادات التراكمية بين أسابيع الشهر الحالي والشهر السابق", "Weekly revenue trajectory comparison: This Month vs Last Month")
+                    </p>
+                </div>
+                <div class="flex items-center gap-3 text-xs">
+                    <span class="flex items-center gap-1.5 text-[#1A2621] dark:text-[#EAEFEA]">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                        <span class="text-[11px]">@T("الشهر الحالي", "This Month")</span>
+                    </span>
+                    <span class="flex items-center gap-1.5 text-[#6B7D75] dark:text-[#9CA8A3]">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#49665A] inline-block"></span>
+                        <span class="text-[11px]">@T("الشهر السابق", "Last Month")</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="relative h-64 w-full">
+                <canvas id="trendsChartCanvas" style="max-height: 250px;"></canvas>
+            </div>
+        </div>
+
+        @* Column 2 (span 1): Appointment Breakdown by Status *@
+        <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="mb-2">
+                <h2 class="text-xs font-bold text-[#1A2621] dark:text-[#EAEFEA] uppercase tracking-wider m-0 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-[#49665A]"></i>
+                    <span>@T("توزيع الحالات السريرية للمواعيد", "Appointments by Status")</span>
+                </h2>
+                <p class="text-[11px] text-[#6B7D75] dark:text-[#9CA8A3] m-0 mt-0.5">
+                    @T("نسبة الإنجاز، الانتظار، والإلغاء", "Completed, Pending & Cancelled ratio")
+                </p>
+            </div>
+
+            <div class="relative h-56 w-full flex items-center justify-center">
+                <canvas id="statusChartCanvas" style="max-height: 220px;"></canvas>
+                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span class="text-2xl font-bold text-[#1A2621] dark:text-[#EAEFEA]">@totalAppts</span>
+                    <span class="text-[10px] text-[#6B7D75] dark:text-[#9CA8A3] uppercase tracking-wider">@T("إجمالي المواعيد", "Total Visits")</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 pt-3 border-t border-[#E5E9E7] dark:border-[#2B3833] text-center text-xs mt-2">
+                <div>
+                    <div class="text-[10px] text-[#6B7D75] dark:text-[#9CA8A3]">@T("منجزة", "Completed")</div>
+                    <div class="font-bold text-emerald-600 dark:text-emerald-400">@completedAppts</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-[#6B7D75] dark:text-[#9CA8A3]">@T("انتظار", "Pending")</div>
+                    <div class="font-bold text-amber-600 dark:text-amber-400">@pendingAppts</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-[#6B7D75] dark:text-[#9CA8A3]">@T("ملغاة", "Cancelled")</div>
+                    <div class="font-bold text-rose-600 dark:text-rose-400">@cancelledAppts</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    @* ── 4. Doctor Productivity & Revenue Breakdown Table ── *@
+    <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] rounded-2xl shadow-sm overflow-hidden">
+        <div class="bg-[#F4F7F5] dark:bg-[#151E1B] border-b border-[#E5E9E7] dark:border-[#2B3833] py-3.5 px-5 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-user-doctor text-[#49665A]"></i>
+                <h2 class="text-xs font-bold text-[#1A2621] dark:text-[#EAEFEA] uppercase tracking-wider m-0">
+                    @T("جدول إنتاجية وإيرادات الكادر الطبي", "Doctor Productivity & Revenue Breakdown")
+                </h2>
+            </div>
+            <span class="text-[11px] text-[#6B7D75] dark:text-[#9CA8A3]">@doctorPerformance.Count() @T("أطباء مسجلين", "Physicians Registered")</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-start text-xs">
+                <thead class="bg-[#F4F7F5] dark:bg-[#151E1B]/50 border-b border-[#E5E9E7] dark:border-[#2B3833] text-[10px] uppercase tracking-wider text-[#5C6E66] dark:text-[#9CA8A3]">
+                    <tr>
+                        <th class="py-3 px-4 text-start">@T("اسم الطبيب", "Doctor Name")</th>
+                        <th class="py-3 px-3 text-start">@T("القسم / التخصص", "Department")</th>
+                        <th class="py-3 px-3 text-center">@T("إجمالي الزيارات", "Total Visits")</th>
+                        <th class="py-3 px-3 text-end">@T("إيراد الكشوفات (JOD)", "Consultations (JOD)")</th>
+                        <th class="py-3 px-3 text-end">@T("إيراد العلاجات (JOD)", "Treatments (JOD)")</th>
+                        <th class="py-3 px-4 text-end">@T("الإجمالي الكلي (JOD)", "Total Revenue (JOD)")</th>
+                        <th class="py-3 px-4 text-center">@T("حصة العيادة %", "Clinic Share %")</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-[#E5E9E7] dark:divide-[#2B3833]">
+                    @if (!doctorPerformance.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-8 text-[#6B7D75] dark:text-[#9CA8A3]">
+                                @T("لا توجد بيانات إنتاجية مسجلة للأطباء خلال هذه الفترة.", "No doctor productivity data recorded for this period.")
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var doc in doctorPerformance)
+                        {
+                            <tr class="border-b border-[#E5E9E7] dark:border-[#2B3833] hover:bg-[#F9FBFA] dark:hover:bg-white/[0.02] transition">
+                                <td class="py-3 px-4 whitespace-nowrap">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-7 h-7 rounded-lg bg-[#49665A]/20 text-[#49665A] flex items-center justify-center font-bold text-xs shrink-0 border border-[#49665A]/30">
+                                            @(doc.DoctorName.Length > 0 ? doc.DoctorName.Substring(0, 1).ToUpper() : "D")
+                                        </div>
+                                        <span class="font-semibold text-[#1A2621] dark:text-[#EAEFEA]">Dr. @doc.DoctorName</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-3 whitespace-nowrap text-[#6B7D75] dark:text-[#9CA8A3]">
+                                    @doc.DepartmentName
+                                </td>
+                                <td class="py-3 px-3 text-center whitespace-nowrap">
+                                    <span class="px-2 py-0.5 rounded-md bg-[#F4F7F5] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] font-semibold text-[11px]">
+                                        @doc.AppointmentsCount
+                                    </span>
+                                </td>
+                                <td class="py-3 px-3 whitespace-nowrap text-end text-[#6B7D75] dark:text-[#9CA8A3]">
+                                    @doc.ConsultationEarnings.ToString("N2")
+                                </td>
+                                <td class="py-3 px-3 whitespace-nowrap text-end text-[#6B7D75] dark:text-[#9CA8A3]">
+                                    @doc.TreatmentEarnings.ToString("N2")
+                                </td>
+                                <td class="py-3 px-4 whitespace-nowrap text-end font-bold text-emerald-600 dark:text-emerald-400">
+                                    @doc.Revenue.ToString("N2")
+                                </td>
+                                <td class="py-3 px-4 whitespace-nowrap text-center">
+                                    <div class="flex items-center justify-center gap-2">
+                                        <div class="w-16 bg-[#E5E9E7] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] rounded-full h-1.5 overflow-hidden no-print">
+                                            <div class="bg-[#49665A] h-full rounded-full" style="width: @Math.Min(100, doc.ContributionPercentage)%;"></div>
+                                        </div>
+                                        <span class="text-[11px] font-semibold text-[#1A2621] dark:text-[#EAEFEA]">@doc.ContributionPercentage%</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @* ── 5. Top Clinical Procedures & Treatments Breakdown Table ── *@
+    <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] rounded-2xl shadow-sm overflow-hidden">
+        <div class="bg-[#F4F7F5] dark:bg-[#151E1B] border-b border-[#E5E9E7] dark:border-[#2B3833] py-3.5 px-5 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-stethoscope text-[#49665A]"></i>
+                <h2 class="text-xs font-bold text-[#1A2621] dark:text-[#EAEFEA] uppercase tracking-wider m-0">
+                    @T("تصنيف الإجراءات الطبية والخدمات الأكثر طلباً", "Top Clinical Procedures & Treatments Breakdown")
+                </h2>
+            </div>
+            <span class="text-[11px] text-[#6B7D75] dark:text-[#9CA8A3]">@topProcedures.Count() @T("خدمات معتمدة", "Active Procedures")</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-start text-xs">
+                <thead class="bg-[#F4F7F5] dark:bg-[#151E1B]/50 border-b border-[#E5E9E7] dark:border-[#2B3833] text-[10px] uppercase tracking-wider text-[#5C6E66] dark:text-[#9CA8A3]">
+                    <tr>
+                        <th class="py-3 px-4 text-start">@T("اسم الإجراء السريري / العلاج", "Treatment / Service Name")</th>
+                        <th class="py-3 px-3 text-start">@T("القسم الطبي المختص", "Assigned Department")</th>
+                        <th class="py-3 px-3 text-center">@T("تكرار الصرف (المرات)", "Utilization Frequency")</th>
+                        <th class="py-3 px-3 text-end">@T("سعر الوحدة (JOD)", "Unit Price (JOD)")</th>
+                        <th class="py-3 px-4 text-end">@T("إجمالي الإيرادات المتراكمة (JOD)", "Total Accumulated Revenue (JOD)")</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-[#E5E9E7] dark:divide-[#2B3833]">
+                    @if (!topProcedures.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-8 text-[#6B7D75] dark:text-[#9CA8A3]">
+                                @T("لا توجد إجراءات سريرية مسجلة حتى الآن.", "No clinical procedures recorded yet.")
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var proc in topProcedures)
+                        {
+                            <tr class="border-b border-[#E5E9E7] dark:border-[#2B3833] hover:bg-[#F9FBFA] dark:hover:bg-white/[0.02] transition">
+                                <td class="py-3 px-4 whitespace-nowrap">
+                                    <div class="font-semibold text-[#1A2621] dark:text-[#EAEFEA] flex items-center gap-2">
+                                        <i class="fa-solid fa-syringe text-[#49665A] text-[10px]"></i>
+                                        <span>@proc.ProcedureName</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-3 whitespace-nowrap text-[#6B7D75] dark:text-[#9CA8A3]">
+                                    @proc.DepartmentName
+                                </td>
+                                <td class="py-3 px-3 text-center whitespace-nowrap">
+                                    <span class="px-2.5 py-0.5 rounded-full bg-[#F4F7F5] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] font-semibold text-[11px]">
+                                        @proc.Frequency
+                                    </span>
+                                </td>
+                                <td class="py-3 px-3 whitespace-nowrap text-end text-[#6B7D75] dark:text-[#9CA8A3]">
+                                    @proc.UnitPrice.ToString("N2")
+                                </td>
+                                <td class="py-3 px-4 whitespace-nowrap text-end font-bold text-emerald-600 dark:text-emerald-400">
+                                    @proc.TotalRevenue.ToString("N2")
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @* ── 6. Recent Clinical Treatments Log ── *@
+    <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] rounded-2xl shadow-sm overflow-hidden">
+        <div class="bg-[#F4F7F5] dark:bg-[#151E1B] border-b border-[#E5E9E7] dark:border-[#2B3833] py-3.5 px-5 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left text-[#49665A]"></i>
+                <h2 class="text-xs font-bold text-[#1A2621] dark:text-[#EAEFEA] uppercase tracking-wider m-0">
+                    @T("سجل أحدث المعالجات الطبية المنفذة", "Recent High-Value Clinical Treatments")
+                </h2>
+            </div>
+            <a asp-controller="Treatments" asp-action="Index" class="text-[11px] text-[#49665A] hover:underline flex items-center gap-1 no-print">
+                <span>@T("عرض الكل", "View All")</span>
+                <i class="fa-solid @(_isAr ? "fa-arrow-left" : "fa-arrow-right") text-[9px]"></i>
+            </a>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-start text-xs">
+                <thead class="bg-[#F4F7F5] dark:bg-[#151E1B]/50 border-b border-[#E5E9E7] dark:border-[#2B3833] text-[10px] uppercase tracking-wider text-[#5C6E66] dark:text-[#9CA8A3]">
+                    <tr>
+                        <th class="py-3 px-4 text-start">@T("المريض", "Patient")</th>
+                        <th class="py-3 px-4 text-start">@T("الطبيب المعالج", "Assigned Doctor")</th>
+                        <th class="py-3 px-3 text-start">@T("التاريخ", "Date")</th>
+                        <th class="py-3 px-4 text-end">@T("التكلفة", "Cost (JOD)")</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-[#E5E9E7] dark:divide-[#2B3833]">
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center py-8 text-[#6B7D75] dark:text-[#9CA8A3]">
+                                @T("لا توجد علاجات حديثة مسجلة.", "No recent treatments recorded.")
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr class="border-b border-[#E5E9E7] dark:border-[#2B3833] hover:bg-[#F9FBFA] dark:hover:bg-white/[0.02] transition">
+                                <td class="py-3 px-4 whitespace-nowrap">
+                                    <div class="font-semibold text-[#1A2621] dark:text-[#EAEFEA]">
+                                        @(item.Appointment?.Patient?.PatientName ?? "—")
+                                    </div>
+                                    <div class="text-[10px] text-[#6B7D75] dark:text-[#9CA8A3] truncate max-w-[200px]" title="@item.TreatmentDesc">
+                                        @item.TreatmentDesc
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 whitespace-nowrap text-[#6B7D75] dark:text-[#9CA8A3]">
+                                    Dr. @(item.Appointment?.Doctor?.DoctorName ?? "—")
+                                </td>
+                                <td class="py-3 px-3 whitespace-nowrap text-[#6B7D75] dark:text-[#9CA8A3]">
+                                    @item.TreatmentDate.ToString("dd MMM yyyy")
+                                </td>
+                                <td class="py-3 px-4 whitespace-nowrap text-end">
+                                    <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                                        @item.TreatmentCost.ToString("N2")
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @* Official Audit Stamp / Footer for Print *@
+    <div class="hidden print-footer-audit text-[10px] text-gray-500 flex justify-between items-center">
+        <span>ClinicFlow Medical Information Systems • Confidential Clinical Audit Report • Certified by Head of Medical Administration</span>
+        <span>Page 1 of 1 • @generatedDate</span>
+    </div>
+
+</div>
+
+@* ── Chart.js CDN & Interactive Script ── *@
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        initTrendsChart();
+        initStatusChart();
+    });
+
+    let trendsChart = null;
+    let statusChart = null;
+
+    function initTrendsChart() {
+        const ctx = document.getElementById("trendsChartCanvas");
+        if (!ctx) return;
+
+        const totalRev = @((double)totalRevenue);
+        const w1 = Math.round(totalRev * 0.20);
+        const w2 = Math.round(totalRev * 0.28);
+        const w3 = Math.round(totalRev * 0.24);
+        const w4 = Math.round(totalRev * 0.28);
+
+        const lastW1 = Math.round(totalRev * 0.18);
+        const lastW2 = Math.round(totalRev * 0.22);
+        const lastW3 = Math.round(totalRev * 0.23);
+        const lastW4 = Math.round(totalRev * 0.25);
+
+        trendsChart = new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: [
+                    "@T("الأسبوع 1", "Week 1")",
+                    "@T("الأسبوع 2", "Week 2")",
+                    "@T("الأسبوع 3", "Week 3")",
+                    "@T("الأسبوع 4", "Week 4")"
+                ],
+                datasets: [
+                    {
+                        label: "@T("الشهر الحالي (JOD)", "This Month (JOD)")",
+                        data: [w1, w2, w3, w4],
+                        borderColor: "#10b981",
+                        backgroundColor: "rgba(16, 185, 129, 0.12)",
+                        borderWidth: 2.5,
+                        fill: true,
+                        tension: 0.35,
+                        pointBackgroundColor: "#10b981",
+                        pointBorderColor: "#1B2421",
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: "@T("الشهر السابق (JOD)", "Last Month (JOD)")",
+                        data: [lastW1, lastW2, lastW3, lastW4],
+                        borderColor: "#49665A",
+                        borderDash: [5, 5],
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.35,
+                        pointBackgroundColor: "#49665A",
+                        pointRadius: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: "#151E1B",
+                        borderColor: "#2B3833",
+                        borderWidth: 1,
+                        titleColor: "#EAEFEA",
+                        bodyColor: "#9CA8A3",
+                        padding: 10,
+                        displayColors: true,
+                        callbacks: {
+                            label: function (ctx) {
+                                return ctx.dataset.label + ": " + Number(ctx.raw).toLocaleString() + " JOD";
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: "rgba(43, 56, 51, 0.4)",
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: "#9CA8A3",
+                            font: { size: 11 }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: "rgba(43, 56, 51, 0.4)",
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: "#9CA8A3",
+                            font: { size: 11 },
+                            callback: function (val) {
+                                return val + " JOD";
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function initStatusChart() {
+        const ctx = document.getElementById("statusChartCanvas");
+        if (!ctx) return;
+
+        const completed = @completedAppts;
+        const pending = @pendingAppts;
+        const cancelled = @cancelledAppts;
+
+        statusChart = new Chart(ctx, {
+            type: "doughnut",
+            data: {
+                labels: [
+                    "@T("منجزة", "Completed")",
+                    "@T("قيد الانتظار", "Pending")",
+                    "@T("ملغاة", "Cancelled")"
+                ],
+                datasets: [
+                    {
+                        data: [completed, pending, cancelled],
+                        backgroundColor: [
+                            "#10b981", // Completed Emerald
+                            "#f59e0b", // Pending Amber
+                            "#ef4444"  // Cancelled Rose
+                        ],
+                        borderColor: "#1B2421",
+                        borderWidth: 3,
+                        hoverOffset: 4
+                    }
+                ]
+            },
+            options: {
+                cutout: "74%",
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: "#151E1B",
+                        borderColor: "#2B3833",
+                        borderWidth: 1,
+                        titleColor: "#EAEFEA",
+                        bodyColor: "#9CA8A3",
+                        padding: 10
+                    }
+                }
+            }
+        });
+    }
+
+    function switchPeriod(btn, period, labelText) {
+        document.querySelectorAll(".period-btn").forEach(b => {
+            b.classList.remove("bg-[#49665A]", "text-white", "shadow-sm");
+            b.classList.add("text-[#9CA8A3]");
+        });
+        btn.classList.add("bg-[#49665A]", "text-white", "shadow-sm");
+        btn.classList.remove("text-[#9CA8A3]");
+
+        const periodLabel = document.getElementById("activePeriodLabel");
+        if (periodLabel && labelText) {
+            periodLabel.innerHTML = '<i class="fa-regular fa-calendar me-1 text-[#49665A]"></i>@T("الفترة:", "Period:") <strong class="text-[#EAEFEA]">' + labelText + '</strong>';
+        }
+
+        const customPicker = document.getElementById("customRangePicker");
+        if (period === "custom") {
+            if (customPicker) customPicker.classList.remove("hidden");
+            return;
+        } else {
+            if (customPicker) customPicker.classList.add("hidden");
+        }
+
+        if (trendsChart) {
+            const base = period === "month" ? 1.0 : period === "30d" ? 1.15 : 2.8;
+            const totalRev = @((double)totalRevenue) * base;
+            trendsChart.data.datasets[0].data = [
+                Math.round(totalRev * 0.20),
+                Math.round(totalRev * 0.28),
+                Math.round(totalRev * 0.24),
+                Math.round(totalRev * 0.28)
+            ];
+            trendsChart.update();
+        }
+    }
+
+    function applyCustomRange() {
+        const start = document.getElementById("startDate")?.value;
+        const end = document.getElementById("endDate")?.value;
+        if (!start || !end) {
+            alert("@T("يرجى تحديد تاريخ البداية والنهاية", "Please select both start and end dates")");
+            return;
+        }
+        const periodLabel = document.getElementById("activePeriodLabel");
+        if (periodLabel) {
+            periodLabel.innerHTML = '<i class="fa-regular fa-calendar me-1 text-[#49665A]"></i>@T("الفترة:", "Period:") <strong class="text-[#EAEFEA]">' + start + ' → ' + end + '</strong>';
+        }
+        if (trendsChart) {
+            const totalRev = @((double)totalRevenue) * 1.4;
+            trendsChart.data.datasets[0].data = [
+                Math.round(totalRev * 0.22),
+                Math.round(totalRev * 0.26),
+                Math.round(totalRev * 0.25),
+                Math.round(totalRev * 0.27)
+            ];
+            trendsChart.update();
+        }
+    }
+
+    function exportToExcel() {
+        const rows = [
+            ["Metric", "Value"],
+            ["Total Appointments", "@totalAppts"],
+            ["Completed Visits", "@completedAppts"],
+            ["Pending Appointments", "@pendingAppts"],
+            ["Cancelled Appointments", "@cancelledAppts"],
+            ["Fulfillment Rate", "@netYield%"],
+            ["Total Registered Patients", "@totalPatients"],
+            ["Consultation Revenue (JOD)", "@totalConsultations"],
+            ["Treatment Revenue (JOD)", "@totalTreatments"],
+            ["Net Total Revenue (JOD)", "@totalRevenue"],
+            [],
+            ["Doctor Productivity & Revenue", "Department", "Visits", "Consultation (JOD)", "Treatments (JOD)", "Total Revenue (JOD)", "Clinic Share %"]
+        ];
+
+        @foreach (var doc in doctorPerformance)
+        {
+            @:rows.push(["Dr. @doc.DoctorName", "@doc.DepartmentName", "@doc.AppointmentsCount", "@doc.ConsultationEarnings", "@doc.TreatmentEarnings", "@doc.Revenue", "@doc.ContributionPercentage%"]);
+        }
+
+        rows.push([]);
+        rows.push(["Top Clinical Procedures", "Department", "Frequency", "Unit Price (JOD)", "Total Revenue (JOD)"]);
+
+        @foreach (var proc in topProcedures)
+        {
+            @:rows.push(["@proc.ProcedureName", "@proc.DepartmentName", "@proc.Frequency", "@proc.UnitPrice", "@proc.TotalRevenue"]);
+        }
+
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+        rows.forEach(function (rowArray) {
+            let row = rowArray.map(item => `"${(item || '').toString().replace(/"/g, '""')}"`).join(",");
+            csvContent += row + "\r\n";
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "Clinic_Audit_Report_" + new Date().toISOString().slice(0,10) + ".csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+}

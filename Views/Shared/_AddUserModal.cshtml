@@ -1,0 +1,72 @@
+@using System.Globalization
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    Func<string, string, string> T = (ar, en) => _isAr ? ar : en;
+}
+
+<div id="addUserModal" class="cf-modal-overlay" style="display:none;">
+    <div class="cf-modal">
+        <div class="cf-modal-header">
+            <div class="d-flex align-items-center gap-2">
+                <div class="cf-modal-icon">
+                    <i class="fa-solid fa-user-plus"></i>
+                </div>
+                <div>
+                    <h3 class="cf-modal-title">@T("إضافة مستخدم جديد للنظام", "Add New Staff Member")</h3>
+                    <p class="cf-modal-subtitle m-0">@T("منح صلاحيات الوصول للكوادر الطبية والإدارية", "Grant role and access permissions")</p>
+                </div>
+            </div>
+            <button type="button" class="cf-modal-close" onclick="closeAddUserModal()">&times;</button>
+        </div>
+
+        <form asp-controller="Account" asp-action="Register" method="post">
+            @Html.AntiForgeryToken()
+            <div class="mb-3">
+                <label class="cf-form-label">@T("البريد الإلكتروني المهني", "Professional Email")</label>
+                <input type="email" name="Email" required class="cf-form-input" placeholder="dr.smith@clinicflow.com" dir="ltr" />
+            </div>
+
+            <div class="cf-form-grid-2 mb-3">
+                <div>
+                    <label class="cf-form-label">@T("كلمة المرور", "Password")</label>
+                    <input type="password" name="Password" required class="cf-form-input" placeholder="••••••••" dir="ltr" />
+                </div>
+                <div>
+                    <label class="cf-form-label">@T("تأكيد كلمة المرور", "Confirm Password")</label>
+                    <input type="password" name="ConfirmPassword" required class="cf-form-input" placeholder="••••••••" dir="ltr" />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="cf-form-label">@T("الدور الوظيفي", "Role")</label>
+                <select name="Role" class="cf-form-select">
+                    <option value="Admin">@T("مدير نظام (Admin)", "Administrator")</option>
+                    <option value="Doctor" selected>@T("طبيب (Doctor)", "Doctor")</option>
+                    <option value="Receptionist">@T("موظف استقبال (Receptionist)", "Receptionist")</option>
+                </select>
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-[#E5E9E7] dark:border-[#2B3833] mt-6">
+                <button type="button" class="px-4 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/20 text-[#6B7D75] hover:text-rose-600 dark:text-[#9CA8A3] dark:hover:text-rose-400 text-xs font-semibold transition flex items-center gap-1.5" onclick="closeAddUserModal()">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                    <span>@T("إلغاء", "Cancel")</span>
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-user-plus text-xs"></i>
+                    <span>@T("حفظ وتسجيل المستخدم", "Save Staff Member")</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openAddUserModal() {
+        var modal = document.getElementById('addUserModal');
+        if (modal) modal.style.display = 'flex';
+    }
+    function closeAddUserModal() {
+        var modal = document.getElementById('addUserModal');
+        if (modal) modal.style.display = 'none';
+    }
+</script>

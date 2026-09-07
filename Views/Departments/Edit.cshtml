@@ -1,0 +1,101 @@
+@model WebApplication1.Models.Department
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("تعديل القسم", "Edit Department");
+}
+
+<div class="max-w-3xl mx-auto px-4 py-8" dir="@(_isAr ? "rtl" : "ltr")">
+
+    @* ── Back Navigation Link ── *@
+    <div class="mb-5">
+        <a asp-action="Index" class="inline-flex items-center gap-2 text-xs font-medium text-[#727A76] dark:text-[#9CA8A3] hover:text-[#202725] dark:hover:text-[#EAEFEA] transition-colors">
+            <i class="fa-solid @(_isAr ? "fa-arrow-right" : "fa-arrow-left")"></i>
+            <span>@T("العودة إلى قائمة الأقسام", "Back to Departments List")</span>
+        </a>
+    </div>
+
+    @* ── Outer Card Wrapper ── *@
+    <div class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl shadow-sm max-w-3xl mx-auto overflow-hidden">
+
+        @* ── Form Card Header ── *@
+        <div class="px-6 py-5 border-b border-[#DDE3DF] dark:border-[#2B3833] bg-[#F6F7F5] dark:bg-[#151E1B] flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-[#49665A]/10 border border-[#49665A]/20 flex items-center justify-center text-[#49665A] text-base shrink-0">
+                <i class="fa-solid fa-pen-to-square"></i>
+            </div>
+            <div>
+                <h1 class="text-sm sm:text-base font-bold text-[#202725] dark:text-[#EAEFEA] m-0">
+                    @T("تعديل بيانات القسم", "Edit Department Profile")
+                </h1>
+                <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0">
+                    @T("تحديث اسم القسم والرمز التعريفي واختصار السجلات الطبية.", "Update department name and medical record abbreviation.")
+                </p>
+            </div>
+        </div>
+
+        @* ── Form Inner Body ── *@
+        <form asp-action="Edit" method="post" class="p-6 sm:p-8 space-y-6">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="DepartmentId" />
+            <div asp-validation-summary="ModelOnly" class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs"></div>
+
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-[#49665A] dark:text-[#9CA8A3] mb-4 block">
+                    @T("معلومات القسم", "Department Information")
+                </span>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Department Name -->
+                    <div>
+                        <label asp-for="DepartmentName" class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1.5">
+                            @T("اسم القسم", "Department Name") *
+                        </label>
+                        <div class="relative">
+                            <i class="fa-solid fa-building-columns absolute start-3.5 top-1/2 -translate-y-1/2 text-xs text-[#727A76]"></i>
+                            <input asp-for="DepartmentName"
+                                   class="w-full ps-9 pe-3.5 py-2.5 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-[#F6F7F5] dark:bg-[#151E1B] text-[#202725] dark:text-[#EAEFEA] placeholder-[#727A76] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] transition"
+                                   placeholder="@T("أدخل اسم القسم", "Enter department name")" />
+                        </div>
+                        <span asp-validation-for="DepartmentName" class="text-rose-400 text-[11px] mt-1 block"></span>
+                    </div>
+
+                    <!-- Department Abbreviation -->
+                    <div>
+                        <label asp-for="DepartmentAbbr" class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1.5">
+                            @T("رمز الاختصار", "Department Abbreviation") *
+                        </label>
+                        <div class="relative">
+                            <i class="fa-solid fa-code absolute start-3.5 top-1/2 -translate-y-1/2 text-xs text-[#727A76]"></i>
+                            <input asp-for="DepartmentAbbr"
+                                   class="w-full ps-9 pe-3.5 py-2.5 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-[#F6F7F5] dark:bg-[#151E1B] text-[#202725] dark:text-[#EAEFEA] placeholder-[#727A76] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] transition"
+                                   placeholder="@T("مثال: CARD", "e.g. CARD")" />
+                        </div>
+                        <span asp-validation-for="DepartmentAbbr" class="text-rose-400 text-[11px] mt-1 block"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-[#E5E9E7] dark:border-[#2B3833] mt-6">
+                <a asp-action="Index"
+                   class="px-4 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/20 text-[#6B7D75] hover:text-rose-600 dark:text-[#9CA8A3] dark:hover:text-rose-400 text-xs font-semibold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                    <span>@T("إلغاء", "Cancel")</span>
+                </a>
+                <button type="submit"
+                        class="px-5 py-2 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-floppy-disk text-xs"></i>
+                    <span>@T("تحديث القسم", "Update Department")</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

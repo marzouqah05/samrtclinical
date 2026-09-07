@@ -1,0 +1,115 @@
+@model WebApplication1.Models.Department
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("حذف القسم", "Delete Department");
+}
+
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+<style>
+    body { background: #f5f7fb; }
+    .delete-container { max-width: 950px; margin: auto; }
+    .delete-card { background: white; border-radius: 30px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+    .header-section { background: linear-gradient(135deg, #ef4444, #dc2626); padding: 40px; color: white; }
+    .header-section h2 { margin: 0; font-weight: bold; }
+    .header-section p { margin-top: 8px; opacity: 0.9; }
+    .delete-body { padding: 40px; }
+    .warning-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 20px; padding: 25px; margin-bottom: 35px; display: flex; align-items: center; gap: 18px; }
+    .warning-icon { width: 65px; height: 65px; border-radius: 18px; background: #ef4444; color: white; display: flex; justify-content: center; align-items: center; font-size: 28px; flex-shrink: 0; }
+    .warning-content h4 { margin: 0; font-weight: bold; color: #991b1b; }
+    .warning-content p { margin-top: 8px; color: #7f1d1d; }
+    .info-card { background: #f8fafc; border-radius: 24px; padding: 30px; }
+    .department-avatar { width: 90px; height: 90px; border-radius: 50%; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; display: flex; justify-content: center; align-items: center; margin: auto; font-size: 34px; font-weight: bold; margin-bottom: 20px; }
+    .department-title { text-align: center; margin-bottom: 35px; }
+    .department-title h3 { margin: 0; font-weight: bold; }
+    .department-title p { margin-top: 8px; color: #64748b; }
+    .info-item { margin-bottom: 25px; }
+    .info-label { color: #64748b; font-size: 14px; margin-bottom: 6px; }
+    .info-value { font-size: 18px; font-weight: 600; color: #0f172a; }
+    .abbr-badge { background: #fee2e2; color: #dc2626; padding: 10px 18px; border-radius: 30px; display: inline-block; font-weight: 600; font-size: 14px; }
+    .btn-custom { border-radius: 16px; padding: 14px 26px; font-weight: 600; }
+    .delete-btn { background: #ef4444; border: none; }
+    .delete-btn:hover { background: #dc2626; }
+</style>
+
+<div class="delete-container" dir="@(_isAr ? "rtl" : "ltr")">
+
+    <div class="delete-card">
+
+        <!-- Header -->
+        <div class="header-section">
+            <h2>
+                <i class="fa-solid fa-trash"></i>
+                @T("حذف القسم", "Delete Department")
+            </h2>
+            <p>@T("إزالة معلومات القسم من النظام نهائياً.", "Permanently remove department information from the system.")</p>
+        </div>
+
+        <!-- Body -->
+        <div class="delete-body">
+
+            <!-- Warning -->
+            <div class="warning-box">
+                <div class="warning-icon">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div class="warning-content">
+                    <h4>@T("تحذير", "Warning")</h4>
+                    <p>@T("هل أنت متأكد من حذف هذا القسم؟ لا يمكن التراجع عن هذا الإجراء.", "Are you sure you want to delete this department? This action cannot be undone.")</p>
+                </div>
+            </div>
+
+            <!-- Department Info -->
+            <div class="info-card">
+
+                <!-- Avatar -->
+                <div class="department-avatar">
+                    @(Model.DepartmentName.Substring(0, 1).ToUpper())
+                </div>
+
+                <!-- Title -->
+                <div class="department-title">
+                    <h3>@Model.DepartmentName</h3>
+                    <p>@T("قسم العيادة", "Clinic Department")</p>
+                </div>
+
+                <!-- Info -->
+                <div class="info-item">
+                    <div class="info-label">@T("اسم القسم", "Department Name")</div>
+                    <div class="info-value">@Model.DepartmentName</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-label">@T("اختصار القسم", "Department Abbreviation")</div>
+                    <div class="abbr-badge">@Model.DepartmentAbbr</div>
+                </div>
+
+            </div>
+
+            <!-- Buttons -->
+            <form asp-action="Delete" class="d-flex gap-3 mt-5">
+
+                <input type="hidden" asp-for="DepartmentId" />
+
+                <!-- Delete -->
+                <button type="submit" class="btn btn-danger btn-custom delete-btn">
+                    <i class="fa-solid fa-trash"></i>
+                    @T("حذف القسم", "Delete Department")
+                </button>
+
+                <!-- Cancel -->
+                <a asp-action="Index" class="px-4 py-2.5 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/20 text-[#6B7D75] hover:text-rose-600 dark:text-[#9CA8A3] dark:hover:text-rose-400 text-xs font-semibold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                    <span>@T("إلغاء", "Cancel")</span>
+                </a>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>

@@ -1,0 +1,97 @@
+@model WebApplication1.Models.Invoice
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("تحصيل / تعديل الفاتورة", "Collect / Edit Invoice");
+}
+
+<div class="container-fluid" dir="@(_isAr ? "rtl" : "ltr")">
+    <div class="row justify-content-center">
+        <div class="col-xl-6 col-lg-8">
+            <!-- كرت التصميم الرئيسي -->
+            <div class="card shadow-sm border-0 rounded-3 mt-4">
+                <div class="card-header bg-white border-bottom p-4 text-center">
+                    <h3 class="text-primary fw-bold m-0">
+                        <i class="fa-solid fa-pen-to-square @(_isAr ? "ms-2" : "me-2")"></i> @T("تحديث الفاتورة والتحصيل", "Update Invoice & Collection")
+                    </h3>
+                    <p class="text-muted m-0 mt-2">@T("إدارة حالة الدفع، تعديل الخصم، أو إضافة ضريبة للفاتورة", "Manage payment status, adjust discount, or apply tax for invoice") <span class="fw-bold text-dark">#@Model.InvoiceNumber</span></p>
+                </div>
+
+                <div class="card-body p-4">
+                    <form asp-action="Edit" method="post">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger d-none"></div>
+
+                        <!-- الحقول المخفية الأساسية لضمان عدم ضياع البيانات عند الحفظ -->
+                        <input type="hidden" asp-for="InvoiceId" />
+                        <input type="hidden" asp-for="InvoiceNumber" />
+                        <input type="hidden" asp-for="InvoiceDate" />
+                        <input type="hidden" asp-for="Amount" />
+                        <input type="hidden" asp-for="PatientId" />
+                        <input type="hidden" asp-for="TreatmentId" />
+
+                        <!-- استعراض البيانات الثابتة للموظف -->
+                        <div class="bg-light rounded-3 p-3 mb-4 border">
+                            <div class="row text-secondary small">
+                                <div class="col-6 mb-2">@T("تاريخ الفاتورة:", "Invoice Date:") <strong class="text-dark">@Model.InvoiceDate.ToString("yyyy/MM/dd HH:mm")</strong></div>
+                                <div class="col-6 mb-2 @(_isAr ? "text-start" : "text-end")">@T("المبلغ الإجمالي:", "Gross Amount:") <strong class="text-dark">@Model.Amount.ToString("C2")</strong></div>
+                            </div>
+                        </div>
+
+                        <!-- تعديل قيمة الخصم -->
+                        <div class="mb-3">
+                            <label asp-for="Discount" class="form-label fw-semibold">@T("مبلغ الخصم (د.أ)", "Discount Amount (JD)")</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted"><i class="fa-solid fa-tag"></i></span>
+                                <input asp-for="Discount" class="form-control" type="number" step="0.01" min="0" required />
+                            </div>
+                            <span asp-validation-for="Discount" class="text-danger small"></span>
+                        </div>
+
+                        <!-- تعديل قيمة الضريبة -->
+                        <div class="mb-3">
+                            <label asp-for="Tax" class="form-label fw-semibold">@T("مبلغ الضريبة (د.أ)", "Tax Amount (JD)")</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted"><i class="fa-solid fa-percent"></i></span>
+                                <input asp-for="Tax" class="form-control" type="number" step="0.01" min="0" required />
+                            </div>
+                            <span asp-validation-for="Tax" class="text-danger small"></span>
+                        </div>
+
+                        <!-- تحديث حالة الدفع -->
+                        <div class="mb-4">
+                            <label asp-for="Status" class="form-label fw-semibold">@T("حالة الدفع", "Payment Status")</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted"><i class="fa-solid fa-wallet"></i></span>
+                                <select asp-for="Status" class="form-select" required>
+                                    <option value="Unpaid">@T("غير مدفوع (معلّق)", "Unpaid (Pending)")</option>
+                                    <option value="Paid">@T("مدفوع (مُسدّد)", "Paid (Settled)")</option>
+                                </select>
+                            </div>
+                            <span asp-validation-for="Status" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-[#E5E9E7] dark:border-[#2B3833] mt-6">
+                            <a asp-action="Index" class="px-4 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/20 text-[#6B7D75] hover:text-rose-600 dark:text-[#9CA8A3] dark:hover:text-rose-400 text-xs font-semibold transition flex items-center gap-1.5 text-decoration-none">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                                <span>@T("إلغاء", "Cancel")</span>
+                            </a>
+                            <button type="submit" class="px-5 py-2 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-floppy-disk text-xs"></i>
+                                <span>@T("حفظ التغييرات", "Save Changes")</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

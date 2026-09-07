@@ -1,0 +1,414 @@
+@model WebApplication1.Models.ClinicSettingsViewModel
+@using System.Globalization
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("الواتساب وأتمتة n8n", "WhatsApp & Automation Settings");
+    var isConfigured = !string.IsNullOrEmpty(Model.WhatsAppWebhookUrl);
+}
+
+@* ── Toast Notifications ──────────────────────────────────────────────── *@
+@if (TempData["Success"] != null)
+{
+    <div class="mb-4 p-3 rounded-lg border flex items-center gap-3 text-sm font-medium" 
+         style="background:var(--clinic-emerald-bg);border-color:rgba(46,125,91,0.25);color:var(--clinic-emerald-text);">
+        <i class="fa-solid fa-circle-check text-base"></i>
+        <span>@TempData["Success"]</span>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 p-3 rounded-lg border flex items-center gap-3 text-sm font-medium" 
+         style="background:var(--clinic-rose-bg);border-color:rgba(184,58,56,0.25);color:var(--clinic-rose-text);">
+        <i class="fa-solid fa-circle-exclamation text-base"></i>
+        <span>@TempData["Error"]</span>
+    </div>
+}
+
+<div class="container-fluid py-2 max-w-4xl mx-auto" dir="@(_isAr ? "rtl" : "ltr")">
+
+    @* ── Header Bar ──────────────────────────────────────────────────── *@
+    <div class="clinic-page-header">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <a asp-controller="Settings" asp-action="Index" class="text-xs font-semibold hover:underline" style="color:var(--clinic-muted)">
+                    <i class="fa-solid fa-arrow-right-long me-1"></i>
+                    @T("مركز الإعدادات", "Settings Hub")
+                </a>
+                <span style="color:var(--clinic-border)">/</span>
+                <span class="text-xs font-semibold" style="color:var(--clinic-primary)">@T("الواتساب والأتمتة", "WhatsApp & Automations")</span>
+            </div>
+            <h1 class="clinic-page-title">
+                @T("تكامل n8n وأتمتة رسائل الواتساب", "n8n Webhook Integration & WhatsApp Automation")
+            </h1>
+            <p class="clinic-page-subtitle">
+                @T("ربط المنظومة مع منصة n8n لإرسال تذكيرات المواعيد، المتابعات بعد الكشف، وتأمين نقاط الاتصال",
+                   "Connect to n8n webhook workflows for appointment reminders, post-visit follow-ups, and API token security")
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="clinic-badge @(isConfigured ? "clinic-badge-emerald" : "clinic-badge-amber")">
+                <i class="fa-solid fa-circle me-1" style="font-size:6px"></i>
+                @(isConfigured ? T("الخدمة مهيأة", "Configured") : T("غير مهيأة بعد", "Not Configured"))
+            </span>
+            <a asp-controller="Settings" asp-action="Index" class="btn-clinic-secondary">
+                <i class="fa-solid fa-arrow-left"></i>
+                @T("العودة للإعدادات", "Back to Hub")
+            </a>
+        </div>
+    </div>
+
+    <form asp-controller="Settings" asp-action="UpdateWhatsAppConfig" method="post" id="waForm">
+        @Html.AntiForgeryToken()
+
+        @* ── Section 1: Endpoint & Credentials ────────────────────────── *@
+        <div class="clinic-card p-6 mb-5">
+            <div class="flex items-center gap-3 mb-5 pb-3 border-b" style="border-color:var(--clinic-border)">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base"
+                     style="background:rgba(37,211,102,0.12);color:#25d366">
+                    <i class="fa-brands fa-whatsapp"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold m-0" style="color:var(--clinic-text)">
+                        @T("إعدادات نقطة الاتصال n8n Webhook", "n8n Webhook Endpoint & Sender")
+                    </h3>
+                    <p class="text-xs m-0" style="color:var(--clinic-muted)">
+                        @T("النقطة التي ستستقبل إشعارات المواعيد لإرسال رسائل WhatsApp للعملاء", "The endpoint that receives appointment events to dispatch WhatsApp messages")
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div class="md:col-span-2">
+                    <label class="clinic-label">
+                        @T("رابط Webhook Endpoint (n8n)", "n8n Webhook Endpoint URL")
+                    </label>
+                    <input asp-for="WhatsAppWebhookUrl" id="txtWebhookUrl" class="clinic-input font-mono text-xs"
+                           placeholder="https://n8n.yourclinic.com/webhook/reminders" />
+                    <p class="text-xs mt-1" style="color:var(--clinic-muted)">
+                        @T("الرابط الذي يتم استدعاؤه عند حلول موعد تذكير المريض", "Endpoint triggered before patient appointment times")
+                    </p>
+                </div>
+
+                <div>
+                    <label class="clinic-label">
+                        @T("رقم هاتف المرسل (WhatsApp Sender)", "WhatsApp Sender Phone Number")
+                    </label>
+                    <input asp-for="WhatsAppSenderNumber" class="clinic-input" placeholder="+962 79 000 0000" />
+                </div>
+
+                <div>
+                    <label class="clinic-label">
+                        @T("وقت إرسال التذكير (ساعات قبل الموعد)", "Reminder Timing (Hours Before)")
+                    </label>
+                    <input asp-for="ReminderHoursBefore" type="number" class="clinic-input" min="1" max="168" />
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="clinic-label">
+                        @T("رمز أمان API سري (X-Api-Token Header)", "API Security Token (X-Api-Token)")
+                    </label>
+                    <div class="relative">
+                        <input asp-for="ApiToken" id="apiTokenField" type="password" class="clinic-input font-mono text-xs pr-10"
+                               placeholder="sec_live_..." autocomplete="new-password" />
+                        <button type="button" class="absolute inset-y-0 end-0 px-3 flex items-center text-xs" style="color:var(--clinic-muted)"
+                                onclick="toggleApiToken()" title="Show/Hide">
+                            <i class="fa-solid fa-eye" id="apiTokenEyeIcon"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs mt-1" style="color:var(--clinic-muted)">
+                        @T("يتم إرسال هذا الرمز مع كل طلب للتحقق من هوية n8n. اتركه فارغاً إذا كنت لا تستخدم تحقق أمني.", "Sent in the X-Api-Token header for request authentication.")
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        @* ── Section 2: Template & Automation Flags ────────────────────── *@
+        <div class="clinic-card p-6 mb-5">
+            <div class="flex items-center gap-3 mb-5 pb-3 border-b" style="border-color:var(--clinic-border)">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base"
+                     style="background:rgba(99,102,241,0.12);color:#6366f1">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold m-0" style="color:var(--clinic-text)">
+                        @T("قالب الرسالة وخيارات الأتمتة", "Message Template & Automated Workflows")
+                    </h3>
+                    <p class="text-xs m-0" style="color:var(--clinic-muted)">
+                        @T("تخصيص نص الرسالة والمتغيرات الحيوية وتفعيل البوت الذكي", "Customize WhatsApp copy with dynamic tokens and trigger automations")
+                    </p>
+                </div>
+            </div>
+
+            <div class="mb-5">
+                <label class="clinic-label">
+                    @T("نص رسالة تذكير الموعد التلقائية", "Appointment Reminder Template")
+                </label>
+                <textarea asp-for="CustomWhatsAppTemplate" class="clinic-input" rows="3"
+                          placeholder="مرحباً {PatientName}، نذكرك بموعدك لدى د. {DoctorName} يوم {AppointmentDate} الساعة {AppointmentTime} في عيادة MediCare."></textarea>
+                <div class="mt-2 text-xs" style="color:var(--clinic-muted)">
+                    <span>@T("المتغيرات المتاحة:", "Available tokens:")</span>
+                    <code class="px-1.5 py-0.5 rounded bg-gray-100 font-mono text-[11px] text-emerald-800">{PatientName}</code>
+                    <code class="px-1.5 py-0.5 rounded bg-gray-100 font-mono text-[11px] text-emerald-800">{DoctorName}</code>
+                    <code class="px-1.5 py-0.5 rounded bg-gray-100 font-mono text-[11px] text-emerald-800">{AppointmentDate}</code>
+                    <code class="px-1.5 py-0.5 rounded bg-gray-100 font-mono text-[11px] text-emerald-800">{AppointmentTime}</code>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                @* Toggle 1: Reminders *@
+                <div class="p-3.5 rounded-xl border flex items-center justify-between gap-4"
+                     style="background:var(--clinic-bg);border-color:var(--clinic-border)">
+                    <div>
+                        <h4 class="text-xs font-bold m-0" style="color:var(--clinic-text)">
+                            <i class="fa-brands fa-whatsapp text-emerald-600 me-1"></i>
+                            @T("تفعيل تنبيهات تذكير المواعيد التلقائية", "Enable Automated Appointment Reminders")
+                        </h4>
+                        <p class="text-[11px] m-0 mt-0.5" style="color:var(--clinic-muted)">
+                            @T("إرسال رسالة تذكير تلقائية قبل موعد الزيارة المحدد عبر n8n", "Dispatches WhatsApp message before appointment time")
+                        </p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input asp-for="EnableWhatsAppReminders" type="checkbox" class="sr-only peer" />
+                        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#49665A]"></div>
+                    </label>
+                </div>
+
+                @* Toggle 2: Follow-Up *@
+                <div class="p-3.5 rounded-xl border flex items-center justify-between gap-4"
+                     style="background:var(--clinic-bg);border-color:var(--clinic-border)">
+                    <div>
+                        <h4 class="text-xs font-bold m-0" style="color:var(--clinic-text)">
+                            <i class="fa-solid fa-rotate-right text-indigo-600 me-1"></i>
+                            @T("تفعيل رسائل المتابعة بعد انتهاء الزيارة الطبية", "Enable Post-Visit Follow-Up Messages")
+                        </h4>
+                        <p class="text-[11px] m-0 mt-0.5" style="color:var(--clinic-muted)">
+                            @T("إرسال تعليمات الرعاية والاستبيان بعد إكمال الكشف الطبي للمريض", "Automatically send post-consultation instructions and feedback survey")
+                        </p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input asp-for="EnableFollowUpMessages" type="checkbox" class="sr-only peer" />
+                        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#49665A]"></div>
+                    </label>
+                </div>
+
+                @* Toggle 3: Self-Booking Bot *@
+                <div class="p-3.5 rounded-xl border flex items-center justify-between gap-4"
+                     style="background:var(--clinic-bg);border-color:var(--clinic-border)">
+                    <div>
+                        <h4 class="text-xs font-bold m-0" style="color:var(--clinic-text)">
+                            <i class="fa-solid fa-robot text-purple-600 me-1"></i>
+                            @T("تفعيل الحجز الذاتي التفاعلي عبر الواتساب (AI/Bot)", "Enable WhatsApp Self-Booking (AI/Bot)")
+                        </h4>
+                        <p class="text-[11px] m-0 mt-0.5" style="color:var(--clinic-muted)">
+                            @T("السماح لـ n8n بإنشاء وحجز المواعيد مباشرة للمرضى عبر المحادثة الذكية", "Allow n8n bot to auto-create and confirm appointments for chat inquiries")
+                        </p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input asp-for="EnableWhatsAppSelfBooking" type="checkbox" class="sr-only peer" />
+                        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#49665A]"></div>
+                    </label>
+                </div>
+            </div>
+    </div>
+
+    @* ── Section 3: Telegram Bot Integration ────────────────────── *@
+    <div class="clinic-card p-6 mb-5">
+        <div class="flex items-center gap-3 mb-5 pb-3 border-b" style="border-color:var(--clinic-border)">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base"
+                 style="background:rgba(38,120,224,0.12);color:#2678e0">
+                <i class="fa-brands fa-telegram"></i>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold m-0" style="color:var(--clinic-text)">
+                    @T("تكامل بوت تيليجرام الذكي", "Telegram AI Assistant Integration")
+                </h3>
+                <p class="text-xs m-0" style="color:var(--clinic-muted)">
+                    @T("ربط بوت تيليجرام لاستقبال الحجوزات التلقائية وإشعار الأطباء فوراً", "Connect Telegram Bot for automated patient bookings and instant doctor alerts")
+                </p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+
+            @* Telegram Bot Token *@
+            <div class="md:col-span-2">
+                <label class="clinic-label">
+                    @T("رمز بوت تيليجرام (Bot Token من BotFather)", "Telegram Bot Token (from BotFather)")
+                </label>
+                <div class="relative">
+                    <input asp-for="TelegramBotToken" id="telegramTokenField" type="password"
+                           class="clinic-input font-mono text-xs"
+                           placeholder="123456789:AAFxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                           autocomplete="new-password" />
+                    <button type="button"
+                            class="absolute inset-y-0 end-0 px-3 flex items-center text-xs"
+                            style="color:var(--clinic-muted)"
+                            onclick="toggleTelegramToken()" title="@T("إظهار/إخفاء", "Show/Hide")">
+                        <i class="fa-solid fa-eye" id="telegramTokenEyeIcon"></i>
+                    </button>
+                </div>
+                <p class="text-xs mt-1" style="color:var(--clinic-muted)">
+                    @T("احصل على هذا الرمز من حساب @BotFather في تيليجرام بعد إنشاء البوت.", "Obtain this token from @BotFather on Telegram after creating your bot.")
+                </p>
+            </div>
+
+            @* Telegram Webhook URL *@
+            <div class="md:col-span-2">
+                <label class="clinic-label">
+                    @T("رابط Webhook الخاص بالعيادة (Clinic Webhook URL)", "Clinic Webhook URL")
+                </label>
+                <input asp-for="TelegramWebhookUrl" id="telegramWebhookUrl" class="clinic-input font-mono text-xs"
+                       placeholder="https://your-clinic.com/api/telegram/webhook" />
+                <p class="text-xs mt-1" style="color:var(--clinic-muted)">
+                    @T("الرابط الذي يستقبل إشعارات تيليجرام — يجب أن يكون HTTPS وقابلاً للوصول من الإنترنت.", "The HTTPS endpoint that receives Telegram webhook updates. Must be publicly accessible.")
+                </p>
+            </div>
+
+            @* API Key info card *@
+            <div class="md:col-span-2">
+                <div class="p-3 rounded-lg border text-xs" style="background:rgba(38,120,224,0.06);border-color:rgba(38,120,224,0.2);color:var(--clinic-muted)">
+                    <i class="fa-solid fa-shield-halved me-1" style="color:#2678e0"></i>
+                    <strong style="color:var(--clinic-text)">@T("مفتاح الأمان (X-Automation-Key):", "Security Key (X-Automation-Key):")</strong>
+                    @T("يتم تكوين مفتاح الحماية الخاص بـ API في ملف appsettings.json تحت AutomationSettings:ApiKey — اطلب من مسؤول النظام تغييره قبل الإنتاج.",
+                       "The API security key is configured in appsettings.json under AutomationSettings:ApiKey — ask your system admin to set a strong value before going live.")
+                </div>
+            </div>
+        </div>
+
+        @* Toggle: Enable Telegram AI Assistant *@
+        <div class="p-3.5 rounded-xl border flex items-center justify-between gap-4 mb-4"
+             style="background:var(--clinic-bg);border-color:var(--clinic-border)">
+            <div>
+                <h4 class="text-xs font-bold m-0" style="color:var(--clinic-text)">
+                    <i class="fa-brands fa-telegram me-1" style="color:#2678e0"></i>
+                    @T("تفعيل مساعد تيليجرام الذكي للحجز التلقائي", "Enable Telegram AI Assistant for Automated Booking")
+                </h4>
+                <p class="text-[11px] m-0 mt-0.5" style="color:var(--clinic-muted)">
+                    @T("يتيح للمرضى حجز مواعيدهم تلقائياً عبر محادثة تيليجرام التفاعلية وإشعار الأطباء فوراً",
+                       "Allows patients to self-book appointments via an interactive Telegram conversation and notifies doctors instantly")
+                </p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input asp-for="EnableTelegramBot" type="checkbox" class="sr-only peer" />
+                <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2678e0]"></div>
+            </label>
+        </div>
+
+        @* Test Connection button *@
+        <div class="flex items-center gap-3">
+            <button type="button" id="btnTestTelegram" class="btn-clinic-secondary" onclick="testTelegramConnection()">
+                <i class="fa-solid fa-satellite-dish"></i>
+                @T("اختبار اتصال تيليجرام", "Test Telegram Connection")
+            </button>
+            <span id="telegramTestResult" class="text-xs font-medium hidden"></span>
+        </div>
+    </div>
+
+    @* ── Actions Footer ───────────────────────────────────────────── *@
+    <div class="flex items-center justify-between pt-2">
+            <div class="flex items-center gap-2">
+                <button type="submit"
+                        formaction="@Url.Action("TestWhatsAppWebhook")"
+                        formmethod="post"
+                        class="btn-clinic-secondary"
+                        onclick="setWebhookForTest()">
+                    <i class="fa-solid fa-satellite-dish"></i>
+                    @T("اختبار اتصال Webhook", "Test Connection")
+                </button>
+            </div>
+            <div class="flex items-center gap-2">
+                <a asp-controller="Settings" asp-action="Index" class="btn-clinic-secondary">
+                    <i class="fa-solid fa-xmark"></i>
+                    @T("إلغاء", "Cancel")
+                </a>
+                <button type="submit" class="btn-clinic-primary">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    @T("حفظ إعدادات الأتمتة", "Save Automations")
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+    function toggleApiToken() {
+        var field = document.getElementById('apiTokenField');
+        var icon  = document.getElementById('apiTokenEyeIcon');
+        if (!field) return;
+        if (field.type === 'password') {
+            field.type = 'text';
+            icon.className = 'fa-solid fa-eye-slash';
+        } else {
+            field.type = 'password';
+            icon.className = 'fa-solid fa-eye';
+        }
+    }
+
+    function setWebhookForTest() {
+        var urlInput = document.getElementById("txtWebhookUrl");
+        if (urlInput) {
+            // Already handled via form POST
+        }
+    }
+
+    // ── Telegram Token Show/Hide ──────────────────────────────────────────────
+    function toggleTelegramToken() {
+        var field = document.getElementById('telegramTokenField');
+        var icon  = document.getElementById('telegramTokenEyeIcon');
+        if (!field) return;
+        if (field.type === 'password') {
+            field.type = 'text';
+            icon.className = 'fa-solid fa-eye-slash';
+        } else {
+            field.type = 'password';
+            icon.className = 'fa-solid fa-eye';
+        }
+    }
+
+    // ── Telegram Connection Test ──────────────────────────────────────────────
+    async function testTelegramConnection() {
+        var tokenField   = document.getElementById('telegramTokenField');
+        var resultSpan   = document.getElementById('telegramTestResult');
+        var btn          = document.getElementById('btnTestTelegram');
+        if (!tokenField || !resultSpan) return;
+
+        var token = tokenField.value.trim();
+        if (!token) {
+            showTelegramResult('⚠️ Please enter a Bot Token first.', 'amber');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testing...';
+        resultSpan.classList.add('hidden');
+
+        try {
+            var resp = await fetch('https://api.telegram.org/bot' + token + '/getMe', { signal: AbortSignal.timeout(8000) });
+            var data = await resp.json();
+            if (data.ok) {
+                var name = data.result.first_name + (data.result.username ? ' (@@' + data.result.username + ')' : '');
+                showTelegramResult('✅ Connected! Bot: ' + name, 'emerald');
+            } else {
+                showTelegramResult('❌ Invalid token: ' + (data.description || 'Unknown error'), 'rose');
+            }
+        } catch (e) {
+            showTelegramResult('⏱️ Connection failed: ' + e.message, 'rose');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Test Telegram Connection';
+        }
+    }
+
+    function showTelegramResult(message, color) {
+        var span = document.getElementById('telegramTestResult');
+        if (!span) return;
+        var colorMap = { emerald: 'var(--clinic-emerald-text)', rose: 'var(--clinic-rose-text)', amber: 'var(--clinic-amber-text)' };
+        span.style.color = colorMap[color] || 'var(--clinic-text)';
+        span.textContent = message;
+        span.classList.remove('hidden');
+    }
+</script>
+}

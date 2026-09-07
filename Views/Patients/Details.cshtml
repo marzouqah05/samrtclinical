@@ -1,0 +1,568 @@
+@model WebApplication1.Models.PatientDetailsViewModel
+@using System.Globalization
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    Func<string, string, string> T = (ar, en) => _isAr ? ar : en;
+    ViewData["Title"] = T("الملف الطبي للمريض", "Patient Medical Profile (EMR)");
+
+    var activeTab = Context.Request.Query["tab"].ToString();
+    if (string.IsNullOrEmpty(activeTab)) activeTab = "overview";
+
+    int age = DateTime.Today.Year - Model.Patient.DOB.Year;
+    if (Model.Patient.DOB.Date > DateTime.Today.AddYears(-age)) age--;
+}
+
+<div class="max-w-7xl mx-auto px-4 py-8 space-y-6" dir="@(_isAr ? "rtl" : "ltr")">
+
+    @* ── Back Navigation Link ── *@
+    <div>
+        <a asp-action="Index" class="inline-flex items-center gap-2 text-xs font-medium text-[#727A76] dark:text-[#9CA8A3] hover:text-[#202725] dark:hover:text-[#EAEFEA] transition-colors">
+            <i class="fa-solid @(_isAr ? "fa-arrow-right" : "fa-arrow-left")"></i>
+            <span>@T("العودة إلى سجل المرضى", "Back to Patients Registry")</span>
+        </a>
+    </div>
+
+    @* ── Top Header Card (EMR Bento Banner) ── *@
+    <section class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl p-6 shadow-sm">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+
+            <!-- Left: Avatar & Demographics -->
+            <div class="flex items-start gap-4">
+                <div class="relative shrink-0">
+                    <div class="w-16 h-16 rounded-2xl bg-[#49665A]/15 border border-[#49665A]/30 text-[#49665A] font-bold text-2xl flex items-center justify-center">
+                        @(Model.Patient.PatientName.Length > 0 ? Model.Patient.PatientName.Substring(0, 1).ToUpper() : "P")
+                    </div>
+                    <span class="absolute -bottom-1 -end-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#1B2421]" title="@T("ملف نشط", "Active File")"></span>
+                </div>
+
+                <div class="space-y-1.5 min-w-0">
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <h1 class="text-lg font-bold text-[#202725] dark:text-[#EAEFEA] m-0">
+                            @Model.Patient.PatientName
+                        </h1>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#49665A]/10 text-[#49665A] border border-[#49665A]/20" dir="ltr">
+                            @Model.Patient.PatientNumber
+                        </span>
+                        @if (!string.IsNullOrEmpty(Model.Patient.BloodType))
+                        {
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center gap-1" dir="ltr">
+                                <i class="fa-solid fa-droplet text-[10px]"></i>
+                                <span>@Model.Patient.BloodType</span>
+                            </span>
+                        }
+                    </div>
+
+                    <div class="text-xs text-[#727A76] dark:text-[#9CA8A3] flex items-center gap-2 flex-wrap">
+                        <span><i class="fa-solid fa-cake-candles me-1 text-[#49665A]"></i>@age @T("سنة", "yrs") • @Model.Patient.DOB.ToString("dd/MM/yyyy")</span>
+                        <span>•</span>
+                        <span><i class="fa-solid fa-id-card me-1 text-[#49665A]"></i>@Model.Patient.NationalId</span>
+                        <span>•</span>
+                        <span><i class="fa-solid fa-phone me-1 text-[#49665A]"></i><a href="tel:@Model.Patient.PhoneNumber" class="hover:underline text-inherit">@Model.Patient.PhoneNumber</a></span>
+                    </div>
+
+                    <!-- Allergies & Chronic Diseases Chips -->
+                    <div class="flex flex-wrap items-center gap-2 pt-1">
+                        <span class="text-[11px] font-bold text-[#727A76] dark:text-[#9CA8A3] uppercase tracking-wider">
+                            @T("الحالة السريرية:", "Clinical Status:")
+                        </span>
+
+                        @if (!string.IsNullOrEmpty(Model.Patient.Allergies))
+                        {
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-medium bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400">
+                                <i class="fa-solid fa-triangle-exclamation text-[10px]"></i>
+                                <span>@Model.Patient.Allergies</span>
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400">
+                                <i class="fa-solid fa-circle-check text-[10px]"></i>
+                                <span>@T("لا توجد حساسية دوائية معروفة (NKDA)", "NKDA - No Known Drug Allergies")</span>
+                            </span>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.Patient.ChronicDiseases))
+                        {
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-medium bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400">
+                                <i class="fa-solid fa-heart-pulse text-[10px]"></i>
+                                <span>@Model.Patient.ChronicDiseases</span>
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Vitals Cards & Actions -->
+            <div class="flex items-center gap-3 flex-wrap">
+                <!-- Blood Pressure Vital -->
+                <div class="bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl p-3 min-w-[130px]">
+                    <div class="text-[11px] font-semibold text-[#727A76] dark:text-[#9CA8A3] flex items-center gap-1.5 mb-1">
+                        <i class="fa-solid fa-stethoscope text-[#49665A]"></i>
+                        <span>@T("ضغط الدم", "Blood Pressure")</span>
+                    </div>
+                    <div class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA]">
+                        120/80 <span class="text-xs font-normal text-[#727A76] dark:text-[#9CA8A3]">mmHg</span>
+                    </div>
+                </div>
+
+                <!-- Heart Rate Vital -->
+                <div class="bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl p-3 min-w-[130px]">
+                    <div class="text-[11px] font-semibold text-[#727A76] dark:text-[#9CA8A3] flex items-center gap-1.5 mb-1">
+                        <i class="fa-solid fa-heart text-rose-500"></i>
+                        <span>@T("نبض القلب", "Heart Rate")</span>
+                    </div>
+                    <div class="text-sm font-bold text-rose-600 dark:text-rose-400">
+                        72 <span class="text-xs font-normal text-[#727A76] dark:text-[#9CA8A3]">bpm</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col gap-2 shrink-0">
+                    <a asp-action="ExportMedicalReportPdf" asp-route-id="@Model.Patient.PatientId"
+                       class="px-3.5 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5 justify-center">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>@T("تصدير تقرير PDF", "Export PDF")</span>
+                    </a>
+                    <a asp-action="Edit" asp-route-id="@Model.Patient.PatientId"
+                       class="px-3.5 py-2 border border-[#DDE3DF] dark:border-[#2B3833] bg-transparent hover:bg-gray-100 dark:hover:bg-[#151E1B] text-[#727A76] dark:text-[#EAEFEA] text-xs font-semibold rounded-xl transition flex items-center gap-1.5 justify-center">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>@T("تعديل البيانات", "Edit Info")</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* ── EMR Main Grid (8 Cols Timeline + 4 Cols Files & Status) ── *@
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        @* ── Left: Clinical Records & Tabs (8 cols) ── *@
+        <div class="lg:col-span-8">
+            <!-- Tabs Bar -->
+            <div class="bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] border-b-0 p-1.5 flex gap-1 rounded-t-2xl overflow-x-auto">
+                <button type="button"
+                        class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 @(activeTab == "overview" ? "bg-[#49665A] text-white shadow-sm" : "text-[#727A76] dark:text-[#9CA8A3] hover:text-[#202725] dark:hover:text-[#EAEFEA] hover:bg-black/5 dark:hover:bg-white/5")"
+                        onclick="switchPatientTab('overview', event)">
+                    <i class="fa-solid fa-notes-medical"></i>
+                    <span>@T("الملاحظات السريرية والزيارات", "Clinical Notes & Visits")</span>
+                </button>
+                <button type="button"
+                        class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 @(activeTab == "appointments" ? "bg-[#49665A] text-white shadow-sm" : "text-[#727A76] dark:text-[#9CA8A3] hover:text-[#202725] dark:hover:text-[#EAEFEA] hover:bg-black/5 dark:hover:bg-white/5")"
+                        onclick="switchPatientTab('appointments', event)">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    <span>@T("سجل المواعيد", "Appointments History")</span>
+                </button>
+                <button type="button"
+                        class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 @(activeTab == "treatments" ? "bg-[#49665A] text-white shadow-sm" : "text-[#727A76] dark:text-[#9CA8A3] hover:text-[#202725] dark:hover:text-[#EAEFEA] hover:bg-black/5 dark:hover:bg-white/5")"
+                        onclick="switchPatientTab('treatments', event)">
+                    <i class="fa-solid fa-syringe"></i>
+                    <span>@T("العلاجات والخدمات", "Treatments & Services")</span>
+                </button>
+            </div>
+
+            <!-- Tab Content Card -->
+            <div class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-b-2xl p-6 shadow-sm">
+
+                <!-- 1. Clinical Notes Tab -->
+                <div id="tab-overview" style="display: @(activeTab == "overview" ? "block" : "none");">
+                    <div class="flex items-center justify-between mb-5">
+                        <div>
+                            <h2 class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA] m-0 flex items-center gap-2">
+                                <i class="fa-solid fa-timeline text-[#49665A]"></i>
+                                <span>@T("الجدول الزمني السريري (Timeline)", "Clinical Timeline & Medical History")</span>
+                            </h2>
+                            <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0">@T("توثيق الزيارات والفحوصات وخطة العلاج.", "Documentation of visits, physical findings, and management.")</p>
+                        </div>
+                        <button type="button"
+                                class="px-3.5 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5"
+                                onclick="toggleAddNoteForm()">
+                            <i class="fa-solid fa-plus text-[10px]"></i>
+                            <span>@T("إضافة زيارة / ملاحظة", "Add Clinical Note")</span>
+                        </button>
+                    </div>
+
+                    <!-- Add Note Inline Form -->
+                    <div id="addNoteFormContainer" class="bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl p-5 mb-6" style="display:none;">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-[#49665A] dark:text-[#9CA8A3] mb-4">
+                            @T("تسجيل زيارة سريرية أو ملاحظة طبية جديدة", "New Clinical Visit / Medical Record")
+                        </h3>
+                        <form asp-action="AddMedicalRecord" method="post" class="space-y-4">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="patientId" value="@Model.Patient.PatientId" />
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1.5">
+                                        @T("الطبيب المعالج", "Attending Doctor")
+                                    </label>
+                                    <select name="doctorId"
+                                            class="w-full px-3.5 py-2 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-white dark:bg-[#121A17] text-[#202725] dark:text-[#EAEFEA] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] transition">
+                                        <option value="0">@T("اختر الطبيب...", "Select Doctor...")</option>
+                                        @foreach (var doc in Model.Doctors)
+                                        {
+                                            <option value="@doc.DoctorId">Dr. @doc.DoctorName (@doc.Specialization)</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1.5">
+                                        @T("تاريخ الزيارة", "Visit Date")
+                                    </label>
+                                    <input type="date" name="visitDate" value="@DateTime.Today.ToString("yyyy-MM-dd")"
+                                           class="w-full px-3.5 py-2 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-white dark:bg-[#121A17] text-[#202725] dark:text-[#EAEFEA] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] transition" />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1.5">
+                                    @T("الشكوى الرئيسية (Chief Complaint)", "Chief Complaint") *
+                                </label>
+                                <input type="text" name="chiefComplaint" required
+                                       class="w-full px-3.5 py-2 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-white dark:bg-[#121A17] text-[#202725] dark:text-[#EAEFEA] placeholder-[#727A76] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] transition"
+                                       placeholder="@T("مثال: صداع حاد ومتابعة ضغط الدم", "e.g. Acute migraine and hypertension follow-up")" />
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1.5">
+                                        @T("التشخيص الطبي", "Diagnosis")
+                                    </label>
+                                    <input type="text" name="diagnosis"
+                                           class="w-full px-3.5 py-2 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-white dark:bg-[#121A17] text-[#202725] dark:text-[#EAEFEA] placeholder-[#727A76] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] transition"
+                                           placeholder="@T("التشخيص السريري المبدئي أو النهائي", "Clinical Diagnosis")" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1.5">
+                                        @T("الخطة العلاجية", "Treatment Plan")
+                                    </label>
+                                    <input type="text" name="treatmentPlan"
+                                           class="w-full px-3.5 py-2 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-white dark:bg-[#121A17] text-[#202725] dark:text-[#EAEFEA] placeholder-[#727A76] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] transition"
+                                           placeholder="@T("الوصفة الدوائية والتوصيات", "Prescriptions & Recommendations")" />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1.5">
+                                    @T("ملاحظات سريرية إضافية", "Clinical Notes")
+                                </label>
+                                <textarea name="notes" rows="2"
+                                          class="w-full px-3.5 py-2 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-white dark:bg-[#121A17] text-[#202725] dark:text-[#EAEFEA] placeholder-[#727A76] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] transition"
+                                          placeholder="@T("تفاصيل الكشف والفحص السريري...", "Detailed physical examination findings...")"></textarea>
+                            </div>
+
+                            <div class="flex items-center justify-end gap-2 pt-2">
+                                <button type="button"
+                                        class="px-4 py-2 border border-[#DDE3DF] dark:border-[#2B3833] bg-transparent hover:bg-gray-100 dark:hover:bg-[#1B2421] text-[#727A76] dark:text-[#EAEFEA] text-xs font-semibold rounded-xl transition"
+                                        onclick="toggleAddNoteForm()">
+                                    @T("إلغاء", "Cancel")
+                                </button>
+                                <button type="submit"
+                                        class="px-4 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
+                                    <i class="fa-solid fa-floppy-disk text-xs"></i>
+                                    <span>@T("حفظ السجل الطبي", "Save Record")</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Timeline Items -->
+                    @if (Model.MedicalRecords != null && Model.MedicalRecords.Any())
+                    {
+                        <div class="space-y-4">
+                            @foreach (var rec in Model.MedicalRecords)
+                            {
+                                <div class="bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl p-4 transition space-y-2">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div>
+                                            <h4 class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA] m-0">
+                                                @rec.ChiefComplaint
+                                            </h4>
+                                            <div class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] mt-0.5 flex items-center gap-1.5">
+                                                <i class="fa-solid fa-user-doctor text-[#49665A]"></i>
+                                                <span>@(rec.Doctor != null ? $"Dr. {rec.Doctor.DoctorName} ({rec.Doctor.Specialization})" : T("استشارة عامة", "General Consultation"))</span>
+                                            </div>
+                                        </div>
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#49665A]/10 text-[#49665A] border border-[#49665A]/20 shrink-0" dir="ltr">
+                                            @rec.VisitDate.ToString("dd MMM yyyy")
+                                        </span>
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(rec.Diagnosis))
+                                    {
+                                        <div class="text-xs text-[#202725] dark:text-[#EAEFEA]">
+                                            <strong class="text-[#49665A] dark:text-[#9CA8A3]">@T("التشخيص:", "Diagnosis:")</strong> @rec.Diagnosis
+                                        </div>
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(rec.TreatmentPlan))
+                                    {
+                                        <div class="p-2.5 rounded-xl bg-white dark:bg-[#121A17] border border-[#DDE3DF] dark:border-[#2B3833] text-xs text-[#727A76] dark:text-[#9CA8A3]">
+                                            <strong class="text-[#202725] dark:text-[#EAEFEA] flex items-center gap-1.5 mb-0.5">
+                                                <i class="fa-solid fa-prescription text-[#49665A]"></i>
+                                                <span>@T("الخطة العلاجية:", "Treatment Plan:")</span>
+                                            </strong>
+                                            <span>@rec.TreatmentPlan</span>
+                                        </div>
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(rec.Notes))
+                                    {
+                                        <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0">@rec.Notes</p>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-12 text-[#727A76] dark:text-[#9CA8A3] space-y-3">
+                            <div class="w-12 h-12 rounded-2xl bg-[#49665A]/10 text-[#49665A] flex items-center justify-center mx-auto text-xl">
+                                <i class="fa-regular fa-clipboard"></i>
+                            </div>
+                            <p class="text-xs m-0">@T("لا توجد سجلات طبية مسجلة بعد لهذا المريض.", "No medical records logged yet for this patient.")</p>
+                            <button type="button"
+                                    class="px-4 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl shadow-sm transition inline-flex items-center gap-1.5"
+                                    onclick="toggleAddNoteForm()">
+                                <i class="fa-solid fa-plus text-[10px]"></i>
+                                <span>@T("إضافة أول سجل طبي", "Log First Clinical Note")</span>
+                            </button>
+                        </div>
+                    }
+                </div>
+
+                <!-- 2. Appointments History Tab -->
+                <div id="tab-appointments" style="display: @(activeTab == "appointments" ? "block" : "none");">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA] m-0">@T("سجل مواعيد المريض", "Patient Appointments History")</h2>
+                            <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0">@T("استعراض المواعيد السابقة والقادمة.", "Overview of scheduled and past clinic visits.")</p>
+                        </div>
+                        <a asp-controller="Appointments" asp-action="Create"
+                           class="px-3.5 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus text-[10px]"></i>
+                            <span>@T("حجز موعد جديد", "Book New Appointment")</span>
+                        </a>
+                    </div>
+
+                    @if (Model.Appointments != null && Model.Appointments.Any())
+                    {
+                        <div class="rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] overflow-hidden">
+                            <table class="w-full text-xs text-start">
+                                <thead class="bg-[#F6F7F5] dark:bg-[#151E1B] border-b border-[#DDE3DF] dark:border-[#2B3833] text-[11px] font-semibold text-[#727A76] dark:text-[#9CA8A3] uppercase">
+                                    <tr>
+                                        <th class="py-3 px-4 text-start">@T("التاريخ والوقت", "Date & Time")</th>
+                                        <th class="py-3 px-4 text-start">@T("الطبيب", "Doctor")</th>
+                                        <th class="py-3 px-4 text-start">@T("الحالة", "Status")</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-[#DDE3DF]/50 dark:divide-[#2B3833]/50">
+                                    @foreach (var appt in Model.Appointments)
+                                    {
+                                        <tr class="hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition">
+                                            <td class="py-3 px-4">
+                                                <div class="font-bold text-[#202725] dark:text-[#EAEFEA]">@appt.AppointmentDate.ToString("dd MMM yyyy")</div>
+                                                <div class="text-[11px] text-[#727A76] dark:text-[#9CA8A3]">@appt.AppointmentTime.ToString(@"hh\:mm")</div>
+                                            </td>
+                                            <td class="py-3 px-4 text-[#202725] dark:text-[#EAEFEA]">
+                                                Dr. @(appt.Doctor?.DoctorName ?? "General")
+                                            </td>
+                                            <td class="py-3 px-4">
+                                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold @(appt.Status == "Completed" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-[#49665A]/10 text-[#49665A] border border-[#49665A]/20")">
+                                                    @(appt.Status ?? "Scheduled")
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-8 text-[#727A76] dark:text-[#9CA8A3] text-xs">
+                            @T("لا توجد مواعيد سابقة لهذا المريض.", "No appointment history found.")
+                        </div>
+                    }
+                </div>
+
+                <!-- 3. Treatments History Tab -->
+                <div id="tab-treatments" style="display: @(activeTab == "treatments" ? "block" : "none");">
+                    <div class="mb-4">
+                        <h2 class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA] m-0">@T("العلاجات والخدمات المقدمة", "Treatments & Clinical Services")</h2>
+                        <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0">@T("تفاصيل الإجراءات الطبية والتكلفة المرتبطة بها.", "List of performed procedures and related costs.")</p>
+                    </div>
+
+                    @if (Model.Treatments != null && Model.Treatments.Any())
+                    {
+                        <div class="rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] overflow-hidden">
+                            <table class="w-full text-xs text-start">
+                                <thead class="bg-[#F6F7F5] dark:bg-[#151E1B] border-b border-[#DDE3DF] dark:border-[#2B3833] text-[11px] font-semibold text-[#727A76] dark:text-[#9CA8A3] uppercase">
+                                    <tr>
+                                        <th class="py-3 px-4 text-start">@T("الخدمة / العلاج", "Treatment / Service")</th>
+                                        <th class="py-3 px-4 text-start">@T("التاريخ", "Date")</th>
+                                        <th class="py-3 px-4 text-start">@T("التكلفة", "Cost")</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-[#DDE3DF]/50 dark:divide-[#2B3833]/50">
+                                    @foreach (var tr in Model.Treatments)
+                                    {
+                                        <tr class="hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition">
+                                            <td class="py-3 px-4 font-semibold text-[#202725] dark:text-[#EAEFEA]">@tr.TreatmentDesc</td>
+                                            <td class="py-3 px-4 text-[#727A76] dark:text-[#9CA8A3]">@tr.TreatmentDate.ToString("dd/MM/yyyy")</td>
+                                            <td class="py-3 px-4 font-bold text-emerald-600 dark:text-emerald-400">@tr.TreatmentCost.ToString("N2") JOD</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-8 text-[#727A76] dark:text-[#9CA8A3] text-xs">
+                            @T("لا توجد علاجات مسجلة حتى الآن.", "No treatments recorded yet.")
+                        </div>
+                    }
+                </div>
+
+            </div>
+        </div>
+
+        @* ── Right: Files Vault & EMR Status (4 cols) ── *@
+        <div class="lg:col-span-4 space-y-6">
+
+            <!-- Medical Attachments Vault Card -->
+            <div class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl p-5 shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA] m-0">@T("الملفات والمرفقات الطبية", "Medical Attachments Vault")</h3>
+                        <p class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] m-0">@T("التقارير وصور الأشعة والمستندات", "Reports, scans & lab results")</p>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-[#49665A]/10 text-[#49665A] border border-[#49665A]/20">
+                        @Model.Attachments.Count
+                    </span>
+                </div>
+
+                <!-- Drag & Drop Upload Zone -->
+                <form asp-action="UploadAttachment" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="patientId" value="@Model.Patient.PatientId" />
+
+                    <div class="bg-[#F6F7F5] dark:bg-[#151E1B] border-2 border-dashed border-[#DDE3DF] dark:border-[#2B3833] hover:border-[#49665A] rounded-xl p-6 text-center text-[#727A76] dark:text-[#9CA8A3] cursor-pointer transition"
+                         onclick="document.getElementById('patientFileInput').click()">
+                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-[#49665A] mb-2 block"></i>
+                        <div class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA]">
+                            @T("انقر لاختيار ملف طبي (PDF، صور، أشعة)", "Click to choose medical file (PDF, Images)")
+                        </div>
+                        <div class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] mt-1">
+                            @T("يدعم PDF، PNG، JPEG حتى 10 ميجابايت", "Supports PDF, PNG, JPEG up to 10MB")
+                        </div>
+                        <input type="file" id="patientFileInput" name="file" class="hidden" onchange="this.form.submit()" accept=".pdf,.png,.jpg,.jpeg" />
+                    </div>
+                </form>
+
+                <!-- Attachments List -->
+                <div class="space-y-2">
+                    @if (Model.Attachments != null && Model.Attachments.Any())
+                    {
+                        foreach (var file in Model.Attachments)
+                        {
+                            var isPdf = file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
+
+                            <div class="bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl p-3 flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="w-8 h-8 rounded-lg bg-black/5 dark:bg-white/5 flex items-center justify-center shrink-0">
+                                        <i class="fa-solid @(isPdf ? "fa-file-pdf text-rose-500" : "fa-file-image text-[#49665A]") text-sm"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] truncate" title="@file.FileName">
+                                            @file.FileName
+                                        </div>
+                                        <div class="text-[10px] text-[#727A76] dark:text-[#9CA8A3]">
+                                            @file.UploadedAt.ToString("dd/MM/yyyy") • @file.Category
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <a href="@file.FilePath" target="_blank"
+                                       class="w-7 h-7 rounded-lg border border-[#DDE3DF] dark:border-[#2B3833] hover:bg-black/5 dark:hover:bg-white/5 text-[#727A76] dark:text-[#EAEFEA] flex items-center justify-center text-xs transition"
+                                       title="@T("معاينة / تنزيل", "View / Download")">
+                                        <i class="fa-solid fa-arrow-down-to-line"></i>
+                                    </a>
+                                    <form asp-action="DeleteAttachment" method="post" class="m-0"
+                                          onsubmit="return confirm('@T("هل أنت متأكد من حذف هذا الملف؟", "Are you sure you want to delete this file?")')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="attachmentId" value="@file.Id" />
+                                        <input type="hidden" name="patientId" value="@Model.Patient.PatientId" />
+                                        <button type="submit"
+                                                class="w-7 h-7 rounded-lg border border-rose-500/20 hover:bg-rose-500/10 text-rose-500 flex items-center justify-center text-xs transition"
+                                                title="@T("حذف", "Delete")">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-4 text-[#727A76] dark:text-[#9CA8A3] text-xs">
+                            @T("لا توجد مرفقات طبية مرفوعة.", "No attachments in vault.")
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- EMR Status & Notes Card -->
+            <div class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl p-5 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-wider text-[#727A76] dark:text-[#9CA8A3]">
+                        @T("حالة الملف الطبي", "EMR Status")
+                    </span>
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                        <i class="fa-solid fa-circle-check text-[9px]"></i>
+                        <span>@T("سجل نشط", "Active Record")</span>
+                    </span>
+                </div>
+                <div class="pt-2 border-t border-[#DDE3DF] dark:border-[#2B3833] text-xs">
+                    <div class="font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                        @T("الملاحظات الإدارية:", "Clinical / Admin Notes:")
+                    </div>
+                    <p class="text-[#727A76] dark:text-[#9CA8A3] m-0 leading-relaxed">
+                        @(string.IsNullOrEmpty(Model.Patient.Notes) ? T("لا توجد ملاحظات إدارية خاصة.", "No general notes.") : Model.Patient.Notes)
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchPatientTab(tabName, event) {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('bg-[#49665A]', 'text-white', 'shadow-sm');
+            btn.classList.add('text-[#727A76]', 'dark:text-[#9CA8A3]', 'hover:text-[#202725]', 'dark:hover:text-[#EAEFEA]', 'hover:bg-black/5', 'dark:hover:bg-white/5');
+        });
+        if (event && event.currentTarget) {
+            event.currentTarget.classList.add('bg-[#49665A]', 'text-white', 'shadow-sm');
+            event.currentTarget.classList.remove('text-[#727A76]', 'dark:text-[#9CA8A3]', 'hover:text-[#202725]', 'dark:hover:text-[#EAEFEA]', 'hover:bg-black/5', 'dark:hover:bg-white/5');
+        }
+
+        const tabOverview = document.getElementById('tab-overview');
+        const tabAppointments = document.getElementById('tab-appointments');
+        const tabTreatments = document.getElementById('tab-treatments');
+
+        if (tabOverview) tabOverview.style.display = tabName === 'overview' ? 'block' : 'none';
+        if (tabAppointments) tabAppointments.style.display = tabName === 'appointments' ? 'block' : 'none';
+        if (tabTreatments) tabTreatments.style.display = tabName === 'treatments' ? 'block' : 'none';
+    }
+
+    function toggleAddNoteForm() {
+        const form = document.getElementById('addNoteFormContainer');
+        if (form) {
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+    }
+</script>

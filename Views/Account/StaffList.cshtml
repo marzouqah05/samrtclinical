@@ -1,0 +1,186 @@
+@using System.Globalization
+@using Microsoft.AspNetCore.Identity
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    ViewData["Title"] = T("إدارة الموظفين والصلاحيات", "Staff & Access Management");
+
+    var staffList = ViewBag.StaffList as IEnumerable<(IdentityUser User, string Role, string CreatedDate)>
+                   ?? Enumerable.Empty<(IdentityUser, string, string)>();
+    var staffArr = staffList.ToList();
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+}
+
+@* ── Toast Notifications ──────────────────────────────────────────────── *@
+@if (TempData["Success"] != null)
+{
+    <div class="mb-4 p-3 rounded-lg border flex items-center gap-3 text-sm font-medium" 
+         style="background:var(--clinic-emerald-bg);border-color:rgba(46,125,91,0.25);color:var(--clinic-emerald-text);">
+        <i class="fa-solid fa-circle-check text-base"></i>
+        <span>@TempData["Success"]</span>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 p-3 rounded-lg border flex items-center gap-3 text-sm font-medium" 
+         style="background:var(--clinic-rose-bg);border-color:rgba(184,58,56,0.25);color:var(--clinic-rose-text);">
+        <i class="fa-solid fa-circle-exclamation text-base"></i>
+        <span>@TempData["Error"]</span>
+    </div>
+}
+
+<div class="container-fluid py-2 max-w-5xl mx-auto" dir="@(_isAr ? "rtl" : "ltr")">
+
+    @* ── Header Bar ──────────────────────────────────────────────────── *@
+    <div class="clinic-page-header">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <a asp-controller="Settings" asp-action="Index" class="text-xs font-semibold hover:underline" style="color:var(--clinic-muted)">
+                    <i class="fa-solid fa-arrow-right-long me-1"></i>
+                    @T("مركز الإعدادات", "Settings Hub")
+                </a>
+                <span style="color:var(--clinic-border)">/</span>
+                <span class="text-xs font-semibold" style="color:var(--clinic-primary)">@T("الموظفين", "Staff Management")</span>
+            </div>
+            <h1 class="clinic-page-title">
+                @T("إدارة الموظفين والمستخدمين والصلاحيات", "Staff & Access Management")
+            </h1>
+            <p class="clinic-page-subtitle">
+                @T("قائمة بكافة حسابات الأطباء، موظفي الاستقبال، والإداريين المخولين باستخدام النظام",
+                   "Overview and access role assignments for all clinic doctors, receptionists, and system admins")
+            </p>
+        </div>
+
+        @* Exactly ONE primary "+ Add New Staff" button *@
+        <div class="flex items-center gap-2">
+            <a asp-controller="Account" asp-action="Register" class="btn-clinic-primary">
+                <i class="fa-solid fa-user-plus text-xs"></i>
+                @T("إضافة موظف جديد", "Add New Staff")
+            </a>
+            <a asp-controller="Settings" asp-action="Index" class="btn-clinic-secondary">
+                <i class="fa-solid fa-arrow-left"></i>
+                @T("العودة للإعدادات", "Back to Hub")
+            </a>
+        </div>
+    </div>
+
+    @* ── Staff Table Card ─────────────────────────────────────────────── *@
+    <div class="clinic-card overflow-hidden">
+        @if (!staffArr.Any())
+        {
+            <div class="p-12 text-center">
+                <i class="fa-solid fa-users-slash text-4xl mb-3 block" style="color:var(--clinic-border)"></i>
+                <p class="text-sm m-0" style="color:var(--clinic-muted)">
+                    @T("لا يوجد موظفون مسجلون في النظام حالياً.", "No staff accounts found in the system.")
+                </p>
+                <div class="mt-4">
+                    <a asp-controller="Account" asp-action="Register" class="btn-clinic-primary">
+                        <i class="fa-solid fa-user-plus"></i>
+                        @T("إضافة أول موظف", "Add First Staff Member")
+                    </a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="clinic-table-wrap border-0 rounded-none">
+                <table class="clinic-table">
+                    <thead>
+                        <tr>
+                            <th>@T("الموظف / اسم الحساب", "Staff Member / Username")</th>
+                            <th>@T("البريد الإلكتروني", "Email Address")</th>
+                            <th>@T("الدور والصلاحية", "Role & Access")</th>
+                            <th class="text-center" style="width:120px">@T("الإجراءات", "Actions")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in staffArr)
+                        {
+                            var roleBadgeClass = item.Role switch {
+                                "Admin"        => "clinic-badge-rose",
+                                "Doctor"       => "clinic-badge-emerald",
+                                "Receptionist" => "clinic-badge-amber",
+                                _              => "clinic-badge"
+                            };
+                            var roleLabel = item.Role switch {
+                                "Admin"        => T("مدير النظام", "Admin"),
+                                "Doctor"       => T("طبيب ممارس", "Doctor"),
+                                "Receptionist" => T("موظف استقبال", "Receptionist"),
+                                _              => item.Role
+                            };
+                            var avatarLetter = (item.User.UserName ?? "?")[0].ToString().ToUpper();
+                            var isCurrent = item.User.Id == currentUserId;
+
+                            <tr class="@(isCurrent ? "bg-[#49665A]/5" : "")">
+                                <td>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs"
+                                             style="background:rgba(73,102,90,0.12);color:var(--clinic-primary)">
+                                            @avatarLetter
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-xs" style="color:var(--clinic-text)">
+                                                @item.User.UserName
+                                                @if (isCurrent)
+                                                {
+                                                    <span class="ms-1 px-1.5 py-0.5 rounded text-[10px] font-bold"
+                                                          style="background:rgba(73,102,90,0.15);color:var(--clinic-primary)">
+                                                        @T("حسابك", "You")
+                                                    </span>
+                                                }
+                                            </div>
+                                            <span class="text-[11px] block" style="color:var(--clinic-muted)">ID: @item.User.Id.Substring(0, Math.Min(8, item.User.Id.Length))...</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="text-xs" style="color:var(--clinic-text)">
+                                        @(string.IsNullOrEmpty(item.User.Email) ? "—" : item.User.Email)
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="clinic-badge @roleBadgeClass">
+                                        @roleLabel
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    @if (!isCurrent)
+                                    {
+                                        <div class="flex items-center justify-center gap-1.5">
+                                            <form asp-controller="Account" asp-action="DeleteUser" asp-route-id="@item.User.Id" method="post"
+                                                  onsubmit="return confirm('@T("هل أنت متأكد من حذف حساب هذا الموظف؟ لا يمكن التراجع عن هذا الإجراء.", "Are you sure you want to delete this staff account? This action cannot be undone.")')"
+                                                  class="inline m-0">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn-clinic-danger p-1.5 text-xs rounded-md"
+                                                        title="@T("حذف الحساب", "Delete Account")">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                    <span class="text-[11px]">@T("حذف", "Delete")</span>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-xs" style="color:var(--clinic-muted)">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-3.5 border-t flex items-center justify-between text-xs" style="border-color:var(--clinic-border);color:var(--clinic-muted)">
+                <div class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-users text-sm" style="color:var(--clinic-primary)"></i>
+                    <span>@staffArr.Count @T("حسابات موظفين نشطة", "active staff accounts")</span>
+                </div>
+                <div>
+                    <span>@T("صلاحيات الإدارة مقصورة على مديري النظام فقط", "Management restricted to Admin role")</span>
+                </div>
+            </div>
+        }
+    </div>
+
+</div>
