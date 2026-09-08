@@ -38,7 +38,7 @@ namespace WebApplication1.Controllers
             ViewBag.TotalDoctors      = await _context.Doctors.CountAsync();
             ViewBag.TotalDepartments  = await _context.Departments.CountAsync();
 
-            var today = DateTime.Today;
+            var today = DateTime.UtcNow.Date;
             ViewBag.TodayAppointments = await _context.Appointments
                 .Where(a => a.AppointmentDate.Date == today)
                 .CountAsync();
@@ -97,14 +97,15 @@ namespace WebApplication1.Controllers
         // ── 4. Revenue Chart API (Last 7 Days) ────────────────────────────────
         public async Task<IActionResult> GetRevenueChart()
         {
-            var sevenDaysAgo = DateTime.Today.AddDays(-7);
+            var sevenDaysAgo = DateTime.UtcNow.Date.AddDays(-7);
 
             var invoicesData = await _context.Invoices
                 .Where(i => i.InvoiceDate >= sevenDaysAgo && i.Status == "Paid")
                 .ToListAsync();
 
+            var todayUtc = DateTime.UtcNow.Date;
             var chartData = Enumerable.Range(0, 8)
-                .Select(offset => DateTime.Today.AddDays(-7 + offset))
+                .Select(offset => todayUtc.AddDays(-7 + offset))
                 .Select(date => new
                 {
                     date    = date.ToString("MM/dd"),
