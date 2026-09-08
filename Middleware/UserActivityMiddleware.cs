@@ -27,9 +27,15 @@ namespace WebApplication1.Middleware
                 var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (!string.IsNullOrEmpty(userId))
                 {
-                    // Fire-and-forget is intentional here; we never want activity tracking to
-                    // block the main request pipeline. Errors are swallowed gracefully.
-                    _ = sessionService.UpdateActivityAsync(userId);
+                    try
+                    {
+                        // Strictly await activity update to prevent concurrent operations on the shared scoped DbContext
+                        await sessionService.UpdateActivityAsync(userId);
+                    }
+                    catch
+                    {
+                        // Gracefully swallow tracking errors so user request pipeline is never blocked
+                    }
                 }
             }
 
