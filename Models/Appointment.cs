@@ -30,12 +30,12 @@ namespace WebApplication1.Models
 
         // Status
         [Required]
-        [Column(TypeName = "nvarchar(20)")]
+        [Column(TypeName = "varchar(20)")]
         [MaxLength(20)]
         public string Status { get; set; } = "Pending";
 
         // Notes
-        [Column(TypeName = "nvarchar(max)")]
+        [Column(TypeName = "text")]
         public string? Notes { get; set; }
 
         // ── WhatsApp Notification Tracking ──────────────────────────────────

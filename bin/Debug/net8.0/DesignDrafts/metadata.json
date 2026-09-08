@@ -1,6 +1,0 @@
-{
-  "name": "ClinicFlow",
-  "description": "نظام إدارة العيادات والمراكز الطبية الذكي - ClinicFlow Medical Management System",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

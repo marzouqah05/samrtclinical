@@ -30,16 +30,16 @@ namespace WebApplication1.Models
 
         [Required]
         [MaxLength(500)]
-        [Column(TypeName = "nvarchar(500)")]
+        [Column(TypeName = "varchar(500)")]
         public string ChiefComplaint { get; set; } = string.Empty;
 
-        [Column(TypeName = "nvarchar(max)")]
+        [Column(TypeName = "text")]
         public string? Diagnosis { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
+        [Column(TypeName = "text")]
         public string? TreatmentPlan { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
+        [Column(TypeName = "text")]
         public string? Notes { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

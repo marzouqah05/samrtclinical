@@ -11,10 +11,10 @@ namespace WebApplication1.Models
         public int DepartmentId { get; set; }
 
         [Required]
-        [Column(TypeName = "nvarchar(150)")]
+        [Column(TypeName = "varchar(150)")]
         public string DepartmentName { get; set; } = string.Empty;
 
-        [Column(TypeName = "nvarchar(10)")]
+        [Column(TypeName = "varchar(10)")]
         public string? DepartmentAbbr { get; set; }
 
         public List<Doctor> Doctors { get; set; } = new List<Doctor>();

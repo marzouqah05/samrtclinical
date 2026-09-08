@@ -18,17 +18,17 @@ namespace WebApplication1.Models
         public DateTime TreatmentDate { get; set; }
 
         [Required]
-        [Column(TypeName = "nvarchar(200)")]
+        [Column(TypeName = "varchar(200)")]
         [MaxLength(200)]
         public string TreatmentDesc { get; set; } = string.Empty;
 
         [Column(TypeName = "decimal(12,2)")]
         public decimal TreatmentCost { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
+        [Column(TypeName = "text")]
         public string? Diagnosis { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
+        [Column(TypeName = "text")]
         public string? PrescriptionNotes { get; set; }
 
         [ForeignKey("AppointmentId")]

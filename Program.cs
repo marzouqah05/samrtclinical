@@ -78,8 +78,7 @@ internal class Program
 
         // 1. Database Connection
         builder.Services.AddDbContext<ClinicDbContext>(options =>
-            options.UseSqlServer(
-                "Server=(localdb)\\MSSQLLocalDB;Database=ClinicDB;Trusted_Connection=True;TrustServerCertificate=True"));
+             options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
         // 2. ASP.NET Core Identity Configuration
         builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>

@@ -10,7 +10,7 @@ namespace WebApplication1.Models
         public int InvoiceId { get; set; }
 
         [Required]
-        [Column(TypeName = "nvarchar(20)")]
+        [Column(TypeName = "varchar(20)")]
         public string InvoiceNumber { get; set; } = string.Empty;
 
         [Required]
@@ -30,7 +30,7 @@ namespace WebApplication1.Models
 
         [Required]
         [MaxLength(20)]
-        [Column(TypeName = "nvarchar(20)")]
+        [Column(TypeName = "varchar(20)")]
         public string Status { get; set; } = "Unpaid";
 
         // العلاقات

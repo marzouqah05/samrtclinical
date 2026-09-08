@@ -19,26 +19,26 @@ namespace WebApplication1.Models
         public int PatientId { get; set; }
 
         [Display(Name = "Patient ID")]
-        [Column(TypeName = "nvarchar(10)")]
+        [Column(TypeName = "varchar(10)")]
         [MaxLength(10)]
         public string PatientNumber { get; set; }
 
         [Required(ErrorMessage = "Full Name is required.")]
         [StringLength(150, MinimumLength = 3, ErrorMessage = "Name must be between 3 and 150 characters.")]
         [Display(Name = "Full Name")]
-        [Column(TypeName = "nvarchar(150)")]
+        [Column(TypeName = "varchar(150)")]
         public string PatientName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "National ID is required.")]
         [StringLength(10, MinimumLength = 10, ErrorMessage = "National ID must be exactly 10 digits.")]
         [Display(Name = "National ID")]
-        [Column(TypeName = "nvarchar(10)")]
+        [Column(TypeName = "varchar(10)")]
         public string NationalId { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Phone number is required.")]
         [StringLength(15, MinimumLength = 9, ErrorMessage = "Please enter a valid phone number.")]
         [Display(Name = "Phone")]
-        [Column(TypeName = "nvarchar(15)")]
+        [Column(TypeName = "varchar(15)")]
         public string PhoneNumber { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Date of Birth is required.")]
@@ -50,22 +50,22 @@ namespace WebApplication1.Models
 
         [Display(Name = "Blood Type")]
         [StringLength(5)]
-        [Column(TypeName = "nvarchar(5)")]
+        [Column(TypeName = "varchar(5)")]
         public string? BloodType { get; set; }
 
         [Display(Name = "Allergies")]
         [DataType(DataType.MultilineText)]
-        [Column(TypeName = "nvarchar(max)")]
+        [Column(TypeName = "text")]
         public string? Allergies { get; set; }
 
         [Display(Name = "Chronic Diseases")]
         [DataType(DataType.MultilineText)]
-        [Column(TypeName = "nvarchar(max)")]
+        [Column(TypeName = "text")]
         public string? ChronicDiseases { get; set; }
 
         [Display(Name = "Medical Notes")]
         [DataType(DataType.MultilineText)]
-        [Column(TypeName = "nvarchar(max)")]
+        [Column(TypeName = "text")]
         public string? Notes { get; set; }
 
         // --- العلاقات (Navigation Properties) ---
