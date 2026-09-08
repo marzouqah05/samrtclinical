@@ -10,7 +10,8 @@ namespace WebApplication1.Models
         public int DoctorId { get; set; }
 
         [Required]
-        [Column(TypeName = "varchar(10)")]
+        [Column(TypeName = "varchar(50)")]
+        [MaxLength(50)]
         public string DoctorNumber { get; set; } = string.Empty;
 
         [Required]

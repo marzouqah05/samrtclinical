@@ -14,7 +14,8 @@ namespace WebApplication1.Models
         [Column(TypeName = "varchar(150)")]
         public string DepartmentName { get; set; } = string.Empty;
 
-        [Column(TypeName = "varchar(10)")]
+        [Column(TypeName = "varchar(20)")]
+        [MaxLength(20)]
         public string? DepartmentAbbr { get; set; }
 
         public List<Doctor> Doctors { get; set; } = new List<Doctor>();

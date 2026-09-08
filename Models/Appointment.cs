@@ -30,8 +30,8 @@ namespace WebApplication1.Models
 
         // Status
         [Required]
-        [Column(TypeName = "varchar(20)")]
-        [MaxLength(20)]
+        [Column(TypeName = "varchar(50)")]
+        [MaxLength(50)]
         public string Status { get; set; } = "Pending";
 
         // Notes

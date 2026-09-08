@@ -41,7 +41,7 @@ namespace WebApplication1.Models
                 entity.ToTable("Departments");
                 entity.HasKey(e => e.DepartmentId);
                 entity.Property(e => e.DepartmentName).IsRequired().HasColumnType("varchar(150)");
-                entity.Property(e => e.DepartmentAbbr).HasColumnType("varchar(10)");
+                entity.Property(e => e.DepartmentAbbr).HasColumnType("varchar(20)");
             });
 
             // إعدادات جدول الـ Doctor
@@ -49,7 +49,7 @@ namespace WebApplication1.Models
             {
                 entity.HasKey(e => e.DoctorId);
                 entity.Property(e => e.DoctorName).IsRequired().HasColumnType("varchar(150)");
-                entity.Property(e => e.DoctorNumber).IsRequired().HasColumnType("varchar(10)");
+                entity.Property(e => e.DoctorNumber).IsRequired().HasColumnType("varchar(50)");
                 entity.Property(e => e.Specialization).IsRequired().HasColumnType("varchar(100)");
                 entity.Property(e => e.ConsultationFee).HasColumnType("decimal(12,2)");
 
@@ -64,10 +64,10 @@ namespace WebApplication1.Models
             {
                 entity.HasKey(e => e.PatientId);
                 entity.Property(e => e.PatientName).IsRequired().HasMaxLength(150);
-                entity.Property(e => e.PatientNumber).IsRequired().HasMaxLength(10);
-                entity.Property(e => e.NationalId).IsRequired().HasMaxLength(10);
-                entity.Property(e => e.PhoneNumber).IsRequired().HasMaxLength(15);
-                entity.Property(e => e.BloodType).HasMaxLength(5);
+                entity.Property(e => e.PatientNumber).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.NationalId).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.PhoneNumber).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.BloodType).HasMaxLength(10);
                 entity.Property(e => e.Allergies).HasColumnType("text");
                 entity.Property(e => e.ChronicDiseases).HasColumnType("text");
                 entity.Property(e => e.Notes).HasColumnType("text");
@@ -77,7 +77,7 @@ namespace WebApplication1.Models
             modelBuilder.Entity<Appointment>(entity =>
             {
                 entity.HasKey(e => e.AppointmentId);
-                entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Notes).HasColumnType("text");
 
                 entity.HasOne(a => a.Doctor)

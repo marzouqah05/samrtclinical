@@ -19,8 +19,8 @@ namespace WebApplication1.Models
         public int PatientId { get; set; }
 
         [Display(Name = "Patient ID")]
-        [Column(TypeName = "varchar(10)")]
-        [MaxLength(10)]
+        [Column(TypeName = "varchar(50)")]
+        [MaxLength(50)]
         public string PatientNumber { get; set; }
 
         [Required(ErrorMessage = "Full Name is required.")]
@@ -30,15 +30,15 @@ namespace WebApplication1.Models
         public string PatientName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "National ID is required.")]
-        [StringLength(10, MinimumLength = 10, ErrorMessage = "National ID must be exactly 10 digits.")]
+        [StringLength(50, MinimumLength = 3, ErrorMessage = "National ID must be valid.")]
         [Display(Name = "National ID")]
-        [Column(TypeName = "varchar(10)")]
+        [Column(TypeName = "varchar(50)")]
         public string NationalId { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Phone number is required.")]
-        [StringLength(15, MinimumLength = 9, ErrorMessage = "Please enter a valid phone number.")]
+        [StringLength(50, MinimumLength = 7, ErrorMessage = "Please enter a valid phone number.")]
         [Display(Name = "Phone")]
-        [Column(TypeName = "varchar(15)")]
+        [Column(TypeName = "varchar(50)")]
         public string PhoneNumber { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Date of Birth is required.")]
@@ -49,8 +49,8 @@ namespace WebApplication1.Models
         // --- الحقول الطبية الجديدة ---
 
         [Display(Name = "Blood Type")]
-        [StringLength(5)]
-        [Column(TypeName = "varchar(5)")]
+        [StringLength(10)]
+        [Column(TypeName = "varchar(10)")]
         public string? BloodType { get; set; }
 
         [Display(Name = "Allergies")]
