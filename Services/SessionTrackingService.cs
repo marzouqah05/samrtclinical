@@ -30,7 +30,8 @@ namespace WebApplication1.Services
         public async Task CreateSessionAsync(string userId, string userName, string userRole,
                                              string ipAddress, string userAgent, string? sessionId = null)
         {
-            var (deviceType, _, _) = UserAgentHelper.Parse(userAgent);
+            var deviceInfo = DeviceDetectionHelper.Parse(userAgent);
+            var deviceType = deviceInfo.DeviceType;
 
             // End only previous active sessions for THIS specific device/session connection,
             // preserving concurrent sessions on other devices (e.g. mobile + desktop simultaneously).
@@ -113,7 +114,8 @@ namespace WebApplication1.Services
             else
             {
                 // Auto-register session for this device connection (e.g. mobile browser request)
-                var (deviceType, _, _) = UserAgentHelper.Parse(userAgent);
+                var deviceInfo = DeviceDetectionHelper.Parse(userAgent);
+                var deviceType = deviceInfo.DeviceType;
                 session = new UserSessionLog
                 {
                     UserId           = userId,

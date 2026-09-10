@@ -215,7 +215,7 @@
                     {
                         foreach (var s in Model.Sessions)
                         {
-                            var (deviceType, deviceDisplay, deviceIcon) = UserAgentHelper.Parse(s.UserAgent);
+                            var deviceInfo = DeviceDetectionHelper.Parse(s.UserAgent);
                             var isActuallyOnline = s.IsActive && s.LastActivityTime >= fiveMinutesAgo;
 
                             <tr class="border-b border-[#E5E9E7] dark:border-[#2B3833] hover:bg-[#F9FBFA] dark:hover:bg-white/[0.02] transition">
@@ -283,9 +283,9 @@
 
                                 @* Device / Browser (Parsed) *@
                                 <td class="py-3 px-4 whitespace-nowrap">
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F4F7F5] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-[11px]" title="@s.UserAgent">
-                                        <i class="@deviceIcon text-[#49665A] dark:text-emerald-400 text-[11px]"></i>
-                                        <span class="font-medium">@deviceDisplay</span>
+                                    <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#F4F7F5] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-[11px]" title="@s.UserAgent">
+                                        <i class="@deviceInfo.BootstrapIconClass text-[#49665A] dark:text-emerald-400 text-xs"></i>
+                                        <span class="font-medium">@deviceInfo.FormattedSummary</span>
                                     </span>
                                 </td>
 
