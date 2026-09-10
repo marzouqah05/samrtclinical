@@ -36,7 +36,7 @@
     }
 </style>
 
-<div class="container-fluid py-4" style="max-width: 900px;" dir="@(_isAr ? "rtl" : "ltr")">
+<div class="container py-4" dir="@(_isAr ? "rtl" : "ltr")">
     @* Back Link *@
     <div class="mb-3">
         <a asp-action="Index" class="text-decoration-none text-muted small fw-medium d-inline-flex align-items-center gap-2">
@@ -45,22 +45,23 @@
         </a>
     </div>
 
-    @* Form Card *@
-    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
-        <div class="card-header p-4 rounded-top-3 border-0" style="background-color: #0f172a !important;">
+    @* Modern Bootstrap 5 Card *@
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        @* Card Header with Contrast & Subtitle *@
+        <div class="card-header bg-primary text-white p-4 rounded-top-4 border-0">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <div>
-                    <h5 class="card-title mb-1 fw-bold text-white d-flex align-items-center gap-2">
-                        <i class="fa-solid fa-user-pen text-primary"></i>
+                    <h4 class="card-title mb-1 fw-bold text-white d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-user-pen"></i>
                         @T("تعديل بيانات المريض", "Edit Patient Profile")
-                    </h5>
+                    </h4>
                     <p class="card-text text-white-50 small mb-0">
                         @T("تحديث البيانات الأساسية ومعلومات الاتصال والسجل الطبي للمريض.", "Update baseline demographics, contact information, and medical profile.")
                     </p>
                 </div>
                 @if (!string.IsNullOrEmpty(Model?.PatientNumber))
                 {
-                    <span class="badge bg-secondary-subtle text-white px-3 py-2 fs-6 rounded-pill">
+                    <span class="badge bg-light text-dark px-3 py-2 fs-6 rounded-pill">
                         <i class="fa-solid fa-folder-open @(_isAr ? "ms-1" : "me-1")"></i>
                         @T("رقم الملف:", "Record #:") #@Model.PatientNumber
                     </span>
@@ -68,7 +69,8 @@
             </div>
         </div>
 
-        <div class="card-body p-4">
+        @* Card Body with Responsive 2-Column Grid *@
+        <div class="card-body p-4 p-md-5">
             <form asp-action="Edit" method="post" id="patientEditForm" novalidate>
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="PatientId" />
@@ -76,10 +78,18 @@
 
                 @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
                 {
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3 py-2 px-3 small rounded-2"></div>
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4 py-2 px-3 small rounded-3"></div>
                 }
 
                 <div class="row g-3">
+                    @* Personal Details Section *@
+                    <div class="col-12">
+                        <h6 class="fw-bold text-primary mb-0 pb-2 border-bottom d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-id-card"></i>
+                            <span>@T("البيانات الشخصية", "Personal Details")</span>
+                        </h6>
+                    </div>
+
                     @* Full Name *@
                     <div class="col-md-6">
                         <label asp-for="PatientName" class="form-label fw-medium text-secondary mb-1">
@@ -89,7 +99,7 @@
                         <span asp-validation-for="PatientName" class="text-danger small mt-1 d-block"></span>
                     </div>
 
-                    @* National ID - Editable *@
+                    @* National ID - Fully Editable *@
                     <div class="col-md-6">
                         <label asp-for="NationalId" class="form-label fw-medium text-secondary mb-1">
                             @T("الرقم الوطني", "National ID") <span class="text-danger">*</span>
@@ -114,6 +124,14 @@
                         </label>
                         <input asp-for="PhoneNumber" class="form-control" placeholder="079xxxxxxx" />
                         <span asp-validation-for="PhoneNumber" class="text-danger small mt-1 d-block"></span>
+                    </div>
+
+                    @* Medical Profile Section *@
+                    <div class="col-12 mt-4">
+                        <h6 class="fw-bold text-primary mb-0 pb-2 border-bottom d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-stethoscope"></i>
+                            <span>@T("الملف الطبي", "Medical Profile")</span>
+                        </h6>
                     </div>
 
                     @* Blood Type *@
@@ -162,13 +180,13 @@
                         <span asp-validation-for="Notes" class="text-danger small mt-1 d-block"></span>
                     </div>
 
-                    @* Submit / Cancel Buttons *@
-                    <div class="col-12 d-flex justify-content-end gap-2 mt-4">
+                    @* Footer Actions *@
+                    <div class="col-12 d-flex justify-content-end gap-2 pt-3 border-top mt-4">
                         <a asp-action="Index" class="btn btn-outline-secondary px-4">
                             <i class="fa-solid fa-xmark me-1 ms-1"></i>
                             <span>@T("إلغاء", "Cancel")</span>
                         </a>
-                        <button type="submit" class="btn btn-primary px-4" style="background-color: #0f172a; border-color: #0f172a;">
+                        <button type="submit" class="btn btn-primary px-4">
                             <i class="fa-solid fa-floppy-disk me-1 ms-1"></i>
                             <span>@T("حفظ التغييرات", "Save Changes")</span>
                         </button>
@@ -211,17 +229,13 @@
             function saveDraft() {
                 try {
                     const data = {};
-                    let hasValue = false;
                     fieldNames.forEach(function (name) {
                         const input = form.elements[name];
                         if (input) {
                             data[name] = input.value;
-                            if (input.value) hasValue = true;
                         }
                     });
-                    if (hasValue) {
-                        sessionStorage.setItem(draftKey, JSON.stringify(data));
-                    }
+                    sessionStorage.setItem(draftKey, JSON.stringify(data));
                 } catch (e) {
                     console.warn('Could not save patient edit form draft:', e);
                 }
