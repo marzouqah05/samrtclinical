@@ -175,6 +175,13 @@ namespace WebApplication1.Controllers
         {
             if (ModelState.IsValid)
             {
+                bool exists = await _context.Patients.AnyAsync(p => p.NationalId == patient.NationalId);
+                if (exists)
+                {
+                    ModelState.AddModelError("NationalId", "الرقم الوطني مسجل مسبقاً لمريض آخر.");
+                    return View(patient);
+                }
+
                 _context.Add(patient);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = T("تمت إضافة المريض بنجاح.", "Patient added successfully.");
@@ -194,7 +201,7 @@ namespace WebApplication1.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id,
-            [Bind("PatientId,PatientName,PhoneNumber,DOB,BloodType,Allergies,ChronicDiseases,Notes")]
+            [Bind("PatientId,PatientName,NationalId,PhoneNumber,DOB,BloodType,Allergies,ChronicDiseases,Notes")]
             Patient patient)
         {
             if (id != patient.PatientId) return NotFound();
@@ -202,17 +209,26 @@ namespace WebApplication1.Controllers
             var dbPatient = await _context.Patients.FindAsync(id);
             if (dbPatient == null) return NotFound();
 
+            // Check NationalId uniqueness, excluding the current patient
+            bool exists = await _context.Patients.AnyAsync(p => p.NationalId == patient.NationalId && p.PatientId != patient.PatientId);
+            if (exists)
+            {
+                ModelState.AddModelError("NationalId", "الرقم الوطني مسجل مسبقاً لمريض آخر.");
+                return View(patient);
+            }
+
             ModelState.Clear();
 
             try
             {
-                dbPatient.PatientName    = patient.PatientName;
-                dbPatient.PhoneNumber    = patient.PhoneNumber;
-                dbPatient.DOB            = patient.DOB;
-                dbPatient.BloodType      = patient.BloodType;
-                dbPatient.Allergies      = patient.Allergies;
+                dbPatient.PatientName     = patient.PatientName;
+                dbPatient.NationalId      = patient.NationalId;
+                dbPatient.PhoneNumber     = patient.PhoneNumber;
+                dbPatient.DOB             = patient.DOB;
+                dbPatient.BloodType       = patient.BloodType;
+                dbPatient.Allergies       = patient.Allergies;
                 dbPatient.ChronicDiseases = patient.ChronicDiseases;
-                dbPatient.Notes          = patient.Notes;
+                dbPatient.Notes           = patient.Notes;
 
                 _context.Update(dbPatient);
                 await _context.SaveChangesAsync();

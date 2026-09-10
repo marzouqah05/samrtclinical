@@ -66,6 +66,7 @@ namespace WebApplication1.Models
                 entity.Property(e => e.PatientName).IsRequired().HasMaxLength(150);
                 entity.Property(e => e.PatientNumber).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.NationalId).IsRequired().HasMaxLength(50);
+                entity.HasIndex(e => e.NationalId).IsUnique();
                 entity.Property(e => e.PhoneNumber).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.BloodType).HasMaxLength(10);
                 entity.Property(e => e.Allergies).HasColumnType("text");
