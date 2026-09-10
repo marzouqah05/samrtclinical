@@ -9,23 +9,45 @@
     var status = "";
     var badgeClass = "";
 
-    if (Model.AppointmentDate.Date == DateTime.Today)
+    if (Model.Status == "Cancelled")
+    {
+        status = T("ملغى", "Cancelled");
+        badgeClass = "bg-[#FCEEEE] text-[#B83A38] border border-rose-500/20";
+    }
+    else if (Model.Status == "Completed")
+    {
+        status = T("مكتمل", "Completed");
+        badgeClass = "bg-[#EAF5F0] text-[#2E7D5B] border border-emerald-500/20";
+    }
+    else if (Model.Status == "Confirmed")
+    {
+        status = T("مؤكد", "Confirmed");
+        badgeClass = "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20";
+    }
+    else if (Model.AppointmentDate.Date == DateTime.Today)
     {
         status = T("اليوم", "Today");
-        badgeClass = "bg-[#49665A]/10 text-[#49665A]";
+        badgeClass = "bg-[#49665A]/10 text-[#49665A] border border-[#49665A]/20";
     }
     else if (Model.AppointmentDate.Date > DateTime.Today)
     {
         status = T("قادم", "Upcoming");
-        badgeClass = "bg-[#FDF6EC] text-[#B47318]";
+        badgeClass = "bg-[#FDF6EC] text-[#B47318] border border-amber-500/20";
     }
     else
     {
-        status = T("مكتمل", "Completed");
-        badgeClass = "bg-[#EAF5F0] text-[#2E7D5B]";
+        status = T("قيد الانتظار", "Pending");
+        badgeClass = "bg-[#FDF6EC] text-[#B47318] border border-amber-500/20";
     }
 }
 
+@if (TempData["Warning"] != null)
+{
+    <div class="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-5">
+        <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base mt-0.5 shrink-0"></i>
+        <span class="text-sm text-amber-700 dark:text-amber-400">@TempData["Warning"]</span>
+    </div>
+}
 @if (TempData["Success"] != null)
 {
     <div class="flex items-start gap-3 bg-[#EAF5F0] border border-[#2E7D5B]/20 rounded-xl p-4 mb-5">
@@ -150,11 +172,22 @@
                     </button>
                 </form>
 
-                <a asp-action="Edit" asp-route-id="@Model.AppointmentId"
-                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-sm font-medium rounded-lg transition-colors">
-                    <i class="bi bi-pencil text-xs"></i>
-                    @T("تعديل الموعد", "Edit Appointment")
-                </a>
+                @if (Model.Status == "Pending" || Model.Status == "Confirmed")
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.AppointmentId"
+                       class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-sm font-medium rounded-lg transition-colors">
+                        <i class="bi bi-pencil text-xs"></i>
+                        @T("تعديل الموعد", "Edit Appointment")
+                    </a>
+                }
+                else if (Model.Status == "Cancelled")
+                {
+                    <a asp-action="Create"
+                       class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-sm font-medium rounded-lg transition-colors">
+                        <i class="fa-solid fa-calendar-plus text-xs"></i>
+                        @T("حجز موعد جديد", "Book New Appointment")
+                    </a>
+                }
 
                 <a asp-action="Index"
                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-[#DDE3DF] hover:bg-[#F6F7F5] text-[#727A76] text-sm font-medium rounded-lg transition-colors">

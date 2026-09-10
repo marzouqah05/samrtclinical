@@ -300,6 +300,18 @@ namespace WebApplication1.Controllers
                 return NotFound();
             }
 
+            // Disallow editing Completed or Cancelled appointments
+            if (appointment.Status == "Cancelled" || appointment.Status == "Completed")
+            {
+                var isAr = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar";
+                var warningMsg = isAr
+                    ? "لا يمكن تعديل موعد مكتمل أو ملغى بالفعل."
+                    : "Cannot edit an appointment that is already Completed or Cancelled.";
+                TempData["Warning"] = warningMsg;
+                TempData["Error"] = warningMsg;
+                return RedirectToAction(nameof(Details), new { id = appointment.AppointmentId });
+            }
+
             PopulateAppointmentDropdowns(appointment);
             return View(appointment);
         }
@@ -312,6 +324,24 @@ namespace WebApplication1.Controllers
             if (id != appointment.AppointmentId)
             {
                 return NotFound();
+            }
+
+            var existing = await _context.Appointments.FindAsync(id);
+            if (existing == null)
+            {
+                return NotFound();
+            }
+
+            // Disallow editing Completed or Cancelled appointments
+            if (existing.Status == "Cancelled" || existing.Status == "Completed")
+            {
+                var isAr = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar";
+                var warningMsg = isAr
+                    ? "لا يمكن تعديل موعد مكتمل أو ملغى بالفعل."
+                    : "Cannot edit an appointment that is already Completed or Cancelled.";
+                TempData["Warning"] = warningMsg;
+                TempData["Error"] = warningMsg;
+                return RedirectToAction(nameof(Details), new { id });
             }
 
             // Remove navigation properties from validation
@@ -343,11 +373,6 @@ namespace WebApplication1.Controllers
             {
                 try
                 {
-                    var existing = await _context.Appointments.FindAsync(id);
-                    if (existing == null)
-                    {
-                        return NotFound();
-                    }
 
                     existing.AppointmentDate = appointment.AppointmentDate;
                     existing.AppointmentTime = appointment.AppointmentTime;

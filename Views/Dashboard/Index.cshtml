@@ -112,8 +112,8 @@
         <!-- Table Card Header -->
         <div class="px-5 py-4 border-b border-[#DDE3DF] flex flex-wrap items-center justify-between gap-3">
             <div>
-                <h3 class="text-sm font-bold text-[#202725] m-0">@T("جدول المواعيد والكشوفات", "Appointments Schedule")</h3>
-                <p class="text-[11px] text-[#727A76] m-0 mt-0.5">@T("استعراض وتتبع مواعيد المرضى المسجلة لليوم والزيارات القادمة", "Overview and tracking of scheduled patient appointments")</p>
+                <h3 class="text-sm font-bold text-[#202725] m-0">@T("جدول المواعيد القادمة", "Upcoming Appointments Schedule")</h3>
+                <p class="text-[11px] text-[#727A76] m-0 mt-0.5">@T("استعراض وتتبع المواعيد القادمة النشطة للمرضى", "Overview of active upcoming patient appointments")</p>
             </div>
             <div class="flex items-center gap-2">
                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F6F7F5] border border-[#DDE3DF] text-[11px] font-semibold text-[#727A76]">
@@ -172,30 +172,30 @@
                                 <td class="py-3.5 px-5 whitespace-nowrap">
                                     @if (isConfirmed)
                                     {
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#49665A]/10 text-[#49665A] border border-[#49665A]/20">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-[#49665A] animate-pulse inline-block"></span>
-                                            @T("في الكشف", "In Consultation")
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block"></span>
+                                            @T("مؤكد", "Confirmed")
                                         </span>
                                     }
                                     else if (isCompleted)
                                     {
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]">
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B] border border-emerald-500/20">
                                             <i class="fa-solid fa-check text-[9px]"></i>
                                             @T("مكتمل", "Completed")
                                         </span>
                                     }
                                     else if (isCancelled)
                                     {
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FCEEEE] text-[#B83A38]">
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                                             <i class="fa-solid fa-xmark text-[9px]"></i>
                                             @T("ملغى", "Cancelled")
                                         </span>
                                     }
                                     else
                                     {
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FDF6EC] text-[#B47318]">
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FDF6EC] text-[#B47318] border border-amber-500/20">
                                             <i class="fa-regular fa-clock text-[9px]"></i>
-                                            @T("مجدول", "Scheduled")
+                                            @T("قيد الانتظار", "Pending")
                                         </span>
                                     }
                                 </td>
@@ -206,12 +206,12 @@
                                            title="@T("تفاصيل", "Details")">
                                             @T("تفاصيل", "Details")
                                         </a>
-                                        @if (!isCompleted && !isCancelled)
+                                        @if (appt.Status == "Pending" || appt.Status == "Confirmed")
                                         {
                                             <a asp-controller="Appointments" asp-action="Edit" asp-route-id="@appt.AppointmentId"
                                                class="px-2.5 py-1 rounded-md bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-medium transition-colors"
-                                               title="@T("بدء الكشف", "Start Consult")">
-                                                @T("كشف", "Consult")
+                                               title="@T("تعديل / إعادة جدولة", "Edit / Reschedule")">
+                                                @T("تعديل", "Edit")
                                             </a>
                                         }
                                     </div>
@@ -224,7 +224,7 @@
                         <tr>
                             <td colspan="5" class="py-14 text-center">
                                 <i class="fa-solid fa-calendar-xmark text-3xl mb-3 block text-[#DDE3DF]"></i>
-                                <span class="text-sm font-medium text-[#727A76]">@T("لا توجد مواعيد مسجلة اليوم", "No appointments scheduled for today.")</span>
+                                <span class="text-sm font-medium text-[#727A76]">@T("لا توجد مواعيد قادمة مجدولة", "No upcoming appointments scheduled.")</span>
                             </td>
                         </tr>
                     }

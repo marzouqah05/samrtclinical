@@ -18,11 +18,17 @@ namespace WebApplication1.Controllers
         // ── 1. Dashboard Main Page ─────────────────────────────────────────────
         public async Task<IActionResult> Index(string? search)
         {
+            var today = DateTime.UtcNow.Date;
+
+            // ── Upcoming / Active Appointments for Dashboard ─────────────────
+            // Explicitly exclude Cancelled and Completed appointments and only include upcoming / active appointments
             var appointments = _context.Appointments
                 .Include(a => a.Doctor)
                     .ThenInclude(d => d!.Department)
                 .Include(a => a.Patient)
-                .OrderByDescending(a => a.AppointmentDate)
+                .Where(a => a.Status != "Cancelled" && a.Status != "Completed" && a.AppointmentDate >= today)
+                .OrderBy(a => a.AppointmentDate)
+                .ThenBy(a => a.AppointmentTime)
                 .AsQueryable();
 
             if (!string.IsNullOrEmpty(search))
@@ -38,9 +44,8 @@ namespace WebApplication1.Controllers
             ViewBag.TotalDoctors      = await _context.Doctors.CountAsync();
             ViewBag.TotalDepartments  = await _context.Departments.CountAsync();
 
-            var today = DateTime.UtcNow.Date;
             ViewBag.TodayAppointments = await _context.Appointments
-                .Where(a => a.AppointmentDate.Date == today)
+                .Where(a => a.AppointmentDate.Date == today && a.Status != "Cancelled")
                 .CountAsync();
 
             // ── Financial Analytics (Strictly Sequential Execution) ──────────
