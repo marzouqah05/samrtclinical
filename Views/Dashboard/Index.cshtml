@@ -164,7 +164,12 @@
                                     <span class="text-[11px] text-[#727A76] block">ID: #@appt.PatientId</span>
                                 </td>
                                 <td class="py-3.5 px-5">
-                                    <span class="text-sm font-medium text-[#202725] block truncate max-w-[180px]">Dr. @(appt.Doctor?.DoctorName ?? "General")</span>
+                                    @{
+                                        var rawDoc = appt.Doctor?.DoctorName ?? "General";
+                                        var cleanDoc = System.Text.RegularExpressions.Regex.Replace(rawDoc.Trim(), @"^(Dr\.\s*|د\.\s*)+", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+                                        var docDisplayName = string.IsNullOrWhiteSpace(cleanDoc) ? "General" : $"Dr. {cleanDoc}";
+                                    }
+                                    <span class="text-sm font-medium text-[#202725] block truncate max-w-[180px]">@docDisplayName</span>
                                     <span class="inline-block px-1.5 py-0.5 bg-[#F6F7F5] border border-[#DDE3DF] rounded text-[10px] text-[#727A76] mt-0.5">
                                         @(appt.Doctor?.Department?.DepartmentName ?? "General Practice")
                                     </span>

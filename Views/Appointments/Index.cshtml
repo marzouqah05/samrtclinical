@@ -4,6 +4,13 @@
     var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
     string T(string ar, string en) => _isAr ? ar : en;
     ViewData["Title"] = T("جدولة المواعيد", "Appointments Scheduling");
+
+    string FormatDoctorName(string? rawName)
+    {
+        if (string.IsNullOrWhiteSpace(rawName)) return T("غير معين", "Unassigned");
+        var clean = System.Text.RegularExpressions.Regex.Replace(rawName.Trim(), @"^(Dr\.\s*|د\.\s*)+", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+        return string.IsNullOrWhiteSpace(clean) ? T("غير معين", "Unassigned") : $"Dr. {clean}";
+    }
 }
 
 <!-- FullCalendar CSS -->
@@ -82,8 +89,107 @@
 
     .btn-book:hover { background: #1e293b; color: white; }
 
-    /* ─── View Toggle ─── */
-    /* Segmented pill switcher styles handled via utility classes */
+    /* ─── View Toggle (Segmented Pill Switcher) ─── */
+    .view-toggle-group {
+        background: #f1f5f9 !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 50rem !important;
+        padding: 4px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+    }
+
+    .view-toggle-btn {
+        background: transparent !important;
+        color: #64748b !important;
+        border: 0 !important;
+        border-radius: 50rem !important;
+        padding: 6px 16px !important;
+        font-size: 12.5px !important;
+        font-weight: 500 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        transition: all 0.2s ease !important;
+        cursor: pointer !important;
+        text-decoration: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        line-height: 1.4 !important;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    .view-toggle-btn i {
+        color: inherit !important;
+        font-size: 13px !important;
+    }
+
+    .view-toggle-btn:hover:not(.active) {
+        color: #0f172a !important;
+        background: rgba(0, 0, 0, 0.05) !important;
+    }
+
+    /* Active State: Clinic primary green / bg-success with white text & crisp contrast */
+    .view-toggle-btn.active,
+    .view-toggle-btn.active:hover,
+    .view-toggle-btn.active:focus,
+    .view-toggle-btn.active:active {
+        background: #49665A !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        border-radius: 50rem !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .view-toggle-btn.active i,
+    .view-toggle-btn.active:hover i,
+    .view-toggle-btn.active:focus i {
+        color: #ffffff !important;
+    }
+
+    .view-toggle-btn:focus,
+    .view-toggle-btn:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Dark Mode Overrides for View Toggle */
+    html.dark .view-toggle-group,
+    [data-bs-theme="dark"] .view-toggle-group {
+        background: #151E1B !important;
+        border-color: #2B3833 !important;
+    }
+
+    html.dark .view-toggle-btn,
+    [data-bs-theme="dark"] .view-toggle-btn {
+        color: #9CA8A3 !important;
+    }
+
+    html.dark .view-toggle-btn:hover:not(.active),
+    [data-bs-theme="dark"] .view-toggle-btn:hover:not(.active) {
+        color: #EAEFEA !important;
+        background: #202B27 !important;
+    }
+
+    html.dark .view-toggle-btn.active,
+    html.dark .view-toggle-btn.active:hover,
+    html.dark .view-toggle-btn.active:focus,
+    html.dark .view-toggle-btn.active:active,
+    [data-bs-theme="dark"] .view-toggle-btn.active,
+    [data-bs-theme="dark"] .view-toggle-btn.active:hover,
+    [data-bs-theme="dark"] .view-toggle-btn.active:focus,
+    [data-bs-theme="dark"] .view-toggle-btn.active:active {
+        background: #49665A !important;
+        color: #ffffff !important;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    html.dark .view-toggle-btn.active i,
+    [data-bs-theme="dark"] .view-toggle-btn.active i {
+        color: #ffffff !important;
+    }
 
 
     /* ─── Filter Card ─── */
@@ -431,15 +537,15 @@
             <p class="text-[#6B7D75] dark:text-[#9CA8A3] text-xs m-0 mt-1">@T("إدارة زيارات المرضى ومتابعة الجدولة وتحديث حالة الحجز فورياً.", "Manage patient visits, monitor scheduling, and update reservation status live.")</p>
         </div>
         <div class="flex flex-wrap items-center gap-2.5">
-            <div class="inline-flex items-center p-1 bg-[#F4F7F5] dark:bg-[#151E1B] border border-[#E5E9E7] dark:border-[#2B3833] rounded-xl gap-1" id="viewToggle">
+            <div class="view-toggle-group bg-light p-1 rounded-pill border d-inline-flex align-items-center gap-1" id="viewToggle">
                 <button type="button" id="btnCalView"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#49665A] text-white shadow-sm flex items-center gap-1.5 transition"
+                        class="btn btn-sm border-0 rounded-pill px-3 text-secondary view-toggle-btn active"
                         onclick="switchView('calendar')">
                     <i class="fa-regular fa-calendar"></i>
                     <span>@T("تقويم", "Calendar")</span>
                 </button>
                 <button type="button" id="btnListView"
-                        class="px-3 py-1.5 rounded-lg text-xs font-medium text-[#6B7D75] dark:text-[#9CA8A3] hover:text-[#1A2621] dark:hover:text-[#EAEFEA] hover:bg-white dark:hover:bg-[#1B2421] flex items-center gap-1.5 transition"
+                        class="btn btn-sm border-0 rounded-pill px-3 text-secondary view-toggle-btn"
                         onclick="switchView('list')">
                     <i class="fa-solid fa-list"></i>
                     <span>@T("قائمة", "List")</span>
@@ -528,7 +634,7 @@
                         foreach (var doc in ViewBag.AllDoctors)
                         {
                             <option value="@doc.DoctorId" selected="@(ViewBag.CurrentDoctor == doc.DoctorId)">
-                                Dr. @doc.DoctorName
+                                @FormatDoctorName(doc.DoctorName)
                             </option>
                         }
                     }
@@ -616,7 +722,7 @@
                                     <td class="py-3.5 px-4">
                                         <div class="text-[#1A2621] dark:text-[#EAEFEA] text-xs font-medium flex items-center gap-1.5">
                                             <i class="fa-solid fa-user-doctor text-[#49665A]"></i>
-                                            <span>Dr. @(item.Doctor?.DoctorName ?? "Unassigned")</span>
+                                            <span>@FormatDoctorName(item.Doctor?.DoctorName)</span>
                                         </div>
                                     </td>
                                     <td class="py-3.5 px-4">
@@ -844,7 +950,7 @@
                             {
                                 foreach (var doc in ViewBag.AllDoctors)
                                 {
-                                    <option value="@doc.DoctorId">Dr. @doc.DoctorName</option>
+                                    <option value="@doc.DoctorId">@FormatDoctorName(doc.DoctorName)</option>
                                 }
                             }
                         </select>
@@ -1141,25 +1247,18 @@
             const btnCal  = document.getElementById('btnCalView');
             const btnList = document.getElementById('btnListView');
 
-            const activeClasses   = ['font-semibold', 'bg-[#49665A]', 'text-white', 'shadow-sm'];
-            const inactiveClasses = ['font-medium', 'text-[#727A76]', 'hover:text-[#EAEFEA]', 'hover:bg-[#1B2421]'];
-
             if (view === 'calendar') {
-                calSec.style.display  = 'block';
-                listSec.style.display = 'none';
-                btnCal.classList.remove(...inactiveClasses);
-                btnCal.classList.add(...activeClasses, 'active');
-                btnList.classList.remove(...activeClasses, 'active');
-                btnList.classList.add(...inactiveClasses);
-                if (calendar) calendar.updateSize();
+                if (calSec)  calSec.style.display  = 'block';
+                if (listSec) listSec.style.display = 'none';
+                if (btnCal)  btnCal.classList.add('active');
+                if (btnList) btnList.classList.remove('active');
+                if (typeof calendar !== 'undefined' && calendar) calendar.updateSize();
                 localStorage.setItem('apptView', 'calendar');
             } else {
-                calSec.style.display  = 'none';
-                listSec.style.display = 'block';
-                btnList.classList.remove(...inactiveClasses);
-                btnList.classList.add(...activeClasses, 'active');
-                btnCal.classList.remove(...activeClasses, 'active');
-                btnCal.classList.add(...inactiveClasses);
+                if (calSec)  calSec.style.display  = 'none';
+                if (listSec) listSec.style.display = 'block';
+                if (btnList) btnList.classList.add('active');
+                if (btnCal)  btnCal.classList.remove('active');
                 localStorage.setItem('apptView', 'list');
             }
         }
@@ -1170,6 +1269,12 @@
             switchView(saved);
         });
 
+        function formatDoctorTitle(name) {
+            if (!name) return 'Unassigned';
+            const clean = name.replace(/^(Dr\.\s*|د\.\s*)+/i, '').trim();
+            return clean ? 'Dr. ' + clean : 'Unassigned';
+        }
+
         /* ──────────────────────────────────
            Tooltip
            ────────────────────────────────── */
@@ -1178,7 +1283,7 @@
         function showTooltip(event, jsEvent) {
             document.getElementById('tt-title').textContent = event.title;
             document.getElementById('tt-patient').textContent = event.extendedProps.patientName;
-            document.getElementById('tt-doctor').textContent = 'Dr. ' + event.extendedProps.doctorName;
+            document.getElementById('tt-doctor').textContent = formatDoctorTitle(event.extendedProps.doctorName);
             const st = event.start;
             document.getElementById('tt-time').textContent = st ? st.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
             tooltip.classList.add('visible');
@@ -1216,7 +1321,7 @@
             const id = event.id;
 
             document.getElementById('ep-patient').textContent  = p.patientName;
-            document.getElementById('ep-doctor').textContent   = 'Dr. ' + p.doctorName;
+            document.getElementById('ep-doctor').textContent   = formatDoctorTitle(p.doctorName);
             document.getElementById('ep-datetime').textContent = st
                 ? st.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
                   + ' · '

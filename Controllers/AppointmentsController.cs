@@ -196,17 +196,21 @@ namespace WebApplication1.Controllers
                 var startDt = a.AppointmentDate.Add(a.AppointmentTime);
                 var endDt   = startDt.AddMinutes(30);
 
+                var rawDocName = a.Doctor?.DoctorName?.Trim() ?? "?";
+                var cleanDoc = System.Text.RegularExpressions.Regex.Replace(rawDocName, @"^(Dr\.\s*|د\.\s*)+", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+                var docTitle = string.IsNullOrWhiteSpace(cleanDoc) || cleanDoc == "?" ? "?" : $"Dr. {cleanDoc}";
+
                 return new
                 {
                     id          = a.AppointmentId,
-                    title       = $"{a.Patient?.PatientName ?? "Patient"} — Dr. {a.Doctor?.DoctorName ?? "?"}",
+                    title       = $"{a.Patient?.PatientName ?? "Patient"} — {docTitle}",
                     start       = startDt.ToString("yyyy-MM-ddTHH:mm:ss"),
                     end         = endDt.ToString("yyyy-MM-ddTHH:mm:ss"),
                     color,
                     extendedProps = new
                     {
                         status      = a.Status,
-                        doctorName  = a.Doctor?.DoctorName ?? "",
+                        doctorName  = docTitle,
                         patientName = a.Patient?.PatientName ?? "",
                         notes       = a.Notes ?? ""
                     }
