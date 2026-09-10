@@ -39,7 +39,7 @@ namespace WebApplication1.Controllers
         }
 
         private static string T(string ar, string en)
-            => CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar" ? ar : en;
+            => (CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar" || CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar") ? ar : en;
 
         #region Bulk Import & Export
 
@@ -178,7 +178,10 @@ namespace WebApplication1.Controllers
                 bool exists = await _context.Patients.AnyAsync(p => p.NationalId == patient.NationalId);
                 if (exists)
                 {
-                    ModelState.AddModelError("NationalId", "الرقم الوطني مسجل مسبقاً لمريض آخر.");
+                    string errorMessage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en"
+                        ? "This National ID is already registered for another patient."
+                        : "الرقم الوطني مسجل مسبقاً لمريض آخر.";
+                    ModelState.AddModelError("NationalId", errorMessage);
                     return View(patient);
                 }
 
@@ -213,7 +216,10 @@ namespace WebApplication1.Controllers
             bool exists = await _context.Patients.AnyAsync(p => p.NationalId == patient.NationalId && p.PatientId != patient.PatientId);
             if (exists)
             {
-                ModelState.AddModelError("NationalId", "الرقم الوطني مسجل مسبقاً لمريض آخر.");
+                string errorMessage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en"
+                    ? "This National ID is already registered for another patient."
+                    : "الرقم الوطني مسجل مسبقاً لمريض آخر.";
+                ModelState.AddModelError("NationalId", errorMessage);
                 return View(patient);
             }
 
