@@ -149,17 +149,28 @@ namespace WebApplication1.Controllers
 
             if (department == null)
             {
-                return NotFound();
+                TempData["Error"] = "Department not found.";
+                return RedirectToAction(nameof(Index));
             }
 
             if (department.Doctors != null && department.Doctors.Any())
             {
-                TempData["DeleteError"] = "Cannot delete this department because it has doctors related to it.";
+                TempData["Error"] = $"Cannot delete department '{department.DepartmentName}' because it has {department.Doctors.Count} assigned doctor(s). Please reassign or remove them first.";
                 return RedirectToAction(nameof(Index));
             }
 
-            _context.Departments.Remove(department);
-            await _context.SaveChangesAsync();
+            try
+            {
+                var deptName = department.DepartmentName;
+                _context.Departments.Remove(department);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = $"Department '{deptName}' was deleted successfully.";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"An error occurred while deleting the department: {ex.Message}";
+            }
+
             return RedirectToAction(nameof(Index));
         }
 

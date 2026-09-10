@@ -36,6 +36,41 @@
         </div>
     </div>
 
+    @* ─── Notification Alerts ─── *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-xl shadow-sm border-0 d-flex align-items-center mb-4 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" role="alert">
+            <i class="fa-solid fa-circle-check fs-5 @(_isAr ? "ms-3" : "me-3") text-emerald-600 dark:text-emerald-400"></i>
+            <div class="text-xs">
+                <strong>@T("تم بنجاح!", "Success!")</strong> @TempData["Success"]
+            </div>
+            <button type="button" class="btn-close dark:invert @(_isAr ? "me-auto ms-0" : "ms-auto me-0")" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Warning"] != null)
+    {
+        <div class="alert alert-warning alert-dismissible fade show rounded-xl shadow-sm border-0 d-flex align-items-center mb-4 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" role="alert">
+            <i class="fa-solid fa-triangle-exclamation fs-5 @(_isAr ? "ms-3" : "me-3") text-amber-600 dark:text-amber-400"></i>
+            <div class="text-xs">
+                <strong>@T("تنبيه:", "Notice:")</strong> @TempData["Warning"]
+            </div>
+            <button type="button" class="btn-close dark:invert @(_isAr ? "me-auto ms-0" : "ms-auto me-0")" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null || TempData["DeleteError"] != null)
+    {
+        var errorMsg = TempData["Error"] ?? TempData["DeleteError"];
+        <div class="alert alert-danger alert-dismissible fade show rounded-xl shadow-sm border-0 d-flex align-items-center mb-4 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" role="alert">
+            <i class="fa-solid fa-circle-exclamation fs-5 @(_isAr ? "ms-3" : "me-3") text-rose-600 dark:text-rose-400"></i>
+            <div class="text-xs">
+                <strong>@T("خطأ:", "Error:")</strong> @errorMsg
+            </div>
+            <button type="button" class="btn-close dark:invert @(_isAr ? "me-auto ms-0" : "ms-auto me-0")" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <!-- ── Departments Table ── -->
     <div class="bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] rounded-2xl shadow-sm overflow-hidden">
         @if (Model != null && Model.Any())
@@ -97,14 +132,14 @@
                                             <i class="fa-solid fa-pen text-[#49665A] text-[10px]"></i>
                                             @T("تعديل", "Edit")
                                         </a>
-                                        @if (User.IsInRole("Admin"))
-                                        {
-                                            <a asp-action="Delete" asp-route-id="@item.DepartmentId"
-                                               class="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-rose-300 dark:border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs transition"
-                                               title="@T("حذف", "Delete")">
+                                        <form asp-action="Delete" asp-route-id="@item.DepartmentId" method="post" class="inline m-0 d-inline" onsubmit="return confirm('@T($"هل أنت متأكد من رغبتك في حذف قسم {item.DepartmentName} بشكل نهائي؟", $"Are you sure you want to permanently delete {item.DepartmentName}?")');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit"
+                                                    class="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-rose-300 dark:border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs transition"
+                                                    title="@T("حذف", "Delete")">
                                                 <i class="fa-solid fa-trash text-[10px]"></i>
-                                            </a>
-                                        }
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
