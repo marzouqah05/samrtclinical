@@ -48,6 +48,14 @@ namespace WebApplication1.Models
         /// </summary>
         public double DurationMinutes { get; set; }
 
+        /// <summary>Unique session / connection identifier.</summary>
+        [MaxLength(100)]
+        public string? SessionId { get; set; }
+
+        /// <summary>Device category (Mobile, Tablet, Desktop).</summary>
+        [MaxLength(50)]
+        public string? DeviceType { get; set; }
+
         /// <summary>True while the session is considered live (not logged-out and not idle-expired).</summary>
         public bool IsActive { get; set; } = true;
     }

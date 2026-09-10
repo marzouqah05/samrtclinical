@@ -50,11 +50,13 @@ namespace WebApplication1.Controllers
             if (!string.IsNullOrWhiteSpace(role))
                 query = query.Where(s => s.UserRole == role);
 
+            var fiveMinutesAgo = DateTime.UtcNow.AddMinutes(-5);
+
             // ── Apply status filter ────────────────────────────────────────────
             if (status == "active")
-                query = query.Where(s => s.IsActive);
+                query = query.Where(s => s.IsActive && s.LastActivityTime >= fiveMinutesAgo);
             else if (status == "ended")
-                query = query.Where(s => !s.IsActive);
+                query = query.Where(s => !s.IsActive || s.LastActivityTime < fiveMinutesAgo);
 
             // ── Fetch sessions (newest first) ──────────────────────────────────
             var sessions = await query
@@ -66,9 +68,10 @@ namespace WebApplication1.Controllers
             var totalLoginsToday = await _db.UserSessionLogs
                 .CountAsync(s => s.LoginTime >= todayUtc);
 
-            // ── KPI: Active online users (unfiltered) ─────────────────────────
+            // ── KPI: Active online users (unfiltered, active within last 5 minutes) ──
             var activeOnlineUsers = await _db.UserSessionLogs
-                .CountAsync(s => s.IsActive);
+                .Where(s => s.IsActive && s.LastActivityTime >= fiveMinutesAgo)
+                .CountAsync();
 
             // ── KPI: Average session duration for completed sessions today ─────
             var completedToday = await _db.UserSessionLogs

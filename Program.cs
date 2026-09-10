@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
@@ -142,6 +143,15 @@ internal class Program
         });
 
         var app = builder.Build();
+
+        // ── Forwarded Headers (Reverse Proxy / Railway / Cloudflare support) ──────────
+        var forwardedOptions = new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+        };
+        forwardedOptions.KnownNetworks.Clear();
+        forwardedOptions.KnownProxies.Clear();
+        app.UseForwardedHeaders(forwardedOptions);
 
         // Error Handling
         if (!app.Environment.IsDevelopment())

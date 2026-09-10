@@ -72,9 +72,10 @@ namespace WebApplication1.Controllers
                 {
                     var roles = await _userManager.GetRolesAsync(loggedInUser);
                     var role  = roles.Count > 0 ? roles[0] : "Unknown";
-                    var ip    = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+                    var ip    = WebApplication1.Middleware.UserActivityMiddleware.GetClientIp(HttpContext);
                     var ua    = Request.Headers["User-Agent"].ToString();
-                    await _sessionTracking.CreateSessionAsync(loggedInUser.Id, username, role, ip, ua);
+                    var sessionId = WebApplication1.Middleware.UserActivityMiddleware.GetOrCreateDeviceId(HttpContext);
+                    await _sessionTracking.CreateSessionAsync(loggedInUser.Id, username, role, ip, ua, sessionId);
                 }
 
                 return RedirectToAction("Index", "Dashboard");
@@ -200,7 +201,11 @@ namespace WebApplication1.Controllers
             // ── Session Tracking: mark session as ended before signing out ──
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!string.IsNullOrEmpty(userId))
-                await _sessionTracking.EndSessionAsync(userId);
+            {
+                var sessionId = WebApplication1.Middleware.UserActivityMiddleware.GetOrCreateDeviceId(HttpContext);
+                var ua = Request.Headers["User-Agent"].ToString();
+                await _sessionTracking.EndSessionAsync(userId, sessionId, ua);
+            }
 
             await _signInManager.SignOutAsync();
             return RedirectToAction("Login", "Account");

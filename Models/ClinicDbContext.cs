@@ -150,10 +150,13 @@ namespace WebApplication1.Models
                 entity.Property(e => e.UserRole).HasMaxLength(100);
                 entity.Property(e => e.IpAddress).HasMaxLength(50);
                 entity.Property(e => e.UserAgent).HasMaxLength(512);
+                entity.Property(e => e.SessionId).HasMaxLength(100);
+                entity.Property(e => e.DeviceType).HasMaxLength(50);
                 entity.Property(e => e.DurationMinutes).HasColumnType("double precision");
 
                 // Composite index: looking up active sessions by user is the hottest query path
                 entity.HasIndex(e => new { e.UserId, e.IsActive });
+                entity.HasIndex(e => new { e.UserId, e.SessionId, e.IsActive });
                 entity.HasIndex(e => e.LoginTime);
             });
 

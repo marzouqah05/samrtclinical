@@ -57,9 +57,11 @@
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             if (saved === 'dark' || (!saved && prefersDark)) {
                 document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.setAttribute('data-bs-theme', 'dark');
                 document.documentElement.classList.add('dark');
             } else {
                 document.documentElement.setAttribute('data-theme', 'light');
+                document.documentElement.setAttribute('data-bs-theme', 'light');
                 document.documentElement.classList.remove('dark');
             }
         })();
@@ -673,10 +675,12 @@
             if (isDark) {
                 html.classList.add('dark');
                 html.setAttribute('data-theme', 'dark');
+                html.setAttribute('data-bs-theme', 'dark');
                 localStorage.setItem('clinic_theme', 'dark');
             } else {
                 html.classList.remove('dark');
                 html.setAttribute('data-theme', 'light');
+                html.setAttribute('data-bs-theme', 'light');
                 localStorage.setItem('clinic_theme', 'light');
             }
             const icon = document.getElementById('themeIcon');
