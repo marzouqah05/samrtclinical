@@ -4,6 +4,7 @@
     var _isAr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar";
     string T(string ar, string en) => _isAr ? ar : en;
     ViewData["Title"] = T("إضافة مريض جديد", "Add New Patient");
+    var todayStr = DateTime.UtcNow.ToString("yyyy-MM-dd");
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -13,7 +14,7 @@
         background-color: #f8fafc;
     }
 
-    .form-container {
+    .patient-form-container {
         max-width: 920px;
         margin: 32px auto;
         padding: 0 16px;
@@ -52,17 +53,6 @@
         padding: 32px 32px 36px;
     }
 
-    .section-divider {
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 18px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #f1f5f9;
-        display: flex;
-        align-items: center;
-    }
-
     .form-label {
         display: block;
         margin-bottom: 6px;
@@ -99,7 +89,7 @@
         resize: vertical;
     }
 
-    /* Validation styling - ensure error messages appear cleanly below inputs */
+    /* Force validation error messages to appear underneath the inputs */
     .field-validation-error,
     span.field-validation-error {
         display: block !important;
@@ -166,7 +156,7 @@
     }
 </style>
 
-<div class="form-container" dir="@(_isAr ? "rtl" : "ltr")">
+<div class="patient-form-container" dir="@(_isAr ? "rtl" : "ltr")">
     @* Back Link *@
     <div class="mb-3">
         <a asp-action="Index" class="text-decoration-none text-muted small fw-semibold d-inline-flex align-items-center gap-2">
@@ -179,7 +169,7 @@
         @* Card Header *@
         <div class="form-header">
             <h2>
-                <i class="fa-solid fa-user-plus @(_isAr ? "ms-2" : "me-2") text-blue-400"></i>
+                <i class="fa-solid fa-user-plus @(_isAr ? "ms-2" : "me-2") text-primary"></i>
                 @T("إضافة مريض جديد", "Add New Patient")
             </h2>
             <p>@T("إنشاء ملف طبي وسجل أساسي لمريض جديد في النظام.", "Create a medical profile and baseline record for a new patient.")</p>
@@ -187,7 +177,7 @@
 
         @* Card Body *@
         <div class="form-body">
-            <form asp-action="Create" method="post" novalidate>
+            <form asp-action="Create" method="post" id="patientForm" novalidate>
                 @Html.AntiForgeryToken()
 
                 @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
@@ -195,13 +185,7 @@
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4 py-2 px-3 small rounded-3"></div>
                 }
 
-                @* Personal Details Section *@
-                <div class="section-divider">
-                    <i class="fa-solid fa-id-card @(_isAr ? "ms-2" : "me-2") text-primary"></i>
-                    @T("البيانات الشخصية", "Personal Details")
-                </div>
-
-                <div class="row g-3 g-md-4 mb-4">
+                <div class="row g-3 g-md-4">
                     @* Row 1: Full Name (col-md-6), National ID (col-md-6) *@
                     <div class="col-md-6">
                         <label asp-for="PatientName" class="form-label fw-semibold">
@@ -224,7 +208,7 @@
                         <label asp-for="DOB" class="form-label fw-semibold">
                             @T("تاريخ الميلاد", "Date of Birth") <span class="text-danger">*</span>
                         </label>
-                        <input asp-for="DOB" type="date" class="form-control custom-input" />
+                        <input asp-for="DOB" type="date" max="@todayStr" class="form-control custom-input" />
                         <span asp-validation-for="DOB" class="text-danger small mt-1 d-block fw-medium"></span>
                     </div>
 
@@ -235,15 +219,7 @@
                         <input asp-for="PhoneNumber" class="form-control custom-input" placeholder="079xxxxxxx" />
                         <span asp-validation-for="PhoneNumber" class="text-danger small mt-1 d-block fw-medium"></span>
                     </div>
-                </div>
 
-                @* Medical Profile Section *@
-                <div class="section-divider mt-4">
-                    <i class="fa-solid fa-stethoscope @(_isAr ? "ms-2" : "me-2") text-primary"></i>
-                    @T("الملف الطبي", "Medical Profile")
-                </div>
-
-                <div class="row g-3 g-md-4 mb-4">
                     @* Row 3: Blood Type (col-md-6), Allergies (col-md-6) *@
                     <div class="col-md-6">
                         <label asp-for="BloodType" class="form-label fw-semibold">
@@ -310,4 +286,65 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+    <script>
+        (function () {
+            const draftKey = 'patient_create_draft';
+            const form = document.getElementById('patientForm');
+            if (!form) return;
+
+            const fieldNames = ['PatientName', 'NationalId', 'DOB', 'PhoneNumber', 'BloodType', 'Allergies', 'ChronicDiseases', 'Notes'];
+
+            // Restore draft data from sessionStorage if present (e.g. after language switch)
+            try {
+                const saved = sessionStorage.getItem(draftKey);
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    fieldNames.forEach(function (name) {
+                        const input = form.elements[name];
+                        if (input && data[name] !== undefined && data[name] !== null && data[name] !== '') {
+                            input.value = data[name];
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn('Could not restore patient form draft:', e);
+            }
+
+            // Save form changes to sessionStorage
+            function saveDraft() {
+                try {
+                    const data = {};
+                    let hasValue = false;
+                    fieldNames.forEach(function (name) {
+                        const input = form.elements[name];
+                        if (input) {
+                            data[name] = input.value;
+                            if (input.value) hasValue = true;
+                        }
+                    });
+                    if (hasValue) {
+                        sessionStorage.setItem(draftKey, JSON.stringify(data));
+                    }
+                } catch (e) {
+                    console.warn('Could not save patient form draft:', e);
+                }
+            }
+
+            form.addEventListener('input', saveDraft);
+            form.addEventListener('change', saveDraft);
+
+            // Clear draft when submitting
+            form.addEventListener('submit', function () {
+                sessionStorage.removeItem(draftKey);
+            });
+
+            // Clear draft on cancel button click
+            const cancelBtn = document.querySelector('.btn-cancel');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function () {
+                    sessionStorage.removeItem(draftKey);
+                });
+            }
+        })();
+    </script>
 }

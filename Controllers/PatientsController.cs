@@ -173,6 +173,15 @@ namespace WebApplication1.Controllers
             [Bind("PatientId,PatientName,NationalId,PhoneNumber,DOB,BloodType,Allergies,ChronicDiseases,Notes")]
             Patient patient)
         {
+            if (patient.DOB > DateTime.UtcNow.Date)
+            {
+                string errorMsg = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
+                    ? "لا يمكن أن يكون تاريخ الميلاد في المستقبل."
+                    : "Date of Birth cannot be in the future.";
+                ModelState.AddModelError("DOB", errorMsg);
+                return View(patient);
+            }
+
             if (ModelState.IsValid)
             {
                 bool exists = await _context.Patients.AnyAsync(p => p.NationalId == patient.NationalId);
@@ -211,6 +220,15 @@ namespace WebApplication1.Controllers
 
             var dbPatient = await _context.Patients.FindAsync(id);
             if (dbPatient == null) return NotFound();
+
+            if (patient.DOB > DateTime.UtcNow.Date)
+            {
+                string errorMsg = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
+                    ? "لا يمكن أن يكون تاريخ الميلاد في المستقبل."
+                    : "Date of Birth cannot be in the future.";
+                ModelState.AddModelError("DOB", errorMsg);
+                return View(patient);
+            }
 
             // Check NationalId uniqueness, excluding the current patient
             bool exists = await _context.Patients.AnyAsync(p => p.NationalId == patient.NationalId && p.PatientId != patient.PatientId);
