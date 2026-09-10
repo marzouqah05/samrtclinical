@@ -150,6 +150,12 @@
                     </button>
                 </form>
 
+                <a asp-action="Edit" asp-route-id="@Model.AppointmentId"
+                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-sm font-medium rounded-lg transition-colors">
+                    <i class="bi bi-pencil text-xs"></i>
+                    @T("تعديل الموعد", "Edit Appointment")
+                </a>
+
                 <a asp-action="Index"
                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-[#DDE3DF] hover:bg-[#F6F7F5] text-[#727A76] text-sm font-medium rounded-lg transition-colors">
                     <i class="fa-solid fa-arrow-left text-xs"></i>

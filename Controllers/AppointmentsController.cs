@@ -281,6 +281,118 @@ namespace WebApplication1.Controllers
             return View(appointment);
         }
 
+        // GET: Appointments/Edit/5
+        [HttpGet]
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var appointment = await _context.Appointments
+                .Include(a => a.Doctor)
+                .Include(a => a.Patient)
+                .FirstOrDefaultAsync(m => m.AppointmentId == id);
+
+            if (appointment == null)
+            {
+                return NotFound();
+            }
+
+            PopulateAppointmentDropdowns(appointment);
+            return View(appointment);
+        }
+
+        // POST: Appointments/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, [Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,Status,Notes")] Appointment appointment)
+        {
+            if (id != appointment.AppointmentId)
+            {
+                return NotFound();
+            }
+
+            // Remove navigation properties from validation
+            ModelState.Remove(nameof(appointment.Doctor));
+            ModelState.Remove(nameof(appointment.Patient));
+            ModelState.Remove(nameof(appointment.Treatment));
+
+            // Ensure AppointmentDate is handled cleanly in UTC for PostgreSQL
+            appointment.AppointmentDate = DateTime.SpecifyKind(appointment.AppointmentDate.Date, DateTimeKind.Utc);
+
+            // Check for doctor schedule conflicts: ensure the selected doctor doesn't already have another appointment at the exact same slot (excluding current AppointmentId)
+            var appointmentDateUtc = appointment.AppointmentDate.Date;
+            bool hasConflict = await _context.Appointments
+                .AnyAsync(a => a.AppointmentId != id &&
+                               a.DoctorId == appointment.DoctorId &&
+                               a.AppointmentDate.Date == appointmentDateUtc &&
+                               a.AppointmentTime == appointment.AppointmentTime &&
+                               a.Status != "Cancelled");
+
+            if (hasConflict)
+            {
+                var isAr = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar";
+                ModelState.AddModelError(string.Empty, isAr
+                    ? "الطبيب المحدد لديه موعد آخر محجوز في نفس هذا الوقت تماماً. يرجى اختيار موعد آخر."
+                    : "The selected doctor already has another appointment scheduled at this exact time slot.");
+            }
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var existing = await _context.Appointments.FindAsync(id);
+                    if (existing == null)
+                    {
+                        return NotFound();
+                    }
+
+                    existing.AppointmentDate = appointment.AppointmentDate;
+                    existing.AppointmentTime = appointment.AppointmentTime;
+                    existing.DoctorId        = appointment.DoctorId;
+                    existing.PatientId       = appointment.PatientId;
+                    existing.Status          = appointment.Status;
+                    existing.Notes           = appointment.Notes;
+
+                    _context.Update(existing);
+                    await _context.SaveChangesAsync();
+
+                    TempData["Success"] = "Appointment updated and rescheduled successfully.";
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!await _context.Appointments.AnyAsync(e => e.AppointmentId == id))
+                    {
+                        return NotFound();
+                    }
+                    throw;
+                }
+            }
+
+            PopulateAppointmentDropdowns(appointment);
+            return View(appointment);
+        }
+
+        private void PopulateAppointmentDropdowns(Appointment? appointment = null)
+        {
+            ViewData["DoctorId"] = new SelectList(_context.Doctors.OrderBy(d => d.DoctorName), "DoctorId", "DoctorName", appointment?.DoctorId);
+            ViewData["PatientId"] = new SelectList(_context.Patients.OrderBy(p => p.PatientName), "PatientId", "PatientName", appointment?.PatientId);
+
+            var statusItems = new List<SelectListItem>
+            {
+                new SelectListItem { Value = "Pending",   Text = "Pending" },
+                new SelectListItem { Value = "Confirmed", Text = "Confirmed" },
+                new SelectListItem { Value = "Completed", Text = "Completed" },
+                new SelectListItem { Value = "Cancelled", Text = "Cancelled" }
+            };
+
+            ViewData["Status"] = new SelectList(statusItems, "Value", "Text", appointment?.Status ?? "Pending");
+            ViewBag.StatusList = new SelectList(statusItems, "Value", "Text", appointment?.Status ?? "Pending");
+        }
+
         // POST: Appointments/SendQuickWhatsApp
         // Dispatches either a reminder or a post-visit follow-up and persists the tracking flags.
         [HttpPost]

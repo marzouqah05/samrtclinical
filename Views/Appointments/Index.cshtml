@@ -664,6 +664,14 @@
                                                 @T("تفاصيل", "Details")
                                             </a>
 
+                                            @* ── Edit / Reschedule link ───────────────────── *@
+                                            <a asp-action="Edit" asp-route-id="@item.AppointmentId"
+                                               class="px-2.5 py-1 rounded-lg text-xs font-medium bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] transition flex items-center gap-1.5"
+                                               title="@T("تعديل / إعادة جدولة", "Edit / Reschedule")">
+                                                <i class="bi bi-pencil text-[#49665A] dark:text-emerald-400"></i>
+                                                @T("تعديل", "Edit")
+                                            </a>
+
                                             @* ── Complete & Bill (non-terminal statuses) ────── *@
                                             @if (item.Status != "Completed" && item.Status != "Cancelled")
                                             {
