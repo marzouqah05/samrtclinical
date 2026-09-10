@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -127,6 +127,7 @@ namespace WebApplication1.Controllers
             }
 
             var department = await _context.Departments
+                .Include(d => d.Doctors)
                 .FirstOrDefaultAsync(m => m.DepartmentId == id);
 
             if (department == null)
