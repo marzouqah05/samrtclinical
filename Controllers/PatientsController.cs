@@ -67,20 +67,19 @@ namespace WebApplication1.Controllers
         {
             if (file == null || file.Length == 0)
             {
-                TempData["Error"] = "Please select a valid CSV file to upload.";
+                TempData["Error"] = "Please select a valid CSV or Excel file to upload.";
                 return RedirectToAction(nameof(Index));
             }
 
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (extension != ".csv")
+            if (!ExcelImportHelper.IsSupportedFile(file))
             {
-                TempData["Error"] = "Invalid file type. Only CSV (.csv) files are supported for import.";
+                TempData["Error"] = "Invalid file type. Only CSV (.csv) and Excel (.xlsx, .xls) files are supported for import.";
                 return RedirectToAction(nameof(Index));
             }
 
             try
             {
-                using var stream = file.OpenReadStream();
+                using var stream = ExcelImportHelper.GetStreamAsCsv(file);
                 var result = await _importExportService.ImportPatientsFromCsvAsync(stream);
 
                 if (result.ImportedCount > 0 && result.SkippedCount == 0)

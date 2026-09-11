@@ -35,36 +35,27 @@ namespace WebApplication1.Services
             using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
             {
                 // Write Header Row
-                csv.WriteField("FullName");
                 csv.WriteField("NationalID");
-                csv.WriteField("PhoneNumber");
+                csv.WriteField("FullName");
+                csv.WriteField("Phone");
                 csv.WriteField("DateOfBirth");
-                csv.WriteField("BloodType");
-                csv.WriteField("Allergies");
-                csv.WriteField("ChronicDiseases");
-                csv.WriteField("Notes");
+                csv.WriteField("Gender");
                 csv.NextRecord();
 
                 // Example Row 1
-                csv.WriteField("Ahmed Mohamed Ali");
                 csv.WriteField("1098765432");
+                csv.WriteField("Ahmed Mohamed Ali");
                 csv.WriteField("0501234567");
                 csv.WriteField("1992-05-15");
-                csv.WriteField("O+");
-                csv.WriteField("Penicillin");
-                csv.WriteField("None");
-                csv.WriteField("Referred by Dr. Khalid");
+                csv.WriteField("Male");
                 csv.NextRecord();
 
                 // Example Row 2
-                csv.WriteField("Sara Salem Omar");
                 csv.WriteField("1087654321");
+                csv.WriteField("Sara Salem Omar");
                 csv.WriteField("0559876543");
                 csv.WriteField("1988-11-20");
-                csv.WriteField("A+");
-                csv.WriteField("None");
-                csv.WriteField("Diabetes Type 2");
-                csv.WriteField("Routine annual checkup");
+                csv.WriteField("Female");
                 csv.NextRecord();
             }
 
@@ -197,7 +188,13 @@ namespace WebApplication1.Services
                     string bloodType = GetValue("BloodType", "Blood Type", "فصيلة الدم");
                     string allergies = GetValue("Allergies", "Allergy", "الحساسية");
                     string chronicDiseases = GetValue("ChronicDiseases", "Chronic Diseases", "ChronicDisease", "الأمراض المزمنة");
+                    string gender = GetValue("Gender", "Sex", "الجنس");
                     string notes = GetValue("Notes", "MedicalNotes", "Medical Notes", "ملاحظات", "الملاحظات");
+
+                    if (!string.IsNullOrWhiteSpace(gender))
+                    {
+                        notes = string.IsNullOrWhiteSpace(notes) ? $"الجنس: {gender}" : $"{notes} | الجنس: {gender}";
+                    }
 
                     // If entire row is blank, skip without counting as a failed patient
                     if (string.IsNullOrWhiteSpace(fullName) &&
@@ -341,24 +338,21 @@ namespace WebApplication1.Services
             using (var writer = new StreamWriter(memoryStream, new UTF8Encoding(true)))
             using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
             {
-                csv.WriteField("DoctorName");
-                csv.WriteField("DoctorNumber");
+                csv.WriteField("FullName");
                 csv.WriteField("Specialization");
-                csv.WriteField("ConsultationFee");
+                csv.WriteField("Phone");
                 csv.WriteField("DepartmentName");
                 csv.NextRecord();
 
                 csv.WriteField("Dr. Sarah Ahmed");
-                csv.WriteField("DOC101");
                 csv.WriteField("Cardiology");
-                csv.WriteField("250.00");
+                csv.WriteField("0501122334");
                 csv.WriteField("Cardiology");
                 csv.NextRecord();
 
                 csv.WriteField("Dr. Mohamed Ali");
-                csv.WriteField("DOC102");
                 csv.WriteField("Pediatrics");
-                csv.WriteField("180.00");
+                csv.WriteField("0559988776");
                 csv.WriteField("Pediatrics");
                 csv.NextRecord();
             }
@@ -469,9 +463,10 @@ namespace WebApplication1.Services
                         return string.Empty;
                     }
 
-                    string doctorName = GetValue("DoctorName", "Name", "FullName", "Doctor", "اسم الطبيب", "الطبيب");
+                    string doctorName = GetValue("FullName", "DoctorName", "Name", "Doctor", "اسم الطبيب", "الاسم", "الطبيب");
                     string doctorNumber = GetValue("DoctorNumber", "DoctorNo", "DocNo", "DoctorId", "رقم الطبيب", "الرقم الوظيفي");
                     string specialization = GetValue("Specialization", "Specialty", "التخصص");
+                    string phone = GetValue("Phone", "DoctorPhone", "PhoneNumber", "Mobile", "رقم الهاتف", "الهاتف", "الجوال");
                     string feeRaw = GetValue("ConsultationFee", "Fee", "Price", "سعر الكشف", "رسوم الكشف");
                     string departmentName = GetValue("DepartmentName", "Department", "Dept", "القسم", "عيادة");
 
@@ -555,6 +550,7 @@ namespace WebApplication1.Services
                         DoctorName = doctorName,
                         DoctorNumber = doctorNumber,
                         Specialization = specialization,
+                        DoctorPhone = string.IsNullOrWhiteSpace(phone) ? null : phone,
                         ConsultationFee = fee,
                         DepartmentId = deptId
                     };
@@ -595,28 +591,25 @@ namespace WebApplication1.Services
             using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
             {
                 csv.WriteField("PatientNationalID");
-                csv.WriteField("DoctorIDOrNumber");
+                csv.WriteField("DoctorName");
                 csv.WriteField("AppointmentDate");
                 csv.WriteField("AppointmentTime");
-                csv.WriteField("Status");
                 csv.WriteField("Notes");
                 csv.NextRecord();
 
                 // Example Row 1
                 csv.WriteField("1098765432");
-                csv.WriteField("1");
+                csv.WriteField("Dr. Khalid");
                 csv.WriteField(DateTime.Today.AddDays(1).ToString("yyyy-MM-dd"));
                 csv.WriteField("09:30");
-                csv.WriteField("Pending");
                 csv.WriteField("General checkup appointment");
                 csv.NextRecord();
 
                 // Example Row 2
                 csv.WriteField("1087654321");
-                csv.WriteField("1");
+                csv.WriteField("Dr. Sarah");
                 csv.WriteField(DateTime.Today.AddDays(2).ToString("yyyy-MM-dd"));
                 csv.WriteField("11:00");
-                csv.WriteField("Confirmed");
                 csv.WriteField("Follow-up consultation");
                 csv.NextRecord();
             }
@@ -835,6 +828,22 @@ namespace WebApplication1.Services
                         {
                             apptTime = dtTime.TimeOfDay;
                         }
+                    }
+
+                    // Check if slot is in the past:
+                    var slotDt = apptDate.Date.Add(apptTime);
+                    if (slotDt < DateTime.Now)
+                    {
+                        rowErrors.Add("Appointment slot cannot be scheduled in the past.");
+                    }
+
+                    // Check for active slot conflict for the doctor:
+                    bool hasConflict = await _context.Appointments.AnyAsync(a => a.DoctorId == matchedDoctorId && a.AppointmentDate == apptDate.Date && a.AppointmentTime == apptTime && a.Status != "Cancelled")
+                        || validAppointments.Any(a => a.DoctorId == matchedDoctorId && a.AppointmentDate == apptDate.Date && a.AppointmentTime == apptTime && a.Status != "Cancelled");
+
+                    if (hasConflict)
+                    {
+                        rowErrors.Add($"Doctor already has an active appointment on {apptDate:yyyy-MM-dd} at {apptTime:hh\\:mm}.");
                     }
 
                     if (rowErrors.Any())
@@ -1173,6 +1182,270 @@ namespace WebApplication1.Services
 
                 result.ImportedCount = validInvoices.Count;
                 result.ImportedRecords = validInvoices;
+            }
+
+            return result;
+        }
+
+        #endregion
+
+        #region Department & Specialty Methods
+
+        /// <summary>
+        /// Generates a downloadable sample CSV template for bulk department import with UTF-8 BOM.
+        /// </summary>
+        public byte[] GenerateDepartmentTemplateCsv()
+        {
+            using var memoryStream = new MemoryStream();
+            using (var writer = new StreamWriter(memoryStream, new UTF8Encoding(true)))
+            using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+            {
+                csv.WriteField("DepartmentName");
+                csv.WriteField("DepartmentCode");
+                csv.NextRecord();
+
+                csv.WriteField("Cardiology");
+                csv.WriteField("CARD");
+                csv.NextRecord();
+
+                csv.WriteField("Pediatrics");
+                csv.WriteField("PED");
+                csv.NextRecord();
+
+                csv.WriteField("Orthopedics");
+                csv.WriteField("ORTH");
+                csv.NextRecord();
+            }
+
+            return memoryStream.ToArray();
+        }
+
+        public async Task<ImportResult<Department>> ImportDepartmentsFromCsvAsync(Stream stream)
+        {
+            var result = new ImportResult<Department>();
+            var validDepts = new List<Department>();
+
+            var existingDepts = await _context.Departments.AsNoTracking().ToListAsync();
+            var existingNames = new HashSet<string>(existingDepts.Select(d => d.DepartmentName.Trim()), StringComparer.OrdinalIgnoreCase);
+
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                HasHeaderRecord = true,
+                HeaderValidated = null,
+                MissingFieldFound = null,
+                TrimOptions = TrimOptions.Trim,
+                BadDataFound = null
+            };
+
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            using var csv = new CsvReader(reader, config);
+
+            if (!await csv.ReadAsync() || !csv.ReadHeader())
+            {
+                result.ErrorMessages.Add("The uploaded departments file is empty or missing a header row.");
+                return result;
+            }
+
+            var headers = csv.HeaderRecord ?? Array.Empty<string>();
+            int rowNumber = 1;
+
+            while (await csv.ReadAsync())
+            {
+                rowNumber++;
+                result.TotalRows++;
+
+                try
+                {
+                    string GetValue(params string[] aliases)
+                    {
+                        foreach (var alias in aliases)
+                        {
+                            if (csv.TryGetField(alias, out string? value) && !string.IsNullOrWhiteSpace(value))
+                                return value.Trim();
+
+                            var normalizedAlias = NormalizeHeader(alias);
+                            foreach (var header in headers)
+                            {
+                                if (NormalizeHeader(header) == normalizedAlias)
+                                {
+                                    if (csv.TryGetField(header, out string? matchVal) && !string.IsNullOrWhiteSpace(matchVal))
+                                        return matchVal.Trim();
+                                }
+                            }
+                        }
+                        return string.Empty;
+                    }
+
+                    string deptName = GetValue("DepartmentName", "Name", "DeptName", "اسم القسم", "القسم");
+                    string deptCode = GetValue("DepartmentCode", "DepartmentAbbr", "Code", "Abbr", "رمز القسم", "كود القسم");
+
+                    if (string.IsNullOrWhiteSpace(deptName))
+                    {
+                        result.SkippedCount++;
+                        result.ErrorMessages.Add($"Row {rowNumber}: Department Name is required.");
+                        continue;
+                    }
+
+                    if (existingNames.Contains(deptName) || validDepts.Any(d => string.Equals(d.DepartmentName, deptName, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        result.SkippedCount++;
+                        result.ErrorMessages.Add($"Row {rowNumber}: Department '{deptName}' already exists.");
+                        continue;
+                    }
+
+                    var dept = new Department
+                    {
+                        DepartmentName = deptName,
+                        DepartmentAbbr = string.IsNullOrWhiteSpace(deptCode) ? (deptName.Length >= 4 ? deptName.Substring(0, 4).ToUpperInvariant() : deptName.ToUpperInvariant()) : deptCode
+                    };
+
+                    validDepts.Add(dept);
+                    existingNames.Add(deptName);
+                }
+                catch (Exception ex)
+                {
+                    result.SkippedCount++;
+                    result.ErrorMessages.Add($"Row {rowNumber}: Unexpected parse error: {ex.Message}");
+                }
+            }
+
+            if (validDepts.Any())
+            {
+                await _context.Departments.AddRangeAsync(validDepts);
+                await _context.SaveChangesAsync();
+                result.ImportedCount = validDepts.Count;
+                result.ImportedRecords = validDepts;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Generates a downloadable sample CSV template for bulk specialties import with UTF-8 BOM.
+        /// </summary>
+        public byte[] GenerateSpecialtiesTemplateCsv()
+        {
+            using var memoryStream = new MemoryStream();
+            using (var writer = new StreamWriter(memoryStream, new UTF8Encoding(true)))
+            using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+            {
+                csv.WriteField("SpecializationName");
+                csv.WriteField("Description");
+                csv.NextRecord();
+
+                csv.WriteField("Cardiology");
+                csv.WriteField("Heart and cardiovascular medical care");
+                csv.NextRecord();
+
+                csv.WriteField("Dermatology");
+                csv.WriteField("Skin treatments and aesthetic medicine");
+                csv.NextRecord();
+
+                csv.WriteField("Pediatrics");
+                csv.WriteField("Infant and child healthcare");
+                csv.NextRecord();
+            }
+
+            return memoryStream.ToArray();
+        }
+
+        public async Task<ImportResult<string>> ImportSpecialtiesFromCsvAsync(Stream stream)
+        {
+            var result = new ImportResult<string>();
+            var validSpecs = new List<string>();
+
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                HasHeaderRecord = true,
+                HeaderValidated = null,
+                MissingFieldFound = null,
+                TrimOptions = TrimOptions.Trim,
+                BadDataFound = null
+            };
+
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            using var csv = new CsvReader(reader, config);
+
+            if (!await csv.ReadAsync() || !csv.ReadHeader())
+            {
+                result.ErrorMessages.Add("The uploaded specialties file is empty or missing a header row.");
+                return result;
+            }
+
+            var headers = csv.HeaderRecord ?? Array.Empty<string>();
+            int rowNumber = 1;
+
+            while (await csv.ReadAsync())
+            {
+                rowNumber++;
+                result.TotalRows++;
+
+                try
+                {
+                    string GetValue(params string[] aliases)
+                    {
+                        foreach (var alias in aliases)
+                        {
+                            if (csv.TryGetField(alias, out string? value) && !string.IsNullOrWhiteSpace(value))
+                                return value.Trim();
+
+                            var normalizedAlias = NormalizeHeader(alias);
+                            foreach (var header in headers)
+                            {
+                                if (NormalizeHeader(header) == normalizedAlias)
+                                {
+                                    if (csv.TryGetField(header, out string? matchVal) && !string.IsNullOrWhiteSpace(matchVal))
+                                        return matchVal.Trim();
+                                }
+                            }
+                        }
+                        return string.Empty;
+                    }
+
+                    string specName = GetValue("SpecializationName", "SpecialtyName", "Specialization", "Specialty", "اسم التخصص", "التخصص");
+                    string desc = GetValue("Description", "Desc", "Notes", "الوصف", "ملاحظات");
+
+                    if (string.IsNullOrWhiteSpace(specName))
+                    {
+                        result.SkippedCount++;
+                        result.ErrorMessages.Add($"Row {rowNumber}: Specialization Name is required.");
+                        continue;
+                    }
+
+                    validSpecs.Add(specName);
+                }
+                catch (Exception ex)
+                {
+                    result.SkippedCount++;
+                    result.ErrorMessages.Add($"Row {rowNumber}: Unexpected parse error: {ex.Message}");
+                }
+            }
+
+            if (validSpecs.Any())
+            {
+                var setting = await _context.ClinicSettings.FirstOrDefaultAsync(s => s.Key == "Clinic_Specialties");
+                if (setting == null)
+                {
+                    setting = new ClinicSetting
+                    {
+                        Key = "Clinic_Specialties",
+                        Value = string.Join(";", validSpecs.Distinct()),
+                        Description = "List of clinic specialties",
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    _context.ClinicSettings.Add(setting);
+                }
+                else
+                {
+                    var existingList = (setting.Value ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
+                    existingList.AddRange(validSpecs);
+                    setting.Value = string.Join(";", existingList.Distinct());
+                    setting.UpdatedAt = DateTime.UtcNow;
+                }
+                await _context.SaveChangesAsync();
+
+                result.ImportedCount = validSpecs.Count;
+                result.ImportedRecords = validSpecs;
             }
 
             return result;

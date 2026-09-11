@@ -1,12 +1,16 @@
 using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Models;
+using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {
@@ -14,11 +18,125 @@ namespace WebApplication1.Controllers
     public class DepartmentsController : Controller
     {
         private readonly ClinicDbContext _context;
+        private readonly IDataImportExportService _importExportService;
 
-        public DepartmentsController(ClinicDbContext context)
+        public DepartmentsController(ClinicDbContext context, IDataImportExportService importExportService)
         {
             _context = context;
+            _importExportService = importExportService;
         }
+
+        #region Bulk Import & Template Download
+
+        /// <summary>
+        /// GET: /Departments/DownloadTemplate
+        /// </summary>
+        [HttpGet]
+        public IActionResult DownloadTemplate()
+        {
+            var csvBytes = _importExportService.GenerateDepartmentTemplateCsv();
+            return File(csvBytes, "text/csv; charset=utf-8", "Departments_Template.csv");
+        }
+
+        /// <summary>
+        /// POST: /Departments/Import
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Import(IFormFile? file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                TempData["Error"] = "Please select a valid CSV or Excel file to upload.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (!ExcelImportHelper.IsSupportedFile(file))
+            {
+                TempData["Error"] = "Invalid file type. Only CSV (.csv) and Excel (.xlsx, .xls) files are supported for import.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                using var stream = ExcelImportHelper.GetStreamAsCsv(file);
+                var result = await _importExportService.ImportDepartmentsFromCsvAsync(stream);
+
+                if (result.ImportedCount > 0 && result.SkippedCount == 0)
+                    TempData["Success"] = $"Successfully imported {result.ImportedCount} department(s).";
+                else if (result.ImportedCount > 0 && result.SkippedCount > 0)
+                    TempData["Warning"] = $"Imported {result.ImportedCount} department(s), but {result.SkippedCount} row(s) were skipped.";
+                else if (result.ImportedCount == 0 && result.SkippedCount > 0)
+                    TempData["Error"] = $"Import failed: 0 departments imported. {result.SkippedCount} row(s) had errors.";
+                else
+                    TempData["Warning"] = "The uploaded file contained no valid department rows.";
+
+                if (result.ErrorMessages.Any())
+                    TempData["ImportErrors"] = JsonSerializer.Serialize(result.ErrorMessages.Take(25));
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"An error occurred during import: {ex.Message}";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        /// <summary>
+        /// GET: /Departments/DownloadSpecialtiesTemplate
+        /// </summary>
+        [HttpGet]
+        public IActionResult DownloadSpecialtiesTemplate()
+        {
+            var csvBytes = _importExportService.GenerateSpecialtiesTemplateCsv();
+            return File(csvBytes, "text/csv; charset=utf-8", "Specialties_Template.csv");
+        }
+
+        /// <summary>
+        /// POST: /Departments/ImportSpecialties
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ImportSpecialties(IFormFile? file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                TempData["Error"] = "Please select a valid CSV or Excel file to upload.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (!ExcelImportHelper.IsSupportedFile(file))
+            {
+                TempData["Error"] = "Invalid file type. Only CSV (.csv) and Excel (.xlsx, .xls) files are supported for import.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                using var stream = ExcelImportHelper.GetStreamAsCsv(file);
+                var result = await _importExportService.ImportSpecialtiesFromCsvAsync(stream);
+
+                if (result.ImportedCount > 0 && result.SkippedCount == 0)
+                    TempData["Success"] = $"Successfully imported {result.ImportedCount} specialty item(s).";
+                else if (result.ImportedCount > 0 && result.SkippedCount > 0)
+                    TempData["Warning"] = $"Imported {result.ImportedCount} specialty item(s), but {result.SkippedCount} row(s) were skipped.";
+                else if (result.ImportedCount == 0 && result.SkippedCount > 0)
+                    TempData["Error"] = $"Import failed: 0 specialties imported. {result.SkippedCount} row(s) had errors.";
+                else
+                    TempData["Warning"] = "The uploaded file contained no valid specialty rows.";
+
+                if (result.ErrorMessages.Any())
+                    TempData["ImportErrors"] = JsonSerializer.Serialize(result.ErrorMessages.Take(25));
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"An error occurred during import: {ex.Message}";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        #endregion
 
         // GET: Departments
         public async Task<IActionResult> Index()

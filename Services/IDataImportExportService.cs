@@ -35,5 +35,13 @@ namespace WebApplication1.Services
         byte[] GenerateInvoiceTemplateCsv();
         Task<byte[]> ExportInvoicesToCsvAsync();
         Task<ImportResult<Invoice>> ImportInvoicesFromCsvAsync(Stream stream);
+
+        // ── Department Import / Export ─────────────────────────────────────────
+        byte[] GenerateDepartmentTemplateCsv();
+        Task<ImportResult<Department>> ImportDepartmentsFromCsvAsync(Stream stream);
+
+        // ── Specialty Import / Export ──────────────────────────────────────────
+        byte[] GenerateSpecialtiesTemplateCsv();
+        Task<ImportResult<string>> ImportSpecialtiesFromCsvAsync(Stream stream);
     }
 }

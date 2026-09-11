@@ -1183,115 +1183,85 @@
    BULK IMPORT APPOINTMENTS MODAL
 ══════════════════════════════════════════════════════ *@
 <div class="modal fade" id="importAppointmentsModal" tabindex="-1" aria-labelledby="importAppointmentsModalLabel" aria-hidden="true" dir="@(_isAr ? "rtl" : "ltr")">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4 bg-white dark:bg-[#1B2421] dark:border dark:border-[#2B3833]">
-            <div class="modal-header border-0 pb-0">
-                <div class="d-flex align-items-center gap-2">
-                    <div class="rounded-circle bg-[#49665A]/10 p-2 d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
-                        <i class="fa-solid fa-file-arrow-up text-[#49665A] fs-5"></i>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 p-3 bg-white dark:bg-[#1B2421]">
+            <div class="modal-header border-0 pb-0 d-flex justify-content-between align-items-start w-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-light dark:bg-[#2B3833] p-2 rounded-3 text-secondary dark:text-[#9CA8A3] d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-cloud-arrow-up fs-4 text-success"></i>
                     </div>
                     <div>
-                        <h5 class="modal-title fw-bold m-0 text-[#202725] dark:text-[#EAEFEA]" id="importAppointmentsModalLabel">
+                        <h5 class="modal-title fw-bold text-[#202725] dark:text-[#EAEFEA] m-0" id="importAppointmentsModalLabel">
                             @T("استيراد المواعيد (Bulk Import)", "Bulk Import Appointments")
                         </h5>
-                        <p class="m-0 text-xs text-[#727A76] dark:text-[#9CA8A3]">
-                            @T("رفع ملف CSV لجدولة المواعيد دفعة واحدة", "Upload CSV to schedule multiple appointments at once")
+                        <p class="text-muted small mb-0 text-[#727A76] dark:text-[#9CA8A3]">
+                            @T("رفع ملف CSV أو Excel لتسجيل البيانات دفعة واحدة", "Upload CSV or Excel file to record multiple records at once")
                         </p>
                     </div>
                 </div>
-                <button type="button" class="btn-close dark:invert dark:opacity-60" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <form asp-action="Import" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
-                <div class="modal-body py-4 space-y-4">
-
-                    @* Template download card *@
-                    <div class="flex items-center justify-between gap-3 p-3 rounded-xl
-                                bg-white dark:bg-[#1B2421]
-                                border border-[#DDE3DF] dark:border-[#2B3833]">
-                        <div class="flex items-center gap-3">
-                            <i class="fa-solid fa-file-csv text-3xl text-[#2E7D5B]"></i>
+                <div class="modal-body pt-3">
+                    <!-- Section 1: Template Download Box -->
+                    <div class="border rounded-3 p-3 bg-white dark:bg-[#151E1B] dark:border-[#2B3833] mb-3 d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="bi bi-file-earmark-spreadsheet text-success fs-1"></i>
                             <div>
-                                <div class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA]">
-                                    @T("قالب المواعيد الجاهز", "Sample Template")
-                                </div>
-                                <div class="text-xs text-[#727A76] dark:text-[#9CA8A3] mt-0.5">
-                                    @T("تحميل ملف CSV بأعمدة المواعيد المطلوبة", "Download CSV template with appointment headers")
-                                </div>
+                                <div class="fw-bold text-dark dark:text-[#EAEFEA]">@T("قالب المواعيد الجاهز", "Appointments Ready Template")</div>
+                                <div class="text-muted small text-[#727A76] dark:text-[#9CA8A3]">@T("تحميل ملف CSV بالأعمدة المطلوبة", "Download CSV template with required columns")</div>
                             </div>
                         </div>
-                        <a asp-action="DownloadTemplate"
-                           class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg
-                                  border border-[#2E7D5B] text-[#2E7D5B] hover:bg-[#2E7D5B]/10
-                                  dark:bg-[#151E1B] dark:border-[#2B3833] dark:text-[#EAEFEA] dark:hover:bg-[#2B3833]
-                                  transition-colors shrink-0">
-                            <i class="fa-solid fa-download"></i>
-                            @T("تحميل القالب", "Download Template")
+                        <a asp-action="DownloadTemplate" class="btn btn-outline-dark btn-sm rounded-3 d-inline-flex align-items-center gap-2">
+                            <i class="bi bi-download"></i>
+                            <span>@T("تحميل القالب", "Download Template")</span>
                         </a>
                     </div>
 
-                    @* File input *@
-                    <div>
-                        <label class="block text-sm font-bold mb-2 text-[#202725] dark:text-[#EAEFEA]">
-                            @T("اختر ملف CSV:", "Select CSV File:")
+                    <!-- Section 2: File Input Field -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark dark:text-[#EAEFEA]">
+                            * @T("اختر ملف CSV أو Excel", "Select CSV or Excel file")
                         </label>
-                        <input type="file" name="file" class="form-control" accept=".csv" required />
+                        <input type="file" name="file" class="form-control rounded-3 border py-2 px-3" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" required />
                     </div>
 
-                    @* Required columns panel *@
-                    <div class="bg-[#F8FAF9] dark:bg-[#151E1B] border border-[#D5DDD8] dark:border-[#2B3833] rounded-xl p-4">
-                        <div class="flex items-center gap-2 mb-3">
-                            <i class="fa-solid fa-circle-info text-[#49665A] text-xs"></i>
-                            <span class="text-xs font-bold text-[#1A2621] dark:text-[#EAEFEA]">
-                                @T("الأعمدة المطلوبة في الملف", "Required Columns in CSV")
-                            </span>
+                    <!-- Section 3: Required Columns Guide Box -->
+                    <div class="bg-light dark:bg-[#151E1B] border dark:border-[#2B3833] rounded-3 p-3 mb-4 small text-secondary dark:text-[#9CA8A3]">
+                        <div class="fw-bold mb-2 text-dark dark:text-[#EAEFEA]">
+                            <i class="bi bi-info-circle-fill me-1 text-primary"></i> @T("الأعمدة المطلوبة في الملف:", "Required Columns in File:")
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-[#6B7D75] dark:text-[#9CA8A3]">
-                            <div class="flex items-start gap-2">
-                                <i class="fa-solid fa-check text-[#49665A] mt-0.5 shrink-0"></i>
-                                <div>
-                                    <span class="font-bold text-[#1A2621] dark:text-[#EAEFEA]">PatientNationalID</span>
-                                    <div class="mt-0.5">@T("رقم هوية المريض المسجل بالنظام", "Registered Patient National ID")</div>
-                                </div>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <span class="fw-bold text-dark dark:text-[#EAEFEA]">PatientNationalID:</span> @T("رقم الهوية الوطنية للمريض (أو الهاتف)", "Patient National ID (or Phone)")
                             </div>
-                            <div class="flex items-start gap-2">
-                                <i class="fa-solid fa-check text-[#49665A] mt-0.5 shrink-0"></i>
-                                <div>
-                                    <span class="font-bold text-[#1A2621] dark:text-[#EAEFEA]">DoctorIDOrNumber</span>
-                                    <div class="mt-0.5">@T("رقم الطبيب أو معرفه", "Doctor ID or Doctor Number")</div>
-                                </div>
+                            <div class="col-md-6">
+                                <span class="fw-bold text-dark dark:text-[#EAEFEA]">DoctorName:</span> @T("اسم الطبيب (أو رقم الطبيب)", "Doctor Name (or Doctor ID)")
                             </div>
-                            <div class="flex items-start gap-2">
-                                <i class="fa-solid fa-check text-[#49665A] mt-0.5 shrink-0"></i>
-                                <div>
-                                    <span class="font-bold text-[#1A2621] dark:text-[#EAEFEA]">AppointmentDate</span>
-                                    <div class="mt-0.5">@T("تاريخ الموعد (YYYY-MM-DD)", "Appointment Date (YYYY-MM-DD)")</div>
-                                </div>
+                            <div class="col-md-6">
+                                <span class="fw-bold text-dark dark:text-[#EAEFEA]">AppointmentDate:</span> @T("تاريخ الموعد (YYYY-MM-DD)", "Date (YYYY-MM-DD)")
                             </div>
-                            <div class="flex items-start gap-2">
-                                <i class="fa-solid fa-check text-[#49665A] mt-0.5 shrink-0"></i>
-                                <div>
-                                    <span class="font-bold text-[#1A2621] dark:text-[#EAEFEA]">AppointmentTime</span>
-                                    <div class="mt-0.5">@T("وقت الموعد (HH:mm)", "Appointment Time (HH:mm)")</div>
-                                </div>
+                            <div class="col-md-6">
+                                <span class="fw-bold text-dark dark:text-[#EAEFEA]">AppointmentTime:</span> @T("وقت الموعد (HH:mm)", "Time (HH:mm)")
+                            </div>
+                            <div class="col-md-12">
+                                <span class="fw-bold text-dark dark:text-[#EAEFEA]">Notes:</span> @T("ملاحظات الموعد أو الشكوى (اختياري)", "Notes or symptoms (Optional)")
                             </div>
                         </div>
                     </div>
 
-                </div>
-                <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-[#E5E9E7] dark:border-[#2B3833] mt-6 px-6 pb-6">
-                    <button type="button"
-                            class="px-4 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/20 text-[#6B7D75] hover:text-rose-600 dark:text-[#9CA8A3] dark:hover:text-rose-400 text-xs font-semibold transition flex items-center gap-1.5"
-                            data-bs-dismiss="modal">
-                        <i class="fa-solid fa-xmark text-xs"></i>
-                        <span>@T("إلغاء", "Cancel")</span>
-                    </button>
-                    <button type="submit"
-                            class="px-5 py-2 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-upload text-xs"></i>
-                        <span>@T("بدء الاستيراد", "Import Appointments")</span>
-                    </button>
+                    <!-- Section 4: Modal Footer Actions -->
+                    <div class="d-flex justify-content-end align-items-center gap-2 mt-4 pt-3 border-top w-100">
+                        <button type="button" class="btn btn-outline-secondary px-4 rounded-3" data-bs-dismiss="modal">
+                            @T("إلغاء", "Cancel")
+                        </button>
+                        <button type="submit" class="btn btn-success px-4 rounded-3 d-inline-flex align-items-center gap-2">
+                            <i class="bi bi-cloud-arrow-up me-1"></i>
+                            <span>@T("بدء الاستيراد", "Start Import")</span>
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>

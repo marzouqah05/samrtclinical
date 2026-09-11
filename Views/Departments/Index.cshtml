@@ -19,7 +19,7 @@
             </h2>
             <p class="text-xs text-[#727A76] m-0 mt-1 ms-10">@T("نظرة عامة وتحكم في أقسام عيادتك الصحية.", "Overview and control of your healthcare clinic departments.")</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
             <!-- Total count pill -->
             <div class="inline-flex items-center gap-2 bg-white dark:bg-[#1B2421] border border-[#E5E9E7] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] rounded-xl px-4 py-2 shadow-sm">
                 <span class="w-7 h-7 rounded-md bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-xs">
@@ -28,6 +28,25 @@
                 <span class="text-sm font-bold text-[#1A2621] dark:text-[#EAEFEA]">@Model.Count()</span>
                 <span class="text-xs text-[#6B7D75] dark:text-[#9CA8A3]">@T("قسم", "Departments")</span>
             </div>
+
+            <!-- 📥 Import Departments Button -->
+            <button type="button"
+                    class="inline-flex items-center gap-2 px-3.5 py-2 bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] text-[#49665A] dark:text-[#EAEFEA] text-xs font-semibold rounded-xl hover:bg-[#F6F7F5] dark:hover:bg-[#202B27] transition shadow-sm"
+                    data-bs-toggle="modal" data-bs-target="#importDepartmentsModal"
+                    title="@T("استيراد بيانات الأقسام من CSV أو Excel", "Bulk import departments from CSV or Excel")">
+                <i class="fa-solid fa-file-import text-xs"></i>
+                <span>@T("استيراد الأقسام", "Import Departments")</span>
+            </button>
+
+            <!-- 📥 Import Specialties Button -->
+            <button type="button"
+                    class="inline-flex items-center gap-2 px-3.5 py-2 bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] text-[#2E7D5B] dark:text-[#A7D7C5] text-xs font-semibold rounded-xl hover:bg-[#F6F7F5] dark:hover:bg-[#202B27] transition shadow-sm"
+                    data-bs-toggle="modal" data-bs-target="#importSpecialtiesModal"
+                    title="@T("استيراد بيانات التخصصات من CSV أو Excel", "Bulk import specialties from CSV or Excel")">
+                <i class="fa-solid fa-tags text-xs"></i>
+                <span>@T("استيراد التخصصات", "Import Specialties")</span>
+            </button>
+
             <a asp-action="Create"
                class="inline-flex items-center gap-2 px-4 py-2 bg-[#49665A] text-white text-xs font-semibold rounded-xl hover:bg-[#3D574D] transition-colors shadow-sm">
                 <i class="fa-solid fa-plus text-xs"></i>
@@ -161,5 +180,161 @@
                 </a>
             </div>
         }
+    </div>
+</div>
+
+@* ─── 📥 Import Departments Modal ─── *@
+<div class="modal fade" id="importDepartmentsModal" tabindex="-1" aria-labelledby="importDepartmentsModalLabel" aria-hidden="true" dir="@(_isAr ? "rtl" : "ltr")">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 p-3 bg-white dark:bg-[#1B2421]">
+            <div class="modal-header border-0 pb-0 d-flex justify-content-between align-items-start w-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-light dark:bg-[#2B3833] p-2 rounded-3 text-secondary dark:text-[#9CA8A3] d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-cloud-arrow-up fs-4 text-success"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-[#202725] dark:text-[#EAEFEA] m-0" id="importDepartmentsModalLabel">
+                            @T("استيراد الأقسام (Bulk Import)", "Bulk Import Departments")
+                        </h5>
+                        <p class="text-muted small mb-0 text-[#727A76] dark:text-[#9CA8A3]">
+                            @T("رفع ملف CSV أو Excel لتسجيل البيانات دفعة واحدة", "Upload CSV or Excel file to record multiple records at once")
+                        </p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form asp-action="Import" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-body pt-3">
+                    <!-- Section 1: Template Download Box -->
+                    <div class="border rounded-3 p-3 bg-white dark:bg-[#151E1B] dark:border-[#2B3833] mb-3 d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="bi bi-file-earmark-spreadsheet text-success fs-1"></i>
+                            <div>
+                                <div class="fw-bold text-dark dark:text-[#EAEFEA]">@T("قالب الأقسام الجاهز", "Departments Ready Template")</div>
+                                <div class="text-muted small text-[#727A76] dark:text-[#9CA8A3]">@T("تحميل ملف CSV بالأعمدة المطلوبة", "Download CSV template with required columns")</div>
+                            </div>
+                        </div>
+                        <a asp-action="DownloadTemplate" class="btn btn-outline-dark btn-sm rounded-3 d-inline-flex align-items-center gap-2">
+                            <i class="bi bi-download"></i>
+                            <span>@T("تحميل القالب", "Download Template")</span>
+                        </a>
+                    </div>
+
+                    <!-- Section 2: File Input Field -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark dark:text-[#EAEFEA]">
+                            * @T("اختر ملف CSV أو Excel", "Select CSV or Excel file")
+                        </label>
+                        <input type="file" name="file" class="form-control rounded-3 border py-2 px-3" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" required />
+                    </div>
+
+                    <!-- Section 3: Required Columns Guide Box -->
+                    <div class="bg-light dark:bg-[#151E1B] border dark:border-[#2B3833] rounded-3 p-3 mb-4 small text-secondary dark:text-[#9CA8A3]">
+                        <div class="fw-bold mb-2 text-dark dark:text-[#EAEFEA]">
+                            <i class="bi bi-info-circle-fill me-1 text-primary"></i> @T("الأعمدة المطلوبة في الملف:", "Required Columns in File:")
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <span class="fw-bold text-dark dark:text-[#EAEFEA]">DepartmentName:</span> @T("اسم القسم الطبي (3 - 100 حرفاً)", "Department Name (3 - 100 chars)")
+                            </div>
+                            <div class="col-md-6">
+                                <span class="fw-bold text-dark dark:text-[#EAEFEA]">DepartmentCode:</span> @T("رمز القسم الفريد (مثل DENT, CARD, PED)", "Unique Code (e.g. DENT, CARD, PED)")
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Modal Footer Actions -->
+                    <div class="d-flex justify-content-end align-items-center gap-2 mt-4 pt-3 border-top w-100">
+                        <button type="button" class="btn btn-outline-secondary px-4 rounded-3" data-bs-dismiss="modal">
+                            @T("إلغاء", "Cancel")
+                        </button>
+                        <button type="submit" class="btn btn-success px-4 rounded-3 d-inline-flex align-items-center gap-2">
+                            <i class="bi bi-cloud-arrow-up me-1"></i>
+                            <span>@T("بدء الاستيراد", "Start Import")</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* ─── 📥 Import Specialties Modal ─── *@
+<div class="modal fade" id="importSpecialtiesModal" tabindex="-1" aria-labelledby="importSpecialtiesModalLabel" aria-hidden="true" dir="@(_isAr ? "rtl" : "ltr")">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 p-3 bg-white dark:bg-[#1B2421]">
+            <div class="modal-header border-0 pb-0 d-flex justify-content-between align-items-start w-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-light dark:bg-[#2B3833] p-2 rounded-3 text-secondary dark:text-[#9CA8A3] d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-cloud-arrow-up fs-4 text-success"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-[#202725] dark:text-[#EAEFEA] m-0" id="importSpecialtiesModalLabel">
+                            @T("استيراد التخصصات (Bulk Import)", "Bulk Import Specialties")
+                        </h5>
+                        <p class="text-muted small mb-0 text-[#727A76] dark:text-[#9CA8A3]">
+                            @T("رفع ملف CSV أو Excel لتسجيل البيانات دفعة واحدة", "Upload CSV or Excel file to record multiple records at once")
+                        </p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form asp-action="ImportSpecialties" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-body pt-3">
+                    <!-- Section 1: Template Download Box -->
+                    <div class="border rounded-3 p-3 bg-white dark:bg-[#151E1B] dark:border-[#2B3833] mb-3 d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="bi bi-file-earmark-spreadsheet text-success fs-1"></i>
+                            <div>
+                                <div class="fw-bold text-dark dark:text-[#EAEFEA]">@T("قالب التخصصات الجاهز", "Specialties Ready Template")</div>
+                                <div class="text-muted small text-[#727A76] dark:text-[#9CA8A3]">@T("تحميل ملف CSV بالأعمدة المطلوبة", "Download CSV template with required columns")</div>
+                            </div>
+                        </div>
+                        <a asp-action="DownloadSpecialtiesTemplate" class="btn btn-outline-dark btn-sm rounded-3 d-inline-flex align-items-center gap-2">
+                            <i class="bi bi-download"></i>
+                            <span>@T("تحميل القالب", "Download Template")</span>
+                        </a>
+                    </div>
+
+                    <!-- Section 2: File Input Field -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark dark:text-[#EAEFEA]">
+                            * @T("اختر ملف CSV أو Excel", "Select CSV or Excel file")
+                        </label>
+                        <input type="file" name="file" class="form-control rounded-3 border py-2 px-3" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" required />
+                    </div>
+
+                    <!-- Section 3: Required Columns Guide Box -->
+                    <div class="bg-light dark:bg-[#151E1B] border dark:border-[#2B3833] rounded-3 p-3 mb-4 small text-secondary dark:text-[#9CA8A3]">
+                        <div class="fw-bold mb-2 text-dark dark:text-[#EAEFEA]">
+                            <i class="bi bi-info-circle-fill me-1 text-primary"></i> @T("الأعمدة المطلوبة في الملف:", "Required Columns in File:")
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <span class="fw-bold text-dark dark:text-[#EAEFEA]">SpecializationName:</span> @T("اسم التخصص الطبي (3 - 100 حرفاً)", "Medical Specialization Name")
+                            </div>
+                            <div class="col-md-6">
+                                <span class="fw-bold text-dark dark:text-[#EAEFEA]">Description:</span> @T("وصف التخصص الطبي (اختياري)", "Specialization Description (Optional)")
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Modal Footer Actions -->
+                    <div class="d-flex justify-content-end align-items-center gap-2 mt-4 pt-3 border-top w-100">
+                        <button type="button" class="btn btn-outline-secondary px-4 rounded-3" data-bs-dismiss="modal">
+                            @T("إلغاء", "Cancel")
+                        </button>
+                        <button type="submit" class="btn btn-success px-4 rounded-3 d-inline-flex align-items-center gap-2">
+                            <i class="bi bi-cloud-arrow-up me-1"></i>
+                            <span>@T("بدء الاستيراد", "Start Import")</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
