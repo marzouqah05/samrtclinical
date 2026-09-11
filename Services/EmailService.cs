@@ -127,7 +127,7 @@ namespace WebApplication1.Services
 </html>";
 
             // Always log OTP to Console / Terminal so registration is never blocked if SMTP credentials are mock or fail
-            Console.WriteLine($"\n===================\n[REGISTRATION OTP]: {otpCode} for {toEmail}\n===================\n");
+            Console.WriteLine($"\n[REGISTRATION OTP]: {otpCode} for {toEmail}\n");
 
             _logger.LogInformation("[EmailService] Sending OTP to {To}", toEmail);
             var sent = await SendEmailAsync(toEmail, subject, body);

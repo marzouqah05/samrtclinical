@@ -204,13 +204,13 @@ namespace WebApplication1.Controllers
                     var emailSent = await _emailSender.SendOtpEmailAsync(email, otpCode, adminName);
                     if (!emailSent)
                     {
-                        Console.WriteLine($"\n===================\n[REGISTRATION OTP]: {otpCode} for {email}\n===================\n");
+                        Console.WriteLine($"\n[REGISTRATION OTP]: {otpCode} for {email}\n");
                         TempData["DevOtp"] = otpCode;
                     }
                 }
                 catch (Exception)
                 {
-                    Console.WriteLine($"\n===================\n[REGISTRATION OTP]: {otpCode} for {email}\n===================\n");
+                    Console.WriteLine($"\n[REGISTRATION OTP]: {otpCode} for {email}\n");
                     TempData["DevOtp"] = otpCode;
                 }
 
@@ -374,13 +374,13 @@ namespace WebApplication1.Controllers
                     var emailSent = await _emailSender.SendOtpEmailAsync(email, newOtp);
                     if (!emailSent)
                     {
-                        Console.WriteLine($"\n===================\n[REGISTRATION OTP]: {newOtp} for {email}\n===================\n");
+                        Console.WriteLine($"\n[REGISTRATION OTP]: {newOtp} for {email}\n");
                         TempData["DevOtp"] = newOtp;
                     }
                 }
                 catch (Exception)
                 {
-                    Console.WriteLine($"\n===================\n[REGISTRATION OTP]: {newOtp} for {email}\n===================\n");
+                    Console.WriteLine($"\n[REGISTRATION OTP]: {newOtp} for {email}\n");
                     TempData["DevOtp"] = newOtp;
                 }
 
