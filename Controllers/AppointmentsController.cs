@@ -234,6 +234,18 @@ namespace WebApplication1.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,Notes,IsWeekendOverride")] Appointment appointment)
         {
+            var combinedDateTime = DateTime.SpecifyKind(appointment.AppointmentDate.Date.Add(appointment.AppointmentTime), DateTimeKind.Utc);
+            if (combinedDateTime < DateTime.UtcNow)
+            {
+                string errorMsg = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
+                    ? "لا يمكن حجز موعد في وقت أو تاريخ قد مضى."
+                    : "Cannot book an appointment in the past.";
+                ModelState.AddModelError("AppointmentTime", errorMsg);
+                ViewData["DoctorId"] = new SelectList(_context.Doctors, "DoctorId", "DoctorName", appointment.DoctorId);
+                ViewData["PatientId"] = new SelectList(_context.Patients, "PatientId", "PatientName", appointment.PatientId);
+                return View(appointment);
+            }
+
             var isWeekend = appointment.AppointmentDate.DayOfWeek == DayOfWeek.Friday || appointment.AppointmentDate.DayOfWeek == DayOfWeek.Saturday;
             if (isWeekend && !appointment.IsWeekendOverride)
             {
@@ -366,6 +378,17 @@ namespace WebApplication1.Controllers
 
             // Ensure AppointmentDate is handled cleanly in UTC for PostgreSQL
             appointment.AppointmentDate = DateTime.SpecifyKind(appointment.AppointmentDate.Date, DateTimeKind.Utc);
+
+            var combinedDateTime = appointment.AppointmentDate.Date.Add(appointment.AppointmentTime);
+            if (combinedDateTime < DateTime.UtcNow)
+            {
+                string errorMsg = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
+                    ? "لا يمكن حجز موعد في وقت أو تاريخ قد مضى."
+                    : "Cannot book an appointment in the past.";
+                ModelState.AddModelError("AppointmentTime", errorMsg);
+                PopulateAppointmentDropdowns(appointment);
+                return View(appointment);
+            }
 
             var isWeekend = appointment.AppointmentDate.DayOfWeek == DayOfWeek.Friday || appointment.AppointmentDate.DayOfWeek == DayOfWeek.Saturday;
             if (isWeekend && !appointment.IsWeekendOverride)
@@ -527,6 +550,16 @@ namespace WebApplication1.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> QuickBook([Bind("AppointmentDate,AppointmentTime,DoctorId,PatientId,Notes")] Appointment appointment)
         {
+            var combinedDateTime = DateTime.SpecifyKind(appointment.AppointmentDate.Date.Add(appointment.AppointmentTime), DateTimeKind.Utc);
+            if (combinedDateTime < DateTime.UtcNow)
+            {
+                string errorMsg = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
+                    ? "لا يمكن حجز موعد في وقت أو تاريخ قد مضى."
+                    : "Cannot book an appointment in the past.";
+                TempData["Error"] = errorMsg;
+                return RedirectToAction(nameof(Index));
+            }
+
             if (ModelState.IsValid)
             {
                 appointment.Status = "Pending";

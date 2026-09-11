@@ -39,6 +39,7 @@
                         <i class="fa-solid fa-calendar-days text-[#49665A] me-1.5"></i>@T("تاريخ الموعد", "Appointment Date")
                     </label>
                     <input asp-for="AppointmentDate" type="date"
+                           min="@DateTime.Today.ToString("yyyy-MM-dd")"
                            value="@Model.AppointmentDate.ToString("yyyy-MM-dd")"
                            class="w-full px-3.5 py-2.5 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-[#F6F7F5] dark:bg-[#151E1B] text-[#202725] dark:text-[#EAEFEA] text-xs focus:ring-1 focus:ring-[#49665A] outline-none transition" />
                     <span asp-validation-for="AppointmentDate" class="text-rose-500 text-[11px] mt-1 block"></span>
@@ -165,6 +166,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const dateInput = document.querySelector('input[name="AppointmentDate"]');
+            const timeInput = document.querySelector('input[name="AppointmentTime"]');
             const warningContainer = document.getElementById('weekendWarningContainer');
             const warningBanner = document.getElementById('weekendWarningBanner');
             const overrideCheckbox = document.getElementById('IsWeekendOverride');
@@ -201,10 +203,56 @@
                 }
             }
 
+            function updateMinTime() {
+                if (!dateInput || !timeInput) return;
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const todayStr = `${year}-${month}-${day}`;
+
+                if (dateInput.value === todayStr) {
+                    const hours = String(now.getHours()).padStart(2, '0');
+                    const minutes = String(now.getMinutes()).padStart(2, '0');
+                    const currentTimeStr = `${hours}:${minutes}`;
+                    timeInput.setAttribute('min', currentTimeStr);
+                    if (timeInput.value && timeInput.value < currentTimeStr) {
+                        timeInput.value = currentTimeStr;
+                    }
+                } else {
+                    timeInput.removeAttribute('min');
+                }
+            }
+
             if (dateInput) {
-                dateInput.addEventListener('change', evaluateWeekend);
-                dateInput.addEventListener('input', evaluateWeekend);
+                dateInput.addEventListener('change', function () {
+                    evaluateWeekend();
+                    updateMinTime();
+                });
+                dateInput.addEventListener('input', function () {
+                    evaluateWeekend();
+                    updateMinTime();
+                });
                 evaluateWeekend();
+                updateMinTime();
+            }
+
+            if (timeInput) {
+                timeInput.addEventListener('change', function () {
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    const day = String(now.getDate()).padStart(2, '0');
+                    const todayStr = `${year}-${month}-${day}`;
+                    if (dateInput && dateInput.value === todayStr) {
+                        const hours = String(now.getHours()).padStart(2, '0');
+                        const minutes = String(now.getMinutes()).padStart(2, '0');
+                        const currentTimeStr = `${hours}:${minutes}`;
+                        if (timeInput.value && timeInput.value < currentTimeStr) {
+                            timeInput.value = currentTimeStr;
+                        }
+                    }
+                });
             }
 
             if (btnDismiss && warningBanner) {

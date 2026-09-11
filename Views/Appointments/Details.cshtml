@@ -122,7 +122,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
                         <div>
                             <p class="text-xs font-medium text-[#727A76] uppercase tracking-wider mb-1">@T("تاريخ الموعد", "Appointment Date")</p>
-                            <p class="text-sm font-semibold text-[#202725]">@Model.AppointmentDate.ToString("dd MMMM yyyy")</p>
+                            <p class="text-sm font-semibold text-[#202725]"><span dir="ltr" class="d-inline-block"><bdi>@Model.AppointmentDate.ToString("yyyy-MM-dd")</bdi></span></p>
                         </div>
                         <div>
                             <p class="text-xs font-medium text-[#727A76] uppercase tracking-wider mb-1">@T("معرّف الموعد", "Appointment ID")</p>
@@ -132,7 +132,7 @@
                             <p class="text-xs font-medium text-[#727A76] uppercase tracking-wider mb-1">@T("وقت الموعد", "Appointment Time")</p>
                             <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-[#49665A]/10 text-[#49665A] rounded-lg text-sm font-bold font-mono">
                                 <i class="fa-solid fa-clock text-xs"></i>
-                                @Model.AppointmentTime.ToString(@"hh\:mm")
+                                <span dir="ltr" class="d-inline-block"><bdi>@Model.AppointmentTime.ToString(@"hh\:mm")</bdi></span>
                             </div>
                         </div>
                     </div>

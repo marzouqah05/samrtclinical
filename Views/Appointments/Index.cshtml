@@ -1,7 +1,7 @@
 @model IEnumerable<WebApplication1.Models.Appointment>
 
 @{
-    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    var _isAr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar" || CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
     string T(string ar, string en) => _isAr ? ar : en;
     ViewData["Title"] = T("جدولة المواعيد", "Appointments Scheduling");
 
@@ -486,14 +486,38 @@
     .ep-field-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #94a3b8; margin-bottom: 5px; }
     .ep-field-value { font-size: 15px; font-weight: 600; color: #0f172a; }
 
-    .ep-actions { padding: 0 24px 24px; display: flex; flex-direction: column; gap: 10px; }
+    .ep-actions { padding: 0 24px 24px; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; }
 
-    .btn-ep-complete { background: #10b981; color: white; border: none; border-radius: 12px; padding: 12px; font-weight: 700; font-size: 14px; text-align: center; text-decoration: none; transition: .2s; }
-    .btn-ep-complete:hover { background: #059669; color: white; }
-    .btn-ep-confirm { background: #3b82f6; color: white; border: none; border-radius: 12px; padding: 12px; font-weight: 700; font-size: 14px; cursor: pointer; transition: .2s; }
-    .btn-ep-confirm:hover { background: #1d4ed8; }
-    .btn-ep-cancel { background: #fee2e2; color: #dc2626; border: none; border-radius: 12px; padding: 12px; font-weight: 700; font-size: 14px; cursor: pointer; transition: .2s; }
-    .btn-ep-cancel:hover { background: #fecaca; }
+    .btn-ep-complete { background: #10b981; color: white !important; border: none; text-align: center; text-decoration: none; transition: .2s; box-sizing: border-box; }
+    .btn-ep-complete:hover { background: #059669; color: white !important; }
+    .btn-ep-confirm { background: #3b82f6; color: white !important; border: none; cursor: pointer; transition: .2s; box-sizing: border-box; }
+    .btn-ep-confirm:hover { background: #1d4ed8; color: white !important; }
+    .btn-ep-cancel { background: #fee2e2; color: #dc2626 !important; border: 1px solid #fca5a5; cursor: pointer; transition: .2s; box-sizing: border-box; }
+    .btn-ep-cancel:hover { background: #fecaca; color: #b91c1c !important; }
+
+    [data-bs-theme="dark"] #eventPanel,
+    html.dark #eventPanel {
+        background: #1B2421 !important;
+        border-color: #2B3833 !important;
+    }
+    [data-bs-theme="dark"] .ep-header h5,
+    html.dark .ep-header h5 {
+        color: #EAEFEA !important;
+    }
+    [data-bs-theme="dark"] .ep-field-value,
+    html.dark .ep-field-value {
+        color: #EAEFEA !important;
+    }
+    [data-bs-theme="dark"] .ep-header,
+    html.dark .ep-header {
+        border-bottom-color: #2B3833 !important;
+    }
+    [data-bs-theme="dark"] .btn-ep-cancel,
+    html.dark .btn-ep-cancel {
+        background: rgba(239, 68, 68, 0.15) !important;
+        border-color: rgba(239, 68, 68, 0.3) !important;
+        color: #f87171 !important;
+    }
 
     #panelOverlay {
         display: none; position: fixed; inset: 0;
@@ -1126,36 +1150,36 @@
    EVENT DETAIL PANEL (slide-over)
 ══════════════════════════════════════════════════════ *@
 <div id="panelOverlay" onclick="closeEventPanel()"></div>
-<div id="eventPanel">
+<div id="eventPanel" dir="@(_isAr ? "rtl" : "ltr")">
     <div class="ep-header">
-        <h5><i class="fa-regular fa-calendar-check me-2 text-primary"></i>Appointment Details</h5>
-        <button onclick="closeEventPanel()" style="background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;">
+        <h5><i class="fa-regular fa-calendar-check me-2 text-primary"></i>@T("تفاصيل الموعد", "Appointment Details")</h5>
+        <button onclick="closeEventPanel()" style="background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;" aria-label="@T("إغلاق", "Close")">
             <i class="fa-solid fa-xmark"></i>
         </button>
     </div>
     <div class="ep-body">
         <div class="ep-field">
-            <div class="ep-field-label">Patient</div>
+            <div class="ep-field-label">@T("المريض", "PATIENT")</div>
             <div class="ep-field-value" id="ep-patient">—</div>
         </div>
         <div class="ep-field">
-            <div class="ep-field-label">Doctor</div>
+            <div class="ep-field-label">@T("الطبيب", "DOCTOR")</div>
             <div class="ep-field-value" id="ep-doctor">—</div>
         </div>
         <div class="ep-field">
-            <div class="ep-field-label">Date &amp; Time</div>
-            <div class="ep-field-value" id="ep-datetime">—</div>
+            <div class="ep-field-label">@T("التاريخ والوقت", "DATE & TIME")</div>
+            <div class="ep-field-value" id="ep-datetime"><span dir="ltr" class="d-inline-block"><bdi>—</bdi></span></div>
         </div>
         <div class="ep-field">
-            <div class="ep-field-label">Status</div>
+            <div class="ep-field-label">@T("الحالة", "STATUS")</div>
             <div id="ep-status">—</div>
         </div>
         <div class="ep-field" id="ep-notes-section" style="display:none;">
-            <div class="ep-field-label">Notes</div>
+            <div class="ep-field-label">@T("الملاحظات", "NOTES")</div>
             <div class="ep-field-value" id="ep-notes" style="font-size:13px;color:#64748b;"></div>
         </div>
     </div>
-    <div class="ep-actions" id="ep-actions">
+    <div class="ep-actions d-flex flex-column w-100 px-4 pb-4" id="ep-actions">
         <!-- dynamically populated -->
     </div>
 </div>
@@ -1308,11 +1332,13 @@
         /* ──────────────────────────────────
            Event Detail Panel
            ────────────────────────────────── */
+        const isAr = @(_isAr ? "true" : "false");
+
         const statusBadgeMap = {
-            'Pending':   '<span class="custom-badge badge-pending"><span class="status-dot"></span>Pending</span>',
-            'Confirmed': '<span class="custom-badge badge-confirmed"><span class="status-dot"></span>Confirmed</span>',
-            'Completed': '<span class="custom-badge badge-completed"><span class="status-dot"></span>Completed</span>',
-            'Cancelled': '<span class="custom-badge badge-cancelled"><span class="status-dot"></span>Cancelled</span>',
+            'Pending':   `<span class="custom-badge badge-pending"><span class="status-dot"></span>${isAr ? 'قيد الانتظار' : 'Pending'}</span>`,
+            'Confirmed': `<span class="custom-badge badge-confirmed"><span class="status-dot"></span>${isAr ? 'مؤكد' : 'Confirmed'}</span>`,
+            'Completed': `<span class="custom-badge badge-completed"><span class="status-dot"></span>${isAr ? 'مكتمل' : 'Completed'}</span>`,
+            'Cancelled': `<span class="custom-badge badge-cancelled"><span class="status-dot"></span>${isAr ? 'ملغى' : 'Cancelled'}</span>`,
         };
 
         function openEventPanel(event) {
@@ -1322,11 +1348,13 @@
 
             document.getElementById('ep-patient').textContent  = p.patientName;
             document.getElementById('ep-doctor').textContent   = formatDoctorTitle(p.doctorName);
-            document.getElementById('ep-datetime').textContent = st
-                ? st.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
-                  + ' · '
-                  + st.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : '—';
+            if (st) {
+                const dateStr = st.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                const timeStr = st.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                document.getElementById('ep-datetime').innerHTML = `<span dir="ltr" class="d-inline-block"><bdi>${dateStr} · ${timeStr}</bdi></span>`;
+            } else {
+                document.getElementById('ep-datetime').innerHTML = '<span dir="ltr" class="d-inline-block"><bdi>—</bdi></span>';
+            }
             document.getElementById('ep-status').innerHTML = statusBadgeMap[p.status] || p.status;
 
             const notesSection = document.getElementById('ep-notes-section');
@@ -1337,35 +1365,39 @@
                 notesSection.style.display = 'none';
             }
 
-            // Build action buttons
+            // Build action buttons (clean stacked full-width layout)
             const actionsDiv = document.getElementById('ep-actions');
             actionsDiv.innerHTML = '';
 
+            const completeText = isAr ? 'إكمال وإصدار الفاتورة' : 'Complete & Bill';
+            const confirmText  = isAr ? 'تأكيد الموعد' : 'Confirm Appointment';
+            const cancelText   = isAr ? 'إلغاء الموعد' : 'Cancel Appointment';
+
             if (p.status !== 'Completed' && p.status !== 'Cancelled') {
                 actionsDiv.innerHTML += `
-                    <a href="/Appointments/Complete/${id}" class="btn-ep-complete">
-                        <i class="fa-solid fa-file-invoice-dollar me-2"></i>Complete &amp; Bill
+                    <a href="/Appointments/Complete/${id}" class="btn-ep-complete w-100 mb-2 py-2 fw-semibold rounded-3 d-inline-flex align-items-center justify-content-center text-decoration-none">
+                        <i class="fa-solid fa-file-invoice-dollar me-2"></i>${completeText}
                     </a>`;
             }
             if (p.status !== 'Confirmed' && p.status !== 'Completed' && p.status !== 'Cancelled') {
                 actionsDiv.innerHTML += `
-                    <form action="/Appointments/UpdateStatus" method="post" style="margin:0;">
+                    <form action="/Appointments/UpdateStatus" method="post" class="w-100 m-0">
                         <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
                         <input type="hidden" name="id" value="${id}" />
                         <input type="hidden" name="newStatus" value="Confirmed" />
-                        <button type="submit" class="btn-ep-confirm w-100">
-                            <i class="fa-solid fa-check me-2"></i>Confirm Appointment
+                        <button type="submit" class="btn-ep-confirm w-100 mb-2 py-2 fw-semibold rounded-3 d-inline-flex align-items-center justify-content-center">
+                            <i class="fa-solid fa-check me-2"></i>${confirmText}
                         </button>
                     </form>`;
             }
             if (p.status !== 'Cancelled' && p.status !== 'Completed') {
                 actionsDiv.innerHTML += `
-                    <form action="/Appointments/UpdateStatus" method="post" style="margin:0;">
+                    <form action="/Appointments/UpdateStatus" method="post" class="w-100 m-0">
                         <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
                         <input type="hidden" name="id" value="${id}" />
                         <input type="hidden" name="newStatus" value="Cancelled" />
-                        <button type="submit" class="btn-ep-cancel w-100">
-                            <i class="fa-solid fa-ban me-2"></i>Cancel Appointment
+                        <button type="submit" class="btn-ep-cancel w-100 mb-2 py-2 fw-semibold rounded-3 d-inline-flex align-items-center justify-content-center">
+                            <i class="fa-solid fa-ban me-2"></i>${cancelText}
                         </button>
                     </form>`;
             }
