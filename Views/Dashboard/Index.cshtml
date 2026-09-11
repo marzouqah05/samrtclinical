@@ -133,7 +133,7 @@
             <table class="w-full text-start border-collapse">
                 <thead>
                     <tr class="bg-[#F6F7F5] border-b border-[#DDE3DF]">
-                        <th class="py-3 px-5 text-start text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("الوقت", "Time")</th>
+                        <th class="py-3 px-5 text-start text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("الموعد والوقت", "Date & Time")</th>
                         <th class="py-3 px-5 text-start text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("المريض", "Patient")</th>
                         <th class="py-3 px-5 text-start text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("الطبيب والعيادة", "Doctor & Department")</th>
                         <th class="py-3 px-5 text-start text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("الحالة", "Status")</th>
@@ -153,7 +153,11 @@
                                 <td class="py-3.5 px-5 whitespace-nowrap">
                                     <div class="inline-flex items-center gap-1.5 font-mono text-xs text-[#202725] font-semibold">
                                         <i class="fa-regular fa-clock text-[#727A76] text-[11px]"></i>
-                                        @appt.AppointmentTime.ToString(@"hh\:mm")
+                                        <span>@appt.AppointmentDate.ToString("yyyy-MM-dd") @appt.AppointmentTime.ToString(@"hh\:mm")</span>
+                                        @if (appt.AppointmentDate.DayOfWeek == DayOfWeek.Friday || appt.AppointmentDate.DayOfWeek == DayOfWeek.Saturday)
+                                        {
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-1">Weekend Slot</span>
+                                        }
                                     </div>
                                 </td>
                                 <td class="py-3.5 px-5">

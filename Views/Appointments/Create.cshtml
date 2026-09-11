@@ -40,6 +40,27 @@
                            min="@DateTime.Today.ToString("yyyy-MM-dd")"
                            class="w-full px-3.5 py-2.5 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-[#F6F7F5] dark:bg-[#151E1B] text-[#202725] dark:text-[#EAEFEA] text-xs focus:ring-1 focus:ring-[#49665A] outline-none transition" />
                     <span asp-validation-for="AppointmentDate" class="text-rose-500 text-[11px] mt-1 block"></span>
+
+                    <!-- Weekend / Holiday Dynamic Warning Banner & Override Checkbox -->
+                    <div id="weekendWarningContainer" class="hidden mt-2.5 space-y-2">
+                        <div id="weekendWarningBanner" class="relative p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs">
+                            <button type="button" id="btnDismissWeekend" class="absolute top-2.5 end-2.5 text-amber-600 hover:text-amber-800 dark:text-amber-400 p-1 text-xs leading-none" aria-label="Dismiss">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                            <div class="pe-6">
+                                <p class="font-medium m-0 leading-relaxed">
+                                    @T("⚠️ تنبيه عطلة نهاية الأسبوع: يوما الجمعة والسبت عطلة رسمية للعيادة. هل أنت متأكد من تسجيل موعد استثنائي/طارئ؟", "⚠️ Weekend Notice: Friday and Saturday are official clinic off-days. Are you sure you want to book an emergency/exception slot?")
+                                </p>
+                            </div>
+                        </div>
+                        <div id="weekendOverrideWrapper" class="flex items-center gap-2 px-1">
+                            <input type="checkbox" asp-for="IsWeekendOverride" id="IsWeekendOverride"
+                                   class="w-4 h-4 rounded text-amber-600 border-amber-300 focus:ring-amber-500 cursor-pointer" />
+                            <label for="IsWeekendOverride" class="font-semibold text-xs text-[#202725] dark:text-[#EAEFEA] cursor-pointer select-none m-0">
+                                @T("تأكيد حجز استثنائي في يوم العطلة", "Confirm Weekend / Holiday Booking Exception")
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
                 <div>
@@ -127,4 +148,56 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const dateInput = document.querySelector('input[name="AppointmentDate"]');
+            const warningContainer = document.getElementById('weekendWarningContainer');
+            const warningBanner = document.getElementById('weekendWarningBanner');
+            const overrideCheckbox = document.getElementById('IsWeekendOverride');
+            const btnDismiss = document.getElementById('btnDismissWeekend');
+
+            function evaluateWeekend() {
+                if (!dateInput || !warningContainer) return;
+                const val = dateInput.value;
+                if (!val) {
+                    warningContainer.classList.add('hidden');
+                    if (overrideCheckbox) overrideCheckbox.checked = false;
+                    return;
+                }
+
+                const parts = val.split('-');
+                if (parts.length === 3) {
+                    const year = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10) - 1;
+                    const day = parseInt(parts[2], 10);
+                    const d = new Date(year, month, day);
+                    const dayOfWeek = d.getDay(); // 0: Sun, 1: Mon, ..., 5: Fri, 6: Sat
+
+                    if (dayOfWeek === 5 || dayOfWeek === 6) {
+                        warningContainer.classList.remove('hidden');
+                        if (warningBanner) {
+                            warningBanner.classList.remove('hidden');
+                        }
+                    } else {
+                        warningContainer.classList.add('hidden');
+                        if (overrideCheckbox) {
+                            overrideCheckbox.checked = false;
+                        }
+                    }
+                }
+            }
+
+            if (dateInput) {
+                dateInput.addEventListener('change', evaluateWeekend);
+                dateInput.addEventListener('input', evaluateWeekend);
+                evaluateWeekend();
+            }
+
+            if (btnDismiss && warningBanner) {
+                btnDismiss.addEventListener('click', function () {
+                    warningBanner.classList.add('hidden');
+                });
+            }
+        });
+    </script>
 }

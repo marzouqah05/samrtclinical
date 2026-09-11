@@ -232,8 +232,19 @@ namespace WebApplication1.Controllers
         // POST: Appointments/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,Notes")] Appointment appointment)
+        public async Task<IActionResult> Create([Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,Notes,IsWeekendOverride")] Appointment appointment)
         {
+            var isWeekend = appointment.AppointmentDate.DayOfWeek == DayOfWeek.Friday || appointment.AppointmentDate.DayOfWeek == DayOfWeek.Saturday;
+            if (isWeekend && !appointment.IsWeekendOverride)
+            {
+                var isAr = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar";
+                var warningMsg = isAr
+                    ? "التاريخ المحدد يوافق عطلة نهاية الأسبوع (الجمعة/السبت). يرجى تأكيد الاستثناء للمتابعة."
+                    : "Selected date falls on a weekend (Friday/Saturday). Please confirm the exception to proceed.";
+                ModelState.AddModelError(nameof(appointment.AppointmentDate), warningMsg);
+                ModelState.AddModelError(string.Empty, warningMsg);
+            }
+
             if (ModelState.IsValid)
             {
                 // تعيين الحالة الافتراضية عند الإنشاء
@@ -323,7 +334,7 @@ namespace WebApplication1.Controllers
         // POST: Appointments/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,Status,Notes")] Appointment appointment)
+        public async Task<IActionResult> Edit(int id, [Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,Status,Notes,IsWeekendOverride")] Appointment appointment)
         {
             if (id != appointment.AppointmentId)
             {
@@ -355,6 +366,17 @@ namespace WebApplication1.Controllers
 
             // Ensure AppointmentDate is handled cleanly in UTC for PostgreSQL
             appointment.AppointmentDate = DateTime.SpecifyKind(appointment.AppointmentDate.Date, DateTimeKind.Utc);
+
+            var isWeekend = appointment.AppointmentDate.DayOfWeek == DayOfWeek.Friday || appointment.AppointmentDate.DayOfWeek == DayOfWeek.Saturday;
+            if (isWeekend && !appointment.IsWeekendOverride)
+            {
+                var isAr = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar";
+                var warningMsg = isAr
+                    ? "التاريخ المحدد يوافق عطلة نهاية الأسبوع (الجمعة/السبت). يرجى تأكيد الاستثناء للمتابعة."
+                    : "Selected date falls on a weekend (Friday/Saturday). Please confirm the exception to proceed.";
+                ModelState.AddModelError(nameof(appointment.AppointmentDate), warningMsg);
+                ModelState.AddModelError(string.Empty, warningMsg);
+            }
 
             // Check for doctor schedule conflicts: ensure the selected doctor doesn't already have another appointment at the exact same slot (excluding current AppointmentId)
             var appointmentDateUtc = appointment.AppointmentDate.Date;

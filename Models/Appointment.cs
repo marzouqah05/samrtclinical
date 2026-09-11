@@ -38,6 +38,10 @@ namespace WebApplication1.Models
         [Column(TypeName = "text")]
         public string? Notes { get; set; }
 
+        // ── Weekend / Holiday Exception Override ────────────────────────────
+        [NotMapped]
+        public bool IsWeekendOverride { get; set; } = false;
+
         // ── WhatsApp Notification Tracking ──────────────────────────────────
         /// <summary>True once a pre-appointment reminder has been dispatched via WhatsApp.</summary>
         public bool IsReminderSent { get; set; } = false;
