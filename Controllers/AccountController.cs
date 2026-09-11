@@ -2,7 +2,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using WebApplication1.Models;
@@ -17,20 +21,26 @@ namespace WebApplication1.Controllers
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ISessionTrackingService _sessionTracking;
         private readonly ClinicDbContext _db;
+        private readonly IEmailSenderService _emailSender;
+        private readonly IMemoryCache _cache;
 
-        // حقن خدمات الـ Identity الأساسية عبر الـ Constructor
+        // حقن خدمات الـ Identity والـ Email والـ MemoryCache
         public AccountController(
             UserManager<IdentityUser> userManager,
             SignInManager<IdentityUser> signInManager,
             RoleManager<IdentityRole> roleManager,
             ISessionTrackingService sessionTracking,
-            ClinicDbContext db)
+            ClinicDbContext db,
+            IEmailSenderService emailSender,
+            IMemoryCache cache)
         {
             _userManager     = userManager;
             _signInManager   = signInManager;
             _roleManager     = roleManager;
             _sessionTracking = sessionTracking;
             _db              = db;
+            _emailSender     = emailSender;
+            _cache           = cache;
         }
 
         // ── Bilingual helper ──────────────────────────────────────────────────
@@ -55,28 +65,35 @@ namespace WebApplication1.Controllers
         [ValidateAntiForgeryToken] // حماية ضد هجمات CSRF
         public async Task<IActionResult> Login(string username, string password, bool rememberMe = false)
         {
+            // Fix session leakage: ensure any stale session or cookies are cleared before verifying new credentials
+            await _signInManager.SignOutAsync();
+
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
                 ViewBag.Error = T("الرجاء إدخال اسم المستخدم وكلمة المرور.", "Please enter your username and password.");
                 return View();
             }
 
-            // تسجيل الدخول باستخدام الـ SignInManager الخاص بالـ Identity
-            var result = await _signInManager.PasswordSignInAsync(username, password, rememberMe, lockoutOnFailure: false);
+            // Find user strictly by input (supports Email or UserName)
+            var inputUser = await _userManager.FindByEmailAsync(username) ?? await _userManager.FindByNameAsync(username);
+            if (inputUser == null)
+            {
+                ViewBag.Error = T("اسم المستخدم أو كلمة المرور غير صحيحة.", "Invalid username or password.");
+                return View();
+            }
+
+            // Verify password strictly against this user
+            var result = await _signInManager.PasswordSignInAsync(inputUser.UserName!, password, rememberMe, lockoutOnFailure: false);
 
             if (result.Succeeded)
             {
                 // ── Session Tracking: create a new session record on successful login ──
-                var loggedInUser = await _userManager.FindByNameAsync(username);
-                if (loggedInUser != null)
-                {
-                    var roles = await _userManager.GetRolesAsync(loggedInUser);
-                    var role  = roles.Count > 0 ? roles[0] : "Unknown";
-                    var ip    = WebApplication1.Middleware.UserActivityMiddleware.GetClientIp(HttpContext);
-                    var ua    = Request.Headers["User-Agent"].ToString();
-                    var sessionId = WebApplication1.Middleware.UserActivityMiddleware.GetOrCreateDeviceId(HttpContext);
-                    await _sessionTracking.CreateSessionAsync(loggedInUser.Id, username, role, ip, ua, sessionId);
-                }
+                var roles = await _userManager.GetRolesAsync(inputUser);
+                var role  = roles.Count > 0 ? roles[0] : "Unknown";
+                var ip    = WebApplication1.Middleware.UserActivityMiddleware.GetClientIp(HttpContext);
+                var ua    = Request.Headers["User-Agent"].ToString();
+                var sessionId = WebApplication1.Middleware.UserActivityMiddleware.GetOrCreateDeviceId(HttpContext);
+                await _sessionTracking.CreateSessionAsync(inputUser.Id, inputUser.UserName!, role, ip, ua, sessionId);
 
                 return RedirectToAction("Index", "Dashboard");
             }
@@ -105,6 +122,8 @@ namespace WebApplication1.Controllers
                 return RedirectToAction(nameof(Login));
             }
 
+            email = email.Trim().ToLowerInvariant();
+
             var existingUser = await _userManager.FindByEmailAsync(email) ?? await _userManager.FindByNameAsync(email);
             if (existingUser != null)
             {
@@ -112,24 +131,214 @@ namespace WebApplication1.Controllers
                 return RedirectToAction(nameof(Login));
             }
 
-            var user = new IdentityUser { UserName = email, Email = email, PhoneNumber = phone };
+            var user = new IdentityUser
+            {
+                UserName = email,
+                Email = email,
+                PhoneNumber = phone,
+                EmailConfirmed = false
+            };
+
             var result = await _userManager.CreateAsync(user, password);
             if (result.Succeeded)
             {
+                // Ensure Admin role exists and explicitly assign it to this clinic owner
                 if (!await _roleManager.RoleExistsAsync("Admin"))
                     await _roleManager.CreateAsync(new IdentityRole("Admin"));
 
                 await _userManager.AddToRoleAsync(user, "Admin");
 
-                TempData["RegisterSuccess"] = T(
-                    $"تم تسجيل عيادة '{clinicName}' وإنشاء حساب المدير بنجاح! تم إرسال رمز التحقق (OTP) إلى {email}. يمكنك الآن تسجيل الدخول والبدء بالتجربة المجانية (60 يوماً).",
-                    $"Clinic '{clinicName}' registered successfully! Verification OTP sent to {email}. You can now log in and start your 60-day free trial.");
+                // Generate 6-digit OTP code
+                var otpCode = Random.Shared.Next(100000, 999999).ToString();
 
-                return RedirectToAction(nameof(Login));
+                // Store OTP in cache for 10 minutes
+                var cacheKey = $"clinic_reg_otp_{email}";
+                _cache.Set(cacheKey, otpCode, TimeSpan.FromMinutes(10));
+
+                // Also persist in ClinicSettings as secondary fallback
+                var settingKey = $"OTP_{email}";
+                var existingSetting = await _db.ClinicSettings.FirstOrDefaultAsync(s => s.Key == settingKey);
+                if (existingSetting != null)
+                {
+                    existingSetting.Value = $"{otpCode}|{DateTime.UtcNow.AddMinutes(10):o}";
+                    existingSetting.UpdatedAt = DateTime.UtcNow;
+                }
+                else
+                {
+                    _db.ClinicSettings.Add(new ClinicSetting
+                    {
+                        Key = settingKey,
+                        Value = $"{otpCode}|{DateTime.UtcNow.AddMinutes(10):o}",
+                        Description = $"Registration OTP for {email}",
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+                await _db.SaveChangesAsync();
+
+                // Dispatch OTP email via email service
+                await _emailSender.SendOtpEmailAsync(email, otpCode, adminName);
+
+                // DO NOT automatically sign the user in. Redirect directly to OTP verification page
+                TempData["OtpSent"] = T($"تم إرسال رمز التحقق (OTP) إلى {email}. يرجى إدخال الرمز لإتمام تفعيل حساب المدير.",
+                                        $"A verification code (OTP) was sent to {email}. Please enter the code to activate your Admin account.");
+                return RedirectToAction(nameof(VerifyOtp), new { email = email });
             }
 
             TempData["RegisterError"] = string.Join(" | ", result.Errors.Select(e => e.Description));
             return RedirectToAction(nameof(Login));
+        }
+
+        // GET: VerifyOtp
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult VerifyOtp(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return RedirectToAction(nameof(Login));
+            }
+
+            ViewBag.Email = email;
+            return View();
+        }
+
+        // POST: VerifyOtp
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> VerifyOtp(string email, string otpCode)
+        {
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(otpCode))
+            {
+                ViewBag.Email = email;
+                ViewBag.Error = T("يرجى إدخال رمز التحقق المكون من 6 أرقام.", "Please enter the 6-digit verification code.");
+                return View();
+            }
+
+            email = email.Trim().ToLowerInvariant();
+            otpCode = otpCode.Trim();
+
+            var user = await _userManager.FindByEmailAsync(email) ?? await _userManager.FindByNameAsync(email);
+            if (user == null)
+            {
+                ViewBag.Email = email;
+                ViewBag.Error = T("لم يتم العثور على حساب مرتبط بهذا البريد الإلكتروني.", "No account found associated with this email.");
+                return View();
+            }
+
+            // Verify OTP from MemoryCache first
+            var cacheKey = $"clinic_reg_otp_{email}";
+            bool isValid = false;
+
+            if (_cache.TryGetValue(cacheKey, out string? cachedOtp) && !string.IsNullOrEmpty(cachedOtp))
+            {
+                if (cachedOtp == otpCode)
+                {
+                    isValid = true;
+                    _cache.Remove(cacheKey);
+                }
+            }
+
+            // Fallback check to database setting
+            if (!isValid)
+            {
+                var settingKey = $"OTP_{email}";
+                var setting = await _db.ClinicSettings.FirstOrDefaultAsync(s => s.Key == settingKey);
+                if (setting?.Value != null)
+                {
+                    var parts = setting.Value.Split('|');
+                    if (parts.Length == 2 && parts[0] == otpCode)
+                    {
+                        if (DateTime.TryParse(parts[1], null, DateTimeStyles.RoundtripKind, out var expiry) && expiry > DateTime.UtcNow)
+                        {
+                            isValid = true;
+                            _db.ClinicSettings.Remove(setting);
+                            await _db.SaveChangesAsync();
+                        }
+                    }
+                }
+            }
+
+            if (!isValid)
+            {
+                ViewBag.Email = email;
+                ViewBag.Error = T("رمز التحقق غير صحيح أو قد انتهت صلاحيته. يرجى طلب رمز جديد.",
+                                  "The verification code is invalid or has expired. Please request a new code.");
+                return View();
+            }
+
+            // Upon correct code: mark EmailConfirmed = true, ensure Admin role, and sign in
+            user.EmailConfirmed = true;
+            await _userManager.UpdateAsync(user);
+
+            // Re-verify Admin role assignment
+            if (!await _userManager.IsInRoleAsync(user, "Admin"))
+            {
+                if (!await _roleManager.RoleExistsAsync("Admin"))
+                    await _roleManager.CreateAsync(new IdentityRole("Admin"));
+                await _userManager.AddToRoleAsync(user, "Admin");
+            }
+
+            // Log user in as Admin
+            await _signInManager.SignOutAsync();
+            await _signInManager.SignInAsync(user, isPersistent: false);
+
+            // Track session
+            var ip = WebApplication1.Middleware.UserActivityMiddleware.GetClientIp(HttpContext);
+            var ua = Request.Headers["User-Agent"].ToString();
+            var sessionId = WebApplication1.Middleware.UserActivityMiddleware.GetOrCreateDeviceId(HttpContext);
+            await _sessionTracking.CreateSessionAsync(user.Id, user.UserName ?? email, "Admin", ip, ua, sessionId);
+
+            TempData["Success"] = T("تم تفعيل حسابك بنجاح! مرحباً بك في نظام ClinicFlow OS.",
+                                    "Your account has been activated successfully! Welcome to ClinicFlow OS.");
+
+            return RedirectToAction("Index", "Dashboard");
+        }
+
+        // POST: ResendOtp
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResendOtp(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return RedirectToAction(nameof(Login));
+            }
+
+            email = email.Trim().ToLowerInvariant();
+            var user = await _userManager.FindByEmailAsync(email) ?? await _userManager.FindByNameAsync(email);
+            if (user != null)
+            {
+                var newOtp = Random.Shared.Next(100000, 999999).ToString();
+                var cacheKey = $"clinic_reg_otp_{email}";
+                _cache.Set(cacheKey, newOtp, TimeSpan.FromMinutes(10));
+
+                var settingKey = $"OTP_{email}";
+                var existingSetting = await _db.ClinicSettings.FirstOrDefaultAsync(s => s.Key == settingKey);
+                if (existingSetting != null)
+                {
+                    existingSetting.Value = $"{newOtp}|{DateTime.UtcNow.AddMinutes(10):o}";
+                    existingSetting.UpdatedAt = DateTime.UtcNow;
+                }
+                else
+                {
+                    _db.ClinicSettings.Add(new ClinicSetting
+                    {
+                        Key = settingKey,
+                        Value = $"{newOtp}|{DateTime.UtcNow.AddMinutes(10):o}",
+                        Description = $"Registration OTP for {email}",
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+                await _db.SaveChangesAsync();
+
+                await _emailSender.SendOtpEmailAsync(email, newOtp);
+                TempData["OtpSent"] = T($"تمت إعادة إرسال رمز تحقق جديد إلى {email}.",
+                                        $"A new verification code was sent to {email}.");
+            }
+
+            return RedirectToAction(nameof(VerifyOtp), new { email = email });
         }
 
         // GET: Register Page (لإنشاء حسابات الموظفين والأطباء)

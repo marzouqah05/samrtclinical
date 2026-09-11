@@ -55,7 +55,10 @@ internal class Program
         // ── Full System Migration Service ────────────────────────────────────────────
         builder.Services.AddScoped<ISystemMigrationService, SystemMigrationService>();
 
-        // ── In-Memory Cache (used by SessionTrackingService for activity throttling) ────────
+        // ── Email Notification & OTP Dispatch Service ───────────────────────────────
+        builder.Services.AddScoped<IEmailSenderService, EmailService>();
+
+        // ── In-Memory Cache (used by SessionTrackingService for activity throttling and OTP storage) ────────
         builder.Services.AddMemoryCache();
 
         // ── User Activity & Session Tracking ──────────────────────────────────────
