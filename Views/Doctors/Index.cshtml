@@ -248,58 +248,64 @@
             <form asp-action="Import" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
                 <div class="modal-body pt-3">
-                    <!-- Section 1: Template Download Box -->
-                    <div class="border rounded-3 p-3 bg-white dark:bg-[#151E1B] dark:border-[#2B3833] mb-3 d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center gap-3">
-                            <i class="bi bi-file-earmark-spreadsheet text-success fs-1"></i>
+                    <!-- Section 1: Template Download Card -->
+                    <div class="card border rounded-3 p-3 bg-white mb-3 shadow-none">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-success-subtle text-success p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                                    <i class="bi bi-file-earmark-excel-fill fs-3 text-success"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-dark">@T("قالب الأطباء الجاهز", "Doctors Ready Template")</h6>
+                                    <span class="text-muted small">@T("تحميل ملف CSV بالأعمدة المطلوبة", "Download CSV template with required columns")</span>
+                                </div>
+                            </div>
                             <div>
-                                <div class="fw-bold text-dark dark:text-[#EAEFEA]">@T("قالب الأطباء الجاهز", "Doctors Ready Template")</div>
-                                <div class="text-muted small text-[#727A76] dark:text-[#9CA8A3]">@T("تحميل ملف CSV بالأعمدة المطلوبة", "Download CSV template with required columns")</div>
+                                <a href="@Url.Action("DownloadTemplate")" class="btn btn-outline-secondary btn-sm px-3 rounded-2 fw-medium">
+                                    <i class="bi bi-download me-1"></i> @T("تحميل القالب", "Download Template")
+                                </a>
                             </div>
                         </div>
-                        <a asp-action="DownloadTemplate" class="btn btn-outline-dark btn-sm rounded-3 d-inline-flex align-items-center gap-2">
-                            <i class="bi bi-download"></i>
-                            <span>@T("تحميل القالب", "Download Template")</span>
-                        </a>
                     </div>
 
                     <!-- Section 2: File Input Field -->
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-dark dark:text-[#EAEFEA]">
+                        <label class="form-label fw-bold small text-dark">
                             * @T("اختر ملف CSV أو Excel", "Select CSV or Excel file")
                         </label>
                         <input type="file" name="file" class="form-control rounded-3 border py-2 px-3" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" required />
                     </div>
 
                     <!-- Section 3: Required Columns Guide Box -->
-                    <div class="bg-light dark:bg-[#151E1B] border dark:border-[#2B3833] rounded-3 p-3 mb-4 small text-secondary dark:text-[#9CA8A3]">
-                        <div class="fw-bold mb-2 text-dark dark:text-[#EAEFEA]">
-                            <i class="bi bi-info-circle-fill me-1 text-primary"></i> @T("الأعمدة المطلوبة في الملف:", "Required Columns in File:")
+                    <div class="rounded-3 p-3 mb-4 border" style="background-color: #f8fafc;">
+                        <div class="d-flex align-items-center gap-2 mb-2 text-dark fw-bold small">
+                            <i class="bi bi-info-circle-fill text-secondary"></i>
+                            <span>@T("الأعمدة المطلوبة في الملف:", "Required Columns in File:")</span>
                         </div>
-                        <div class="row g-2">
+                        <div class="row g-2 small text-secondary">
                             <div class="col-md-6">
-                                <span class="fw-bold text-dark dark:text-[#EAEFEA]">FullName:</span> @T("اسم الطبيب بالكامل (3 - 150 حرفاً)", "Doctor Full Name (3 - 150 characters)")
+                                <span class="fw-semibold text-dark">FullName:</span> @T("اسم الطبيب بالكامل (3 - 150 حرفاً)", "Doctor Full Name (3 - 150 characters)")
                             </div>
                             <div class="col-md-6">
-                                <span class="fw-bold text-dark dark:text-[#EAEFEA]">Specialization:</span> @T("التخصص الطبي للطبيب", "Medical Specialization")
+                                <span class="fw-semibold text-dark">Specialization:</span> @T("التخصص الطبي للطبيب", "Medical Specialization")
                             </div>
                             <div class="col-md-6">
-                                <span class="fw-bold text-dark dark:text-[#EAEFEA]">Phone:</span> @T("رقم هاتف الطبيب للتواصل", "Doctor Phone / Mobile")
+                                <span class="fw-semibold text-dark">Phone:</span> @T("رقم هاتف الطبيب للتواصل", "Doctor Phone / Mobile")
                             </div>
                             <div class="col-md-6">
-                                <span class="fw-bold text-dark dark:text-[#EAEFEA]">DepartmentName:</span> @T("اسم القسم التابع له (تلقائي إن لم يتوفر)", "Department Name (auto-created if not found)")
+                                <span class="fw-semibold text-dark">DepartmentName:</span> @T("اسم القسم التابع له (تلقائي إن لم يتوفر)", "Department Name (auto-created if not found)")
                             </div>
                         </div>
                     </div>
 
                     <!-- Section 4: Modal Footer Actions -->
-                    <div class="d-flex justify-content-end align-items-center gap-2 mt-4 pt-3 border-top w-100">
-                        <button type="button" class="btn btn-outline-secondary px-4 rounded-3" data-bs-dismiss="modal">
-                            @T("إلغاء", "Cancel")
-                        </button>
-                        <button type="submit" class="btn btn-success px-4 rounded-3 d-inline-flex align-items-center gap-2">
-                            <i class="bi bi-cloud-arrow-up me-1"></i>
+                    <div class="d-flex justify-content-start align-items-center gap-2 pt-2">
+                        <button type="submit" class="btn btn-success px-4 py-2 rounded-3 fw-bold d-inline-flex align-items-center gap-2" style="background-color: #1e3a34; border-color: #1e3a34;">
+                            <i class="bi bi-cloud-arrow-up"></i>
                             <span>@T("بدء الاستيراد", "Start Import")</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary px-4 py-2 rounded-3" data-bs-dismiss="modal">
+                            @T("إلغاء", "Cancel")
                         </button>
                     </div>
                 </div>
