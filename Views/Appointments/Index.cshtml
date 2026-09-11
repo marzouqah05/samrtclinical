@@ -583,6 +583,74 @@
     }
     .btn-close:hover { opacity: .75; }
 
+    /* ─── Bootstrap 5 Modal Centering & Sizing Fixes ─── */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1055;
+        display: none;
+        width: 100%;
+        height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+        outline: 0;
+    }
+    .modal-dialog {
+        position: relative;
+        width: auto;
+        margin: 1.75rem auto;
+        pointer-events: none;
+    }
+    .modal.fade .modal-dialog {
+        transition: transform .3s ease-out;
+        transform: translate(0, -50px);
+    }
+    .modal.show .modal-dialog {
+        transform: none;
+    }
+    .modal-dialog-centered {
+        display: flex;
+        align-items: center;
+        min-height: calc(100% - 3.5rem);
+    }
+    .modal-dialog.modal-lg,
+    #quickBookModal .modal-dialog {
+        max-width: 800px !important;
+        width: 95% !important;
+        margin: 1.75rem auto !important;
+    }
+    .modal-content {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        pointer-events: auto;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 0;
+        border-radius: 1rem;
+        outline: 0;
+        box-shadow: 0 1rem 3rem rgba(0,0,0,.175) !important;
+    }
+    [data-bs-theme="dark"] .modal-content,
+    html.dark .modal-content {
+        background-color: #1B2421 !important;
+        border: 1px solid #2B3833 !important;
+        color: #EAEFEA !important;
+    }
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1050;
+        width: 100vw;
+        height: 100vh;
+        background-color: #000;
+    }
+    .modal-backdrop.fade { opacity: 0; }
+    .modal-backdrop.show { opacity: .5; }
+
     #panelOverlay {
         display: none; position: fixed; inset: 0;
         background: rgba(0,0,0,.3); z-index: 1400;
@@ -979,106 +1047,101 @@
 @* ══════════════════════════════════════════════════════
    QUICK BOOK MODAL — Bootstrap 5 Modal
 ══════════════════════════════════════════════════════ *@
-<div class="modal fade" id="quickBookModal" tabindex="-1" aria-labelledby="quickBookModalLabel" aria-hidden="true" dir="@(_isAr ? "rtl" : "ltr")">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-3 shadow border-0 bg-white dark:bg-[#1B2421]">
-
-            @* Header *@
-            <div class="modal-header border-bottom border-[#DDE3DF] dark:border-[#2B3833] py-3 px-4 d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-2">
-                    <div class="w-9 h-9 rounded-xl bg-[#49665A]/10 d-flex align-items-center justify-content-center text-[#49665A]">
-                        <i class="fa-solid fa-calendar-plus text-sm"></i>
-                    </div>
-                    <div>
-                        <h5 class="modal-title fs-6 fw-bold text-[#202725] dark:text-[#EAEFEA] m-0" id="quickBookModalLabel">@T("حجز سريع", "Quick Book Appointment")</h5>
-                        <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0">@T("جدولة موعد جديد بسرعة", "Schedule a new appointment instantly")</p>
-                    </div>
+<div class="modal fade" id="quickBookModal" tabindex="-1" aria-labelledby="quickBookModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 p-3">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="modal-title fw-bold" id="quickBookModalLabel">
+                        <i class="bi bi-calendar-plus me-1 text-success"></i> حجز سريع
+                    </h5>
+                    <p class="text-muted small mb-0">جدولة موعد جديد بسرعة</p>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-
-            @* Form *@
-            <form asp-action="QuickBook" method="post">
-                @Html.AntiForgeryToken()
-                <div class="modal-body p-4 space-y-3">
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
-                                <i class="fa-regular fa-calendar me-1 text-[#49665A]"></i>@T("تاريخ الموعد", "Appointment Date")
-                            </label>
-                            <input type="date" name="AppointmentDate" id="qbDate"
-                                   min="@DateTime.Today.ToString("yyyy-MM-dd")"
-                                   class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
-                                   required />
+            <div class="modal-body pt-3">
+                <form asp-action="QuickBook" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                                    <i class="fa-regular fa-calendar me-1 text-[#49665A]"></i>@T("تاريخ الموعد", "Appointment Date")
+                                </label>
+                                <input type="date" name="AppointmentDate" id="qbDate"
+                                       min="@DateTime.Today.ToString("yyyy-MM-dd")"
+                                       class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
+                                       required />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                                    <i class="fa-regular fa-clock me-1 text-[#49665A]"></i>@T("وقت الموعد", "Appointment Time")
+                                </label>
+                                <input type="time" name="AppointmentTime" id="qbTime"
+                                       class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
+                                       required />
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
-                                <i class="fa-regular fa-clock me-1 text-[#49665A]"></i>@T("وقت الموعد", "Appointment Time")
-                            </label>
-                            <input type="time" name="AppointmentTime" id="qbTime"
-                                   class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
-                                   required />
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
-                                <i class="fa-solid fa-user-doctor me-1 text-[#49665A]"></i>@T("الطبيب", "Doctor")
-                            </label>
-                            <select name="DoctorId" id="qbDoctor"
-                                    class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
-                                    required>
-                                <option value="">— @T("اختر الطبيب", "Select Doctor") —</option>
-                                @if (ViewBag.AllDoctors != null)
-                                {
-                                    foreach (var doc in ViewBag.AllDoctors)
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                                    <i class="fa-solid fa-user-doctor me-1 text-[#49665A]"></i>@T("الطبيب", "Doctor")
+                                </label>
+                                <select name="DoctorId" id="qbDoctor"
+                                        class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
+                                        required>
+                                    <option value="">— @T("اختر الطبيب", "Select Doctor") —</option>
+                                    @if (ViewBag.AllDoctors != null)
                                     {
-                                        <option value="@doc.DoctorId">@FormatDoctorName(doc.DoctorName)</option>
+                                        foreach (var doc in ViewBag.AllDoctors)
+                                        {
+                                            <option value="@doc.DoctorId">@FormatDoctorName(doc.DoctorName)</option>
+                                        }
                                     }
-                                }
-                            </select>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                                    <i class="fa-solid fa-user me-1 text-[#49665A]"></i>@T("المريض", "Patient")
+                                </label>
+                                <select name="PatientId" id="qbPatient"
+                                        class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
+                                        required>
+                                    <option value="">— @T("اختر المريض", "Select Patient") —</option>
+                                    @if (ViewBag.AllPatients != null)
+                                    {
+                                        foreach (var p in ViewBag.AllPatients)
+                                        {
+                                            <option value="@p.PatientId">@p.PatientName</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
-                                <i class="fa-solid fa-user me-1 text-[#49665A]"></i>@T("المريض", "Patient")
+                                <i class="fa-solid fa-notes-medical me-1 text-[#49665A]"></i>@T("ملاحظات (اختياري)", "Notes (Optional)")
                             </label>
-                            <select name="PatientId" id="qbPatient"
-                                    class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
-                                    required>
-                                <option value="">— @T("اختر المريض", "Select Patient") —</option>
-                                @if (ViewBag.AllPatients != null)
-                                {
-                                    foreach (var p in ViewBag.AllPatients)
-                                    {
-                                        <option value="@p.PatientId">@p.PatientName</option>
-                                    }
-                                }
-                            </select>
+                            <textarea name="Notes"
+                                      class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] resize-none"
+                                      rows="3"
+                                      placeholder="@T("أدخل الأعراض أو الشكاوى أو الملاحظات...", "Enter any symptoms, complaints, or notes...")"></textarea>
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
-                            <i class="fa-solid fa-notes-medical me-1 text-[#49665A]"></i>@T("ملاحظات (اختياري)", "Notes (Optional)")
-                        </label>
-                        <textarea name="Notes"
-                                  class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] resize-none"
-                                  rows="3"
-                                  placeholder="@T("أدخل الأعراض أو الشكاوى أو الملاحظات...", "Enter any symptoms, complaints, or notes...")"></textarea>
-                    </div>
-                </div>
 
-                @* Footer *@
-                <div class="modal-footer border-top border-[#DDE3DF] dark:border-[#2B3833] py-3 px-4 d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">
-                        @T("إلغاء", "Cancel")
-                    </button>
-                    <button type="submit"
-                            class="px-5 py-2 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-floppy-disk text-xs"></i>
-                        <span>@T("حفظ الموعد", "Save Appointment")</span>
-                    </button>
-                </div>
-            </form>
+                    @* Footer *@
+                    <div class="modal-footer border-top border-[#DDE3DF] dark:border-[#2B3833] pt-3 pb-0 px-0 d-flex justify-content-end gap-2 mt-4">
+                        <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">
+                            @T("إلغاء", "Cancel")
+                        </button>
+                        <button type="submit"
+                                class="px-5 py-2 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-floppy-disk text-xs"></i>
+                            <span>@T("حفظ الموعد", "Save Appointment")</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -1218,6 +1281,7 @@
 @section Scripts {
     <!-- FullCalendar -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/locales/ar.global.min.js"></script>
 
     <script>
         /* ──────────────────────────────────
@@ -1240,6 +1304,8 @@
         document.addEventListener('DOMContentLoaded', function () {
             const calEl = document.getElementById('appointmentCalendar');
             calendar = new FullCalendar.Calendar(calEl, {
+                locale: 'ar',
+                direction: 'rtl',
                 initialView: 'dayGridMonth',
                 height: 680,
                 headerToolbar: {
@@ -1248,11 +1314,11 @@
                     right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
                 },
                 buttonText: {
-                    today: 'Today',
-                    month: 'Month',
-                    week: 'Week',
-                    day: 'Day',
-                    list: 'Agenda'
+                    today: 'اليوم',
+                    month: 'شهر',
+                    week: 'أسبوع',
+                    day: 'يوم',
+                    list: 'أجندة'
                 },
                 nowIndicator: true,
                 navLinks: true,
