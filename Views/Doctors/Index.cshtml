@@ -227,17 +227,17 @@
 @* ─── 📥 Import Doctors Modal ─── *@
 <div class="modal fade" id="importDoctorsModal" tabindex="-1" aria-labelledby="importDoctorsModalLabel" aria-hidden="true" dir="@(_isAr ? "rtl" : "ltr")">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg rounded-4 p-3 bg-white dark:bg-[#1B2421]">
+        <div class="modal-content border-0 shadow-lg rounded-4 p-3 bg-white">
             <div class="modal-header border-0 pb-0 d-flex justify-content-between align-items-start w-100">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="bg-light dark:bg-[#2B3833] p-2 rounded-3 text-secondary dark:text-[#9CA8A3] d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
-                        <i class="bi bi-cloud-arrow-up fs-4 text-success"></i>
+                    <div class="d-flex align-items-center justify-content-center rounded-3" style="width: 44px; height: 44px; background-color: #e8f5e9; color: #2e7d32;">
+                        <i class="bi bi-cloud-arrow-up-fill fs-4"></i>
                     </div>
                     <div>
-                        <h5 class="modal-title fw-bold text-[#202725] dark:text-[#EAEFEA] m-0" id="importDoctorsModalLabel">
+                        <h5 class="modal-title fw-bold text-[#202725] m-0" id="importDoctorsModalLabel">
                             @T("استيراد الأطباء (Bulk Import)", "Bulk Import Doctors")
                         </h5>
-                        <p class="text-muted small mb-0 text-[#727A76] dark:text-[#9CA8A3]">
+                        <p class="text-muted small mb-0 text-[#727A76]">
                             @T("رفع ملف CSV أو Excel لتسجيل البيانات دفعة واحدة", "Upload CSV or Excel file to record multiple records at once")
                         </p>
                     </div>
@@ -252,8 +252,8 @@
                     <div class="card border rounded-3 p-3 bg-white mb-3 shadow-none">
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <div class="d-flex align-items-center gap-3">
-                                <div class="bg-success-subtle text-success p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
-                                    <i class="bi bi-file-earmark-excel-fill fs-3 text-success"></i>
+                                <div class="d-flex align-items-center justify-content-center rounded-3" style="width: 42px; height: 42px; background-color: #e8f5e9; color: #2e7d32;">
+                                    <i class="bi bi-file-earmark-spreadsheet-fill fs-4"></i>
                                 </div>
                                 <div>
                                     <h6 class="fw-bold mb-0 text-dark">@T("قالب الأطباء الجاهز", "Doctors Ready Template")</h6>
@@ -261,8 +261,8 @@
                                 </div>
                             </div>
                             <div>
-                                <a href="@Url.Action("DownloadTemplate")" class="btn btn-outline-secondary btn-sm px-3 rounded-2 fw-medium">
-                                    <i class="bi bi-download me-1"></i> @T("تحميل القالب", "Download Template")
+                                <a href="@Url.Action("DownloadTemplate")" class="btn btn-outline-secondary btn-sm px-3 py-2 rounded-2 fw-medium text-dark bg-white border">
+                                    <i class="bi bi-download me-1 text-secondary"></i> @T("تحميل القالب", "Download Template")
                                 </a>
                             </div>
                         </div>
@@ -300,7 +300,7 @@
 
                     <!-- Section 4: Modal Footer Actions -->
                     <div class="d-flex justify-content-start align-items-center gap-2 pt-2">
-                        <button type="submit" class="btn btn-success px-4 py-2 rounded-3 fw-bold d-inline-flex align-items-center gap-2" style="background-color: #1e3a34; border-color: #1e3a34;">
+                        <button type="submit" class="btn text-white px-4 py-2 rounded-3 fw-bold d-inline-flex align-items-center gap-2" style="background-color: #198754; border-color: #198754;">
                             <i class="bi bi-cloud-arrow-up"></i>
                             <span>@T("بدء الاستيراد", "Start Import")</span>
                         </button>
