@@ -79,6 +79,9 @@ namespace WebApplication1.Services
             var greeting = string.IsNullOrWhiteSpace(recipientName) ? "مرحباً بك" : $"مرحباً د. {recipientName}";
             var subject = $"رمز التحقق لتفعيل حساب العيادة: {otpCode}";
 
+            // Prominently log to Console for development testing convenience
+            Console.WriteLine($"\n====================\n[DEV OTP CODE]: {otpCode} for {toEmail}\n====================\n");
+
             var body = $@"
 <!DOCTYPE html>
 <html lang=""ar"" dir=""rtl"">
@@ -111,7 +114,13 @@ namespace WebApplication1.Services
 </html>";
 
             _logger.LogInformation("[EmailService] OTP generated for {To}: {OTP}", toEmail, otpCode);
-            return await SendEmailAsync(toEmail, subject, body);
+            var sent = await SendEmailAsync(toEmail, subject, body);
+            if (!sent)
+            {
+                // Fallback: don't crash, ensure developer sees the code in console
+                Console.WriteLine($"\n====================\n[DEV OTP CODE (FALLBACK)]: {otpCode} for {toEmail}\n====================\n");
+            }
+            return sent;
         }
 
         public async Task SendAppointmentReminder(string patientEmail, string patientName, string appointmentDate)

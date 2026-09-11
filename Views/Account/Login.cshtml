@@ -596,16 +596,8 @@
         <!-- ── Right / End: Authentication Card with Tabs ── -->
         <div class="auth-section">
 
-            <!-- Top bar: WhatsApp CTA & Language Switcher -->
-            <div class="auth-top-bar">
-                <a href="https://wa.me/962792936244?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%D8%8C%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D9%86%D8%B8%D8%A7%D9%85%20%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9%20%D8%A7%D9%84%D8%B9%D9%8A%D8%A7%D8%AF%D8%A7%D8%AA%20%D9%88%D8%A7%D9%84%D8%AA%D8%AC%D8%B1%D8%A8%D8%A9%20%D8%A7%D9%84%D9%85%D8%AC%D8%A7%D9%86%D9%8A%D8%A9" 
-                   target="_blank" 
-                   rel="noopener noreferrer" 
-                   class="btn btn-sm btn-light border rounded-pill px-3 py-1.5 fw-semibold text-success shadow-sm d-inline-flex align-items-center gap-2">
-                    <i class="fa-brands fa-whatsapp fs-6 text-success"></i>
-                    <span>@T("تواصل عبر واتساب", "WhatsApp Chat")</span>
-                </a>
-
+            <!-- Top bar: Language Switcher -->
+            <div class="auth-top-bar justify-content-end">
                 <form asp-controller="Language" asp-action="SetLanguage" method="post" class="m-0">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="culture" value="@(_isAr ? "en" : "ar")" />
@@ -706,15 +698,13 @@
                             <!-- Password -->
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <label for="loginPassword" class="custom-label m-0">@T("كلمة المرور", "Password")</label>
-                                    <span class="text-muted" style="font-size: 12px;">@T("الافتراضي: admin123", "Default: admin123")</span>
+                                    <label class="form-label small fw-bold text-dark mb-0">@T("كلمة المرور", "Password")</label>
+                                    <span class="text-muted" style="font-size: 0.75rem;">@T("افتراضي: admin123", "Default: admin123")</span>
                                 </div>
-                                <div class="position-relative">
-                                    <input type="password" id="loginPassword" name="password" class="custom-input pe-5" required
-                                           value="admin123" placeholder="••••••••" dir="ltr" />
-                                    <button type="button" class="btn btn-link position-absolute top-50 translate-middle-y text-muted text-decoration-none" 
-                                            style="inset-inline-end: 8px; z-index: 5;" onclick="togglePasswordVisibility('loginPassword', 'loginEyeIcon')">
-                                        <i class="fa-regular fa-eye" id="loginEyeIcon"></i>
+                                <div class="input-group">
+                                    <input type="password" id="passwordInput" name="Password" class="form-control rounded-start-3" value="admin123" placeholder="••••••••" required dir="ltr" />
+                                    <button class="btn btn-outline-secondary border-start-0 rounded-end-3" type="button" id="togglePassword">
+                                        <i class="bi bi-eye" id="eyeIcon"></i>
                                     </button>
                                 </div>
                             </div>
@@ -790,13 +780,13 @@
 
                             <!-- 5. Password -->
                             <div class="mb-3">
-                                <label for="regPassword" class="custom-label">@T("كلمة المرور *", "Password *")</label>
-                                <div class="position-relative">
-                                    <input type="password" id="regPassword" name="password" class="custom-input pe-5" required dir="ltr"
-                                           placeholder="••••••••" />
-                                    <button type="button" class="btn btn-link position-absolute top-50 translate-middle-y text-muted text-decoration-none" 
-                                            style="inset-inline-end: 8px; z-index: 5;" onclick="togglePasswordVisibility('regPassword', 'regEyeIcon')">
-                                        <i class="fa-regular fa-eye" id="regEyeIcon"></i>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label small fw-bold text-dark mb-0">@T("كلمة المرور *", "Password *")</label>
+                                </div>
+                                <div class="input-group">
+                                    <input type="password" id="regPasswordInput" name="password" class="form-control rounded-start-3" placeholder="••••••••" required dir="ltr" />
+                                    <button class="btn btn-outline-secondary border-start-0 rounded-end-3" type="button" id="toggleRegPassword">
+                                        <i class="bi bi-eye" id="regEyeIcon"></i>
                                     </button>
                                 </div>
                             </div>
@@ -823,13 +813,8 @@
                 </div>
 
                 <!-- Footer Trust Badges -->
-                <div class="mt-4 text-center text-muted small">
-                    <div class="d-flex justify-content-center align-items-center gap-3 mb-2">
-                        <span><i class="bi bi-shield-fill-check text-success me-1"></i> @T("تشفير آمن 256-bit", "256-bit TLS Encrypted")</span>
-                        <span>•</span>
-                        <span><i class="bi bi-check2-circle text-success me-1"></i> @T("بدون فيزا أو بطاقة دفع", "No Credit Card Needed")</span>
-                    </div>
-                    <div>@T("نظام معتمد لإدارة العيادات والمراكز الطبية", "Certified Clinical Healthcare Management System")</div>
+                <div class="text-center text-muted small mt-3">
+                    <i class="bi bi-shield-check text-success me-1"></i> @T("تشفير آمن 256-bit • نظام معتمد لإدارة العيادات والمراكز الطبية", "256-bit TLS Encrypted • Certified Clinical Healthcare Management System")
                 </div>
 
             </div>
@@ -866,20 +851,37 @@
             if (element) element.classList.add('active');
 
             const userInput = document.getElementById('loginUsername');
-            const pwdInput = document.getElementById('loginPassword');
+            const pwdInput = document.getElementById('passwordInput');
             if (userInput) userInput.value = username;
             if (pwdInput) pwdInput.value = password;
         }
 
-        // Password Visibility Toggle
-        function togglePasswordVisibility(inputId, iconId) {
-            const input = document.getElementById(inputId);
-            const icon = document.getElementById(iconId);
-            if (input && icon) {
-                const isPwd = input.type === 'password';
-                input.type = isPwd ? 'text' : 'password';
-                icon.className = isPwd ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
-            }
+        // Password Visibility Toggle for Login
+        const togglePasswordBtn = document.getElementById('togglePassword');
+        if (togglePasswordBtn) {
+            togglePasswordBtn.addEventListener('click', function () {
+                const input = document.getElementById('passwordInput');
+                const icon = document.getElementById('eyeIcon');
+                if (input && icon) {
+                    const isPwd = input.type === 'password';
+                    input.type = isPwd ? 'text' : 'password';
+                    icon.className = isPwd ? 'bi bi-eye-slash' : 'bi bi-eye';
+                }
+            });
+        }
+
+        // Password Visibility Toggle for Registration
+        const toggleRegPasswordBtn = document.getElementById('toggleRegPassword');
+        if (toggleRegPasswordBtn) {
+            toggleRegPasswordBtn.addEventListener('click', function () {
+                const input = document.getElementById('regPasswordInput');
+                const icon = document.getElementById('regEyeIcon');
+                if (input && icon) {
+                    const isPwd = input.type === 'password';
+                    input.type = isPwd ? 'text' : 'password';
+                    icon.className = isPwd ? 'bi bi-eye-slash' : 'bi bi-eye';
+                }
+            });
         }
     </script>
 </body>

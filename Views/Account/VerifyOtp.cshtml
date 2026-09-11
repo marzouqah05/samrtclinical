@@ -245,6 +245,17 @@
             </p>
 
             <!-- Alerts -->
+            @if (TempData["DevOtp"] != null)
+            {
+                <div class="alert alert-warning rounded-4 shadow-sm border-0 d-flex align-items-center gap-2 mb-3 text-start" role="alert" style="background-color: #fffbeb; border: 1px dashed #f59e0b !important;">
+                    <i class="bi bi-code-slash fs-5 text-warning flex-shrink-0"></i>
+                    <div class="small text-dark">
+                        <strong>@T("وضع التطوير (Dev Mode):", "Development Mode:")</strong>
+                        <span>@T("كود التفعيل التجريبي:", "Demo Activation Code:")</span>
+                        <code class="fw-bold fs-6 text-dark px-2 py-0.5 rounded bg-white border border-warning">@TempData["DevOtp"]</code>
+                    </div>
+                </div>
+            }
             @if (ViewBag.Error != null)
             {
                 <div class="alert alert-danger rounded-4 shadow-sm border-0 d-flex align-items-center gap-2 mb-3 text-start" role="alert">
@@ -310,16 +321,6 @@
             &copy; @DateTime.Now.Year ClinicFlow Health Systems · @T("جميع الحقوق محفوظة", "All rights reserved")
         </div>
     </div>
-
-    <!-- Floating WhatsApp conversion button -->
-    <a href="https://wa.me/962792936244?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%D8%8C%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D9%86%D8%B8%D8%A7%D9%85%20%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9%20%D8%A7%D9%84%D8%B9%D9%8A%D8%A7%D8%AF%D8%A7%D8%AA%20%D9%88%D8%A7%D9%84%D8%AA%D8%AC%D8%B1%D8%A8%D8%A9%20%D8%A7%D9%84%D9%85%D8%AC%D8%A7%D9%86%D9%8A%D8%A9" 
-       target="_blank" 
-       rel="noopener noreferrer" 
-       class="floating-wa-btn" 
-       title="@T("تواصل معنا عبر واتساب", "Contact us via WhatsApp")">
-        <i class="fa-brands fa-whatsapp fs-5"></i>
-        <span>@T("تواصل معنا عبر واتساب", "WhatsApp Chat")</span>
-    </a>
 
     <script>
         const otpInput = document.getElementById('otpCodeInput');

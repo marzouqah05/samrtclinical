@@ -178,6 +178,9 @@ namespace WebApplication1.Controllers
                 // Dispatch OTP email via email service
                 await _emailSender.SendOtpEmailAsync(email, otpCode, adminName);
 
+                // Pass OTP in TempData for development testing convenience
+                TempData["DevOtp"] = otpCode;
+
                 // DO NOT automatically sign the user in. Redirect directly to OTP verification page
                 TempData["OtpSent"] = T($"تم إرسال رمز التحقق (OTP) إلى {email}. يرجى إدخال الرمز لإتمام تفعيل حساب المدير.",
                                         $"A verification code (OTP) was sent to {email}. Please enter the code to activate your Admin account.");
@@ -334,6 +337,7 @@ namespace WebApplication1.Controllers
                 await _db.SaveChangesAsync();
 
                 await _emailSender.SendOtpEmailAsync(email, newOtp);
+                TempData["DevOtp"] = newOtp;
                 TempData["OtpSent"] = T($"تمت إعادة إرسال رمز تحقق جديد إلى {email}.",
                                         $"A new verification code was sent to {email}.");
             }
