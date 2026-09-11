@@ -39,9 +39,17 @@
             <div class="ep-field-value" id="ep-notes" style="font-size:13px;color:#64748b;"></div>
         </div>
     </div>
-    <div class="ep-actions px-4 pb-4">
-        <div class="d-flex flex-column gap-2 mt-4" id="ep-actions">
-            <!-- dynamically populated -->
+    <div class="px-4 pb-4">
+        <div class="d-flex flex-column gap-2 mt-4 w-100" id="ep-actions">
+            <button type="button" class="btn btn-success w-100 py-2 fw-semibold rounded-3">
+                @T("إكمال وإصدار الفاتورة", "Complete & Bill")
+            </button>
+            <button type="button" class="btn btn-primary w-100 py-2 fw-semibold rounded-3">
+                @T("تأكيد الموعد", "Confirm Appointment")
+            </button>
+            <button type="button" class="btn btn-outline-danger w-100 py-2 fw-semibold rounded-3">
+                @T("إلغاء الموعد", "Cancel Appointment")
+            </button>
         </div>
     </div>
 </div>

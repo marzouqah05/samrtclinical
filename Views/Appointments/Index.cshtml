@@ -488,13 +488,6 @@
 
     .ep-actions { padding: 0 24px 24px; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; }
 
-    .btn-ep-complete { background: #10b981; color: white !important; border: none; text-align: center; text-decoration: none; transition: .2s; box-sizing: border-box; }
-    .btn-ep-complete:hover { background: #059669; color: white !important; }
-    .btn-ep-confirm { background: #3b82f6; color: white !important; border: none; cursor: pointer; transition: .2s; box-sizing: border-box; }
-    .btn-ep-confirm:hover { background: #1d4ed8; color: white !important; }
-    .btn-ep-cancel { background: #fee2e2; color: #dc2626 !important; border: 1px solid #fca5a5; cursor: pointer; transition: .2s; box-sizing: border-box; }
-    .btn-ep-cancel:hover { background: #fecaca; color: #b91c1c !important; }
-
     [data-bs-theme="dark"] #eventPanel,
     html.dark #eventPanel {
         background: #1B2421 !important;
@@ -511,12 +504,6 @@
     [data-bs-theme="dark"] .ep-header,
     html.dark .ep-header {
         border-bottom-color: #2B3833 !important;
-    }
-    [data-bs-theme="dark"] .btn-ep-cancel,
-    html.dark .btn-ep-cancel {
-        background: rgba(239, 68, 68, 0.15) !important;
-        border-color: rgba(239, 68, 68, 0.3) !important;
-        color: #f87171 !important;
     }
 
     #panelOverlay {
@@ -1346,7 +1333,7 @@
                 notesSection.style.display = 'none';
             }
 
-            // Build action buttons (stacked vertical layout with full width buttons)
+            // Build action buttons (clean vertical stack with standard Bootstrap button classes)
             const actionsDiv = document.getElementById('ep-actions');
             actionsDiv.innerHTML = '';
 
@@ -1356,8 +1343,8 @@
 
             if (p.status !== 'Completed' && p.status !== 'Cancelled') {
                 actionsDiv.innerHTML += `
-                    <a href="/Appointments/Complete/${id}" class="btn btn-ep-complete w-100 py-2 fw-semibold rounded-3 shadow-sm d-inline-flex align-items-center justify-content-center text-decoration-none">
-                        <i class="fa-solid fa-file-invoice-dollar me-2"></i>${completeText}
+                    <a href="/Appointments/Complete/${id}" class="btn btn-success w-100 py-2 fw-semibold rounded-3 d-inline-flex align-items-center justify-content-center text-decoration-none">
+                        ${completeText}
                     </a>`;
             }
             if (p.status !== 'Confirmed' && p.status !== 'Completed' && p.status !== 'Cancelled') {
@@ -1366,8 +1353,8 @@
                         <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
                         <input type="hidden" name="id" value="${id}" />
                         <input type="hidden" name="newStatus" value="Confirmed" />
-                        <button type="submit" class="btn btn-ep-confirm w-100 py-2 fw-semibold rounded-3 shadow-sm d-inline-flex align-items-center justify-content-center">
-                            <i class="fa-solid fa-check me-2"></i>${confirmText}
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold rounded-3 d-inline-flex align-items-center justify-content-center">
+                            ${confirmText}
                         </button>
                     </form>`;
             }
@@ -1377,8 +1364,8 @@
                         <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
                         <input type="hidden" name="id" value="${id}" />
                         <input type="hidden" name="newStatus" value="Cancelled" />
-                        <button type="submit" class="btn btn-ep-cancel w-100 py-2 fw-semibold rounded-3 shadow-sm d-inline-flex align-items-center justify-content-center">
-                            <i class="fa-solid fa-ban me-2"></i>${cancelText}
+                        <button type="submit" class="btn btn-outline-danger w-100 py-2 fw-semibold rounded-3 d-inline-flex align-items-center justify-content-center">
+                            ${cancelText}
                         </button>
                     </form>`;
             }
