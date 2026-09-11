@@ -1,0 +1,47 @@
+@using System.Globalization
+@{
+    var _isAr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar";
+    Func<string, string, string> T = (ar, en) => _isAr ? ar : en;
+}
+
+@* ══════════════════════════════════════════════════════
+   APPOINTMENT DETAILS DRAWER / OFFCANVAS (slide-over panel)
+══════════════════════════════════════════════════════ *@
+<div id="panelOverlay" onclick="closeEventPanel()"></div>
+<div id="eventPanel" dir="@(_isAr ? "rtl" : "ltr")">
+    <div class="ep-header">
+        <h5><i class="fa-regular fa-calendar-check me-2 text-primary"></i>@T("تفاصيل الموعد", "Appointment Details")</h5>
+        <button onclick="closeEventPanel()" style="background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;" aria-label="@T("إغلاق", "Close")">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+    <div class="ep-body">
+        <div class="ep-field">
+            <div class="ep-field-label">@T("المريض", "PATIENT")</div>
+            <div class="ep-field-value" id="ep-patient">—</div>
+        </div>
+        <div class="ep-field">
+            <div class="ep-field-label">@T("الطبيب", "DOCTOR")</div>
+            <div class="ep-field-value" id="ep-doctor">—</div>
+        </div>
+        <div class="ep-field">
+            <div class="ep-field-label">@T("التاريخ والوقت", "DATE & TIME")</div>
+            <div class="ep-field-value" id="ep-datetime">
+                <span dir="ltr" class="d-inline-block text-secondary fw-semibold">—</span>
+            </div>
+        </div>
+        <div class="ep-field">
+            <div class="ep-field-label">@T("الحالة", "STATUS")</div>
+            <div id="ep-status">—</div>
+        </div>
+        <div class="ep-field" id="ep-notes-section" style="display:none;">
+            <div class="ep-field-label">@T("الملاحظات", "NOTES")</div>
+            <div class="ep-field-value" id="ep-notes" style="font-size:13px;color:#64748b;"></div>
+        </div>
+    </div>
+    <div class="ep-actions px-4 pb-4">
+        <div class="d-flex flex-column gap-2 mt-4" id="ep-actions">
+            <!-- dynamically populated -->
+        </div>
+    </div>
+</div>

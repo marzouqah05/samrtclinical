@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -234,13 +235,14 @@ namespace WebApplication1.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,Notes,IsWeekendOverride")] Appointment appointment)
         {
-            var combinedDateTime = DateTime.SpecifyKind(appointment.AppointmentDate.Date.Add(appointment.AppointmentTime), DateTimeKind.Utc);
-            if (combinedDateTime < DateTime.UtcNow)
+            // Ensure combined local or UTC time is compared properly
+            DateTime appointmentDateTime = appointment.AppointmentDate.Date.Add(appointment.AppointmentTime);
+            if (appointmentDateTime < DateTime.Now)
             {
-                string errorMsg = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
-                    ? "لا يمكن حجز موعد في وقت أو تاريخ قد مضى."
-                    : "Cannot book an appointment in the past.";
-                ModelState.AddModelError("AppointmentTime", errorMsg);
+                string error = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
+                    ? "لا يمكن حجز موعد في تاريخ أو وقت سابق عن الوقت الحالي."
+                    : "Cannot schedule an appointment in the past.";
+                ModelState.AddModelError("AppointmentTime", error);
                 ViewData["DoctorId"] = new SelectList(_context.Doctors, "DoctorId", "DoctorName", appointment.DoctorId);
                 ViewData["PatientId"] = new SelectList(_context.Patients, "PatientId", "PatientName", appointment.PatientId);
                 return View(appointment);
@@ -261,6 +263,7 @@ namespace WebApplication1.Controllers
             {
                 // تعيين الحالة الافتراضية عند الإنشاء
                 appointment.Status = "Pending";
+                appointment.AppointmentDate = DateTime.SpecifyKind(appointment.AppointmentDate.Date, DateTimeKind.Utc);
 
                 _context.Add(appointment);
                 await _context.SaveChangesAsync();
@@ -274,7 +277,6 @@ namespace WebApplication1.Controllers
 
                     if (patient != null && !string.IsNullOrWhiteSpace(patient.PhoneNumber))
                     {
-                        var appointmentDateTime = appointment.AppointmentDate.Add(appointment.AppointmentTime);
                         bool sent = await _whatsApp.SendAppointmentReminderAsync(
                             patient.PhoneNumber,
                             patient.PatientName,
@@ -376,19 +378,20 @@ namespace WebApplication1.Controllers
             ModelState.Remove(nameof(appointment.Patient));
             ModelState.Remove(nameof(appointment.Treatment));
 
-            // Ensure AppointmentDate is handled cleanly in UTC for PostgreSQL
-            appointment.AppointmentDate = DateTime.SpecifyKind(appointment.AppointmentDate.Date, DateTimeKind.Utc);
-
-            var combinedDateTime = appointment.AppointmentDate.Date.Add(appointment.AppointmentTime);
-            if (combinedDateTime < DateTime.UtcNow)
+            // Ensure combined local or UTC time is compared properly
+            DateTime appointmentDateTime = appointment.AppointmentDate.Date.Add(appointment.AppointmentTime);
+            if (appointmentDateTime < DateTime.Now)
             {
-                string errorMsg = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
-                    ? "لا يمكن حجز موعد في وقت أو تاريخ قد مضى."
-                    : "Cannot book an appointment in the past.";
-                ModelState.AddModelError("AppointmentTime", errorMsg);
+                string error = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
+                    ? "لا يمكن حجز موعد في تاريخ أو وقت سابق عن الوقت الحالي."
+                    : "Cannot schedule an appointment in the past.";
+                ModelState.AddModelError("AppointmentTime", error);
                 PopulateAppointmentDropdowns(appointment);
                 return View(appointment);
             }
+
+            // Ensure AppointmentDate is handled cleanly in UTC for PostgreSQL
+            appointment.AppointmentDate = DateTime.SpecifyKind(appointment.AppointmentDate.Date, DateTimeKind.Utc);
 
             var isWeekend = appointment.AppointmentDate.DayOfWeek == DayOfWeek.Friday || appointment.AppointmentDate.DayOfWeek == DayOfWeek.Saturday;
             if (isWeekend && !appointment.IsWeekendOverride)
@@ -550,19 +553,20 @@ namespace WebApplication1.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> QuickBook([Bind("AppointmentDate,AppointmentTime,DoctorId,PatientId,Notes")] Appointment appointment)
         {
-            var combinedDateTime = DateTime.SpecifyKind(appointment.AppointmentDate.Date.Add(appointment.AppointmentTime), DateTimeKind.Utc);
-            if (combinedDateTime < DateTime.UtcNow)
+            DateTime appointmentDateTime = appointment.AppointmentDate.Date.Add(appointment.AppointmentTime);
+            if (appointmentDateTime < DateTime.Now)
             {
-                string errorMsg = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
-                    ? "لا يمكن حجز موعد في وقت أو تاريخ قد مضى."
-                    : "Cannot book an appointment in the past.";
-                TempData["Error"] = errorMsg;
+                string error = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
+                    ? "لا يمكن حجز موعد في تاريخ أو وقت سابق عن الوقت الحالي."
+                    : "Cannot schedule an appointment in the past.";
+                TempData["Error"] = error;
                 return RedirectToAction(nameof(Index));
             }
 
             if (ModelState.IsValid)
             {
                 appointment.Status = "Pending";
+                appointment.AppointmentDate = DateTime.SpecifyKind(appointment.AppointmentDate.Date, DateTimeKind.Utc);
                 _context.Add(appointment);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = "Appointment booked successfully via Quick Book!";

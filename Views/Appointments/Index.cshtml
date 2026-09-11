@@ -1147,42 +1147,9 @@
 </div>
 
 @* ══════════════════════════════════════════════════════
-   EVENT DETAIL PANEL (slide-over)
+   APPOINTMENT DETAILS DRAWER / OFFCANVAS (slide-over panel)
 ══════════════════════════════════════════════════════ *@
-<div id="panelOverlay" onclick="closeEventPanel()"></div>
-<div id="eventPanel" dir="@(_isAr ? "rtl" : "ltr")">
-    <div class="ep-header">
-        <h5><i class="fa-regular fa-calendar-check me-2 text-primary"></i>@T("تفاصيل الموعد", "Appointment Details")</h5>
-        <button onclick="closeEventPanel()" style="background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;" aria-label="@T("إغلاق", "Close")">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-    <div class="ep-body">
-        <div class="ep-field">
-            <div class="ep-field-label">@T("المريض", "PATIENT")</div>
-            <div class="ep-field-value" id="ep-patient">—</div>
-        </div>
-        <div class="ep-field">
-            <div class="ep-field-label">@T("الطبيب", "DOCTOR")</div>
-            <div class="ep-field-value" id="ep-doctor">—</div>
-        </div>
-        <div class="ep-field">
-            <div class="ep-field-label">@T("التاريخ والوقت", "DATE & TIME")</div>
-            <div class="ep-field-value" id="ep-datetime"><span dir="ltr" class="d-inline-block"><bdi>—</bdi></span></div>
-        </div>
-        <div class="ep-field">
-            <div class="ep-field-label">@T("الحالة", "STATUS")</div>
-            <div id="ep-status">—</div>
-        </div>
-        <div class="ep-field" id="ep-notes-section" style="display:none;">
-            <div class="ep-field-label">@T("الملاحظات", "NOTES")</div>
-            <div class="ep-field-value" id="ep-notes" style="font-size:13px;color:#64748b;"></div>
-        </div>
-    </div>
-    <div class="ep-actions d-flex flex-column w-100 px-4 pb-4" id="ep-actions">
-        <!-- dynamically populated -->
-    </div>
-</div>
+<partial name="_AppointmentDetailsPartial" />
 
 @* ─── Tooltip element ─── *@
 <div class="fc-event-tooltip" id="eventTooltip">
@@ -1338,7 +1305,7 @@
             'Pending':   `<span class="custom-badge badge-pending"><span class="status-dot"></span>${isAr ? 'قيد الانتظار' : 'Pending'}</span>`,
             'Confirmed': `<span class="custom-badge badge-confirmed"><span class="status-dot"></span>${isAr ? 'مؤكد' : 'Confirmed'}</span>`,
             'Completed': `<span class="custom-badge badge-completed"><span class="status-dot"></span>${isAr ? 'مكتمل' : 'Completed'}</span>`,
-            'Cancelled': `<span class="custom-badge badge-cancelled"><span class="status-dot"></span>${isAr ? 'ملغى' : 'Cancelled'}</span>`,
+            'Cancelled': `<span class="custom-badge badge-cancelled"><span class="status-dot"></span>${isAr ? 'ملغي' : 'Cancelled'}</span>`,
         };
 
         function openEventPanel(event) {
@@ -1349,11 +1316,25 @@
             document.getElementById('ep-patient').textContent  = p.patientName;
             document.getElementById('ep-doctor').textContent   = formatDoctorTitle(p.doctorName);
             if (st) {
-                const dateStr = st.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                const timeStr = st.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                document.getElementById('ep-datetime').innerHTML = `<span dir="ltr" class="d-inline-block"><bdi>${dateStr} · ${timeStr}</bdi></span>`;
+                const yyyy = st.getFullYear();
+                const mm = String(st.getMonth() + 1).padStart(2, '0');
+                const dd = String(st.getDate()).padStart(2, '0');
+                let hours = st.getHours();
+                const minutes = String(st.getMinutes()).padStart(2, '0');
+                const ampm = hours >= 12 ? (isAr ? 'م' : 'PM') : (isAr ? 'ص' : 'AM');
+                hours = hours % 12;
+                hours = hours ? hours : 12;
+                const hoursStr = String(hours).padStart(2, '0');
+
+                const formattedDateTime = isAr
+                    ? `${yyyy}/${mm}/${dd} · ${hoursStr}:${minutes} ${ampm}`
+                    : `${dd} ${st.toLocaleString('en-US', { month: 'short' })} ${yyyy} · ${hoursStr}:${minutes} ${ampm}`;
+
+                document.getElementById('ep-datetime').innerHTML =
+                    `<span dir="ltr" class="d-inline-block text-secondary fw-semibold">${formattedDateTime}</span>`;
             } else {
-                document.getElementById('ep-datetime').innerHTML = '<span dir="ltr" class="d-inline-block"><bdi>—</bdi></span>';
+                document.getElementById('ep-datetime').innerHTML =
+                    '<span dir="ltr" class="d-inline-block text-secondary fw-semibold">—</span>';
             }
             document.getElementById('ep-status').innerHTML = statusBadgeMap[p.status] || p.status;
 
@@ -1365,7 +1346,7 @@
                 notesSection.style.display = 'none';
             }
 
-            // Build action buttons (clean stacked full-width layout)
+            // Build action buttons (stacked vertical layout with full width buttons)
             const actionsDiv = document.getElementById('ep-actions');
             actionsDiv.innerHTML = '';
 
@@ -1375,32 +1356,33 @@
 
             if (p.status !== 'Completed' && p.status !== 'Cancelled') {
                 actionsDiv.innerHTML += `
-                    <a href="/Appointments/Complete/${id}" class="btn-ep-complete w-100 mb-2 py-2 fw-semibold rounded-3 d-inline-flex align-items-center justify-content-center text-decoration-none">
+                    <a href="/Appointments/Complete/${id}" class="btn btn-ep-complete w-100 py-2 fw-semibold rounded-3 shadow-sm d-inline-flex align-items-center justify-content-center text-decoration-none">
                         <i class="fa-solid fa-file-invoice-dollar me-2"></i>${completeText}
                     </a>`;
             }
             if (p.status !== 'Confirmed' && p.status !== 'Completed' && p.status !== 'Cancelled') {
                 actionsDiv.innerHTML += `
-                    <form action="/Appointments/UpdateStatus" method="post" class="w-100 m-0">
+                    <form action="/Appointments/UpdateStatus" method="post" class="w-100 m-0 p-0">
                         <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
                         <input type="hidden" name="id" value="${id}" />
                         <input type="hidden" name="newStatus" value="Confirmed" />
-                        <button type="submit" class="btn-ep-confirm w-100 mb-2 py-2 fw-semibold rounded-3 d-inline-flex align-items-center justify-content-center">
+                        <button type="submit" class="btn btn-ep-confirm w-100 py-2 fw-semibold rounded-3 shadow-sm d-inline-flex align-items-center justify-content-center">
                             <i class="fa-solid fa-check me-2"></i>${confirmText}
                         </button>
                     </form>`;
             }
             if (p.status !== 'Cancelled' && p.status !== 'Completed') {
                 actionsDiv.innerHTML += `
-                    <form action="/Appointments/UpdateStatus" method="post" class="w-100 m-0">
+                    <form action="/Appointments/UpdateStatus" method="post" class="w-100 m-0 p-0">
                         <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
                         <input type="hidden" name="id" value="${id}" />
                         <input type="hidden" name="newStatus" value="Cancelled" />
-                        <button type="submit" class="btn-ep-cancel w-100 mb-2 py-2 fw-semibold rounded-3 d-inline-flex align-items-center justify-content-center">
+                        <button type="submit" class="btn btn-ep-cancel w-100 py-2 fw-semibold rounded-3 shadow-sm d-inline-flex align-items-center justify-content-center">
                             <i class="fa-solid fa-ban me-2"></i>${cancelText}
                         </button>
                     </form>`;
             }
+
 
             // Show panel + overlay
             document.getElementById('eventPanel').classList.add('open');
