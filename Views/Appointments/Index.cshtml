@@ -506,6 +506,83 @@
         border-bottom-color: #2B3833 !important;
     }
 
+    /* ─── Explicit Bootstrap 5 Button & Grid Styles (prevents unstyled text) ─── */
+    .d-grid { display: grid !important; }
+    .gap-2 { gap: 0.5rem !important; }
+    .btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-family: inherit;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        border-radius: 0.5rem;
+        text-align: center;
+        text-decoration: none !important;
+        vertical-align: middle;
+        cursor: pointer;
+        user-select: none;
+        border: 1px solid transparent;
+        padding: 0.5rem 1rem;
+        transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+    }
+    .btn.fw-bold { font-weight: 700 !important; }
+    .btn.py-2 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+    .btn.shadow-sm { box-shadow: 0 .125rem .25rem rgba(0,0,0,.075) !important; }
+    .btn-success {
+        color: #ffffff !important;
+        background-color: #198754 !important;
+        border-color: #198754 !important;
+    }
+    .btn-success:hover {
+        background-color: #157347 !important;
+        border-color: #146c43 !important;
+        color: #ffffff !important;
+    }
+    .btn-primary {
+        color: #ffffff !important;
+        background-color: #0d6efd !important;
+        border-color: #0d6efd !important;
+    }
+    .btn-primary:hover {
+        background-color: #0b5ed7 !important;
+        border-color: #0a58ca !important;
+        color: #ffffff !important;
+    }
+    .btn-outline-danger {
+        color: #dc3545 !important;
+        background-color: transparent !important;
+        border-color: #dc3545 !important;
+    }
+    .btn-outline-danger:hover {
+        color: #ffffff !important;
+        background-color: #dc3545 !important;
+        border-color: #dc3545 !important;
+    }
+    .btn-outline-secondary {
+        color: #6c757d !important;
+        background-color: transparent !important;
+        border-color: #6c757d !important;
+    }
+    .btn-outline-secondary:hover {
+        color: #ffffff !important;
+        background-color: #6c757d !important;
+        border-color: #6c757d !important;
+    }
+    .btn-close {
+        box-sizing: content-box;
+        width: 1em;
+        height: 1em;
+        padding: .25em .25em;
+        color: #000;
+        background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e") center/1em auto no-repeat;
+        border: 0;
+        border-radius: .375rem;
+        opacity: .5;
+        cursor: pointer;
+    }
+    .btn-close:hover { opacity: .75; }
+
     #panelOverlay {
         display: none; position: fixed; inset: 0;
         background: rgba(0,0,0,.3); z-index: 1400;
@@ -575,7 +652,7 @@
             </a>
             <button type="button"
                     class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#49665A] hover:bg-[#3D574D] text-white inline-flex items-center gap-1.5 transition shadow-sm"
-                    onclick="document.getElementById('quickBookModal').classList.remove('hidden')">
+                    data-bs-toggle="modal" data-bs-target="#quickBookModal">
                 <i class="fa-solid fa-plus"></i>
                 <span>@T("حجز سريع", "Quick Book")</span>
             </button>
@@ -900,117 +977,109 @@
 </div><!-- end .page-container -->
 
 @* ══════════════════════════════════════════════════════
-   QUICK BOOK MODAL — Tailwind overlay
+   QUICK BOOK MODAL — Bootstrap 5 Modal
 ══════════════════════════════════════════════════════ *@
-<div id="quickBookModal"
-     class="fixed inset-0 bg-[#202725]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden"
-     onclick="if(event.target===this)this.classList.add('hidden')">
-    <div class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+<div class="modal fade" id="quickBookModal" tabindex="-1" aria-labelledby="quickBookModalLabel" aria-hidden="true" dir="@(_isAr ? "rtl" : "ltr")">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-3 shadow border-0 bg-white dark:bg-[#1B2421]">
 
-        @* Header *@
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <div class="w-9 h-9 rounded-xl bg-[#49665A]/10 flex items-center justify-center text-[#49665A]">
-                    <i class="fa-solid fa-calendar-plus text-sm"></i>
+            @* Header *@
+            <div class="modal-header border-bottom border-[#DDE3DF] dark:border-[#2B3833] py-3 px-4 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="w-9 h-9 rounded-xl bg-[#49665A]/10 d-flex align-items-center justify-content-center text-[#49665A]">
+                        <i class="fa-solid fa-calendar-plus text-sm"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fs-6 fw-bold text-[#202725] dark:text-[#EAEFEA] m-0" id="quickBookModalLabel">@T("حجز سريع", "Quick Book Appointment")</h5>
+                        <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0">@T("جدولة موعد جديد بسرعة", "Schedule a new appointment instantly")</p>
+                    </div>
                 </div>
-                <div>
-                    <h5 class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA] m-0">@T("حجز سريع", "Quick Book Appointment")</h5>
-                    <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0">@T("جدولة موعد جديد بسرعة", "Schedule a new appointment instantly")</p>
-                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <button type="button"
-                    class="w-7 h-7 rounded-lg flex items-center justify-center text-[#727A76] dark:text-[#9CA8A3] hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] transition-colors"
-                    onclick="document.getElementById('quickBookModal').classList.add('hidden')">
-                <i class="fa-solid fa-xmark text-xs"></i>
-            </button>
+
+            @* Form *@
+            <form asp-action="QuickBook" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4 space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                                <i class="fa-regular fa-calendar me-1 text-[#49665A]"></i>@T("تاريخ الموعد", "Appointment Date")
+                            </label>
+                            <input type="date" name="AppointmentDate" id="qbDate"
+                                   min="@DateTime.Today.ToString("yyyy-MM-dd")"
+                                   class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
+                                   required />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                                <i class="fa-regular fa-clock me-1 text-[#49665A]"></i>@T("وقت الموعد", "Appointment Time")
+                            </label>
+                            <input type="time" name="AppointmentTime" id="qbTime"
+                                   class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
+                                   required />
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                                <i class="fa-solid fa-user-doctor me-1 text-[#49665A]"></i>@T("الطبيب", "Doctor")
+                            </label>
+                            <select name="DoctorId" id="qbDoctor"
+                                    class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
+                                    required>
+                                <option value="">— @T("اختر الطبيب", "Select Doctor") —</option>
+                                @if (ViewBag.AllDoctors != null)
+                                {
+                                    foreach (var doc in ViewBag.AllDoctors)
+                                    {
+                                        <option value="@doc.DoctorId">@FormatDoctorName(doc.DoctorName)</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                                <i class="fa-solid fa-user me-1 text-[#49665A]"></i>@T("المريض", "Patient")
+                            </label>
+                            <select name="PatientId" id="qbPatient"
+                                    class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
+                                    required>
+                                <option value="">— @T("اختر المريض", "Select Patient") —</option>
+                                @if (ViewBag.AllPatients != null)
+                                {
+                                    foreach (var p in ViewBag.AllPatients)
+                                    {
+                                        <option value="@p.PatientId">@p.PatientName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                            <i class="fa-solid fa-notes-medical me-1 text-[#49665A]"></i>@T("ملاحظات (اختياري)", "Notes (Optional)")
+                        </label>
+                        <textarea name="Notes"
+                                  class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] resize-none"
+                                  rows="3"
+                                  placeholder="@T("أدخل الأعراض أو الشكاوى أو الملاحظات...", "Enter any symptoms, complaints, or notes...")"></textarea>
+                    </div>
+                </div>
+
+                @* Footer *@
+                <div class="modal-footer border-top border-[#DDE3DF] dark:border-[#2B3833] py-3 px-4 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">
+                        @T("إلغاء", "Cancel")
+                    </button>
+                    <button type="submit"
+                            class="px-5 py-2 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk text-xs"></i>
+                        <span>@T("حفظ الموعد", "Save Appointment")</span>
+                    </button>
+                </div>
+            </form>
         </div>
-
-        @* Form *@
-        <form asp-action="QuickBook" method="post">
-            @Html.AntiForgeryToken()
-            <div class="space-y-3">
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
-                            <i class="fa-regular fa-calendar me-1 text-[#49665A]"></i>@T("تاريخ الموعد", "Appointment Date")
-                        </label>
-                        <input type="date" name="AppointmentDate" id="qbDate"
-                               min="@DateTime.Today.ToString("yyyy-MM-dd")"
-                               class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
-                               required />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
-                            <i class="fa-regular fa-clock me-1 text-[#49665A]"></i>@T("وقت الموعد", "Appointment Time")
-                        </label>
-                        <input type="time" name="AppointmentTime" id="qbTime"
-                               class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
-                               required />
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
-                            <i class="fa-solid fa-user-doctor me-1 text-[#49665A]"></i>@T("الطبيب", "Doctor")
-                        </label>
-                        <select name="DoctorId" id="qbDoctor"
-                                class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
-                                required>
-                            <option value="">— @T("اختر الطبيب", "Select Doctor") —</option>
-                            @if (ViewBag.AllDoctors != null)
-                            {
-                                foreach (var doc in ViewBag.AllDoctors)
-                                {
-                                    <option value="@doc.DoctorId">@FormatDoctorName(doc.DoctorName)</option>
-                                }
-                            }
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
-                            <i class="fa-solid fa-user me-1 text-[#49665A]"></i>@T("المريض", "Patient")
-                        </label>
-                        <select name="PatientId" id="qbPatient"
-                                class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]"
-                                required>
-                            <option value="">— @T("اختر المريض", "Select Patient") —</option>
-                            @if (ViewBag.AllPatients != null)
-                            {
-                                foreach (var p in ViewBag.AllPatients)
-                                {
-                                    <option value="@p.PatientId">@p.PatientName</option>
-                                }
-                            }
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
-                        <i class="fa-solid fa-notes-medical me-1 text-[#49665A]"></i>@T("ملاحظات (اختياري)", "Notes (Optional)")
-                    </label>
-                    <textarea name="Notes"
-                              class="w-full bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl text-[#202725] dark:text-[#EAEFEA] px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] resize-none"
-                              rows="3"
-                              placeholder="@T("أدخل الأعراض أو الشكاوى أو الملاحظات...", "Enter any symptoms, complaints, or notes...")">
-                    </textarea>
-                </div>
-            </div>
-
-            @* Footer *@
-            <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-[#E5E9E7] dark:border-[#2B3833] mt-6">
-                <button type="button"
-                        class="px-4 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/20 text-[#6B7D75] hover:text-rose-600 dark:text-[#9CA8A3] dark:hover:text-rose-400 text-xs font-semibold transition flex items-center gap-1.5"
-                        onclick="document.getElementById('quickBookModal').classList.add('hidden')">
-                    <i class="fa-solid fa-xmark text-xs"></i>
-                    <span>@T("إلغاء", "Cancel")</span>
-                </button>
-                <button type="submit"
-                        class="px-5 py-2 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-floppy-disk text-xs"></i>
-                    <span>@T("حفظ الموعد", "Save Appointment")</span>
-                </button>
-            </div>
-        </form>
     </div>
 </div>
 
@@ -1206,11 +1275,27 @@
                         info.el.style.boxShadow = '0 0 0 2px white, 0 0 0 4px ' + info.event.backgroundColor;
                     }
                 },
-                // Clicking on a blank date opens the modal with pre-filled date
+                // Clicking on a blank date opens the modal with pre-filled date (blocked for past dates)
                 dateClick: function (info) {
+                    const selectedDate = new Date(info.dateStr);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    if (selectedDate < today) {
+                        // Do not open Quick Book Modal for past dates
+                        return;
+                    }
+
                     document.getElementById('qbDate').value = info.dateStr;
-                    var modal = new bootstrap.Modal(document.getElementById('quickBookModal'));
+                    var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('quickBookModal'));
                     modal.show();
+                },
+                dayCellDidMount: function(arg) {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    if (arg.date < today) {
+                        arg.el.style.backgroundColor = '#f8f9fa';
+                        arg.el.style.cursor = 'not-allowed';
+                    }
                 }
             });
             calendar.render();
@@ -1333,8 +1418,9 @@
                 notesSection.style.display = 'none';
             }
 
-            // Build action buttons (clean vertical stack with standard Bootstrap button classes)
+            // Build action buttons (d-grid gap-2 mt-4 with Bootstrap 5 button classes)
             const actionsDiv = document.getElementById('ep-actions');
+            actionsDiv.className = 'd-grid gap-2 mt-4';
             actionsDiv.innerHTML = '';
 
             const completeText = isAr ? 'إكمال وإصدار الفاتورة' : 'Complete & Bill';
@@ -1343,8 +1429,8 @@
 
             if (p.status !== 'Completed' && p.status !== 'Cancelled') {
                 actionsDiv.innerHTML += `
-                    <a href="/Appointments/Complete/${id}" class="btn btn-success w-100 py-2 fw-semibold rounded-3 d-inline-flex align-items-center justify-content-center text-decoration-none">
-                        ${completeText}
+                    <a href="/Appointments/Complete/${id}" class="btn btn-success fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center text-decoration-none">
+                        <i class="bi bi-receipt me-1"></i> ${completeText}
                     </a>`;
             }
             if (p.status !== 'Confirmed' && p.status !== 'Completed' && p.status !== 'Cancelled') {
@@ -1353,8 +1439,8 @@
                         <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
                         <input type="hidden" name="id" value="${id}" />
                         <input type="hidden" name="newStatus" value="Confirmed" />
-                        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold rounded-3 d-inline-flex align-items-center justify-content-center">
-                            ${confirmText}
+                        <button type="submit" class="btn btn-primary fw-bold py-2 shadow-sm w-100 d-inline-flex align-items-center justify-content-center">
+                            <i class="bi bi-check-circle me-1"></i> ${confirmText}
                         </button>
                     </form>`;
             }
@@ -1364,8 +1450,8 @@
                         <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
                         <input type="hidden" name="id" value="${id}" />
                         <input type="hidden" name="newStatus" value="Cancelled" />
-                        <button type="submit" class="btn btn-outline-danger w-100 py-2 fw-semibold rounded-3 d-inline-flex align-items-center justify-content-center">
-                            ${cancelText}
+                        <button type="submit" class="btn btn-outline-danger fw-bold py-2 w-100 d-inline-flex align-items-center justify-content-center">
+                            <i class="bi bi-x-circle me-1"></i> ${cancelText}
                         </button>
                     </form>`;
             }
