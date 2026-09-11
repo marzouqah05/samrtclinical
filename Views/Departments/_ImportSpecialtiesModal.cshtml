@@ -1,34 +1,10 @@
 @{
     var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
     string T(string ar, string en) => _isAr ? ar : en;
-    ViewData["Title"] = T("استيراد بيانات الأطباء", "Bulk Import Doctors");
 }
 
-<div class="container py-4" dir="@(_isAr ? "rtl" : "ltr")">
-    <div class="mb-3">
-        <a asp-action="Index" class="btn btn-sm btn-link text-body-secondary text-decoration-none d-inline-flex align-items-center gap-2">
-            <i class="bi @(_isAr ? "bi-arrow-right" : "bi-arrow-left")"></i>
-            <span>@T("العودة إلى قائمة الأطباء", "Back to Doctors List")</span>
-        </a>
-    </div>
-
-    @if (TempData["Success"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-3" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm mb-3" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-
-    <div class="modal-dialog modal-dialog-centered modal-lg m-auto">
+<div class="modal fade" id="importSpecialtiesModal" tabindex="-1" aria-labelledby="importSpecialtiesModalLabel" aria-hidden="true" dir="@(_isAr ? "rtl" : "ltr")">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg rounded-4 p-3 bg-body">
             <div class="modal-header border-0 pb-0 d-flex justify-content-between align-items-start w-100">
                 <div class="d-flex align-items-center gap-3 mb-3">
@@ -36,17 +12,18 @@
                         <i class="bi bi-cloud-arrow-up-fill fs-4"></i>
                     </div>
                     <div>
-                        <h5 class="text-body fw-bold mb-0">
-                            @T("استيراد الأطباء (Bulk Import)", "Bulk Import Doctors")
+                        <h5 class="text-body fw-bold mb-0" id="importSpecialtiesModalLabel">
+                            @T("استيراد التخصصات (Bulk Import)", "Bulk Import Specialties")
                         </h5>
                         <span class="text-body-secondary small">
                             @T("رفع ملف CSV أو Excel لتسجيل البيانات دفعة واحدة", "Upload CSV or Excel file to record multiple records at once")
                         </span>
                     </div>
                 </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <form asp-action="Import" method="post" enctype="multipart/form-data">
+            <form asp-controller="Departments" asp-action="ImportSpecialties" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
                 <div class="modal-body pt-3">
                     <!-- Section 1: Template Download Card -->
@@ -58,13 +35,13 @@
                                     <i class="bi bi-file-earmark-excel-fill fs-4"></i>
                                 </div>
                                 <div>
-                                    <div class="text-body fw-bold small">@T("قالب الأطباء الجاهز", "Doctors Ready Template")</div>
+                                    <div class="text-body fw-bold small">@T("قالب التخصصات الجاهز", "Specialties Ready Template")</div>
                                     <div class="text-body-secondary" style="font-size: 0.8rem;">@T("تحميل ملف CSV بالأعمدة المطلوبة", "Download CSV template with required columns")</div>
                                 </div>
                             </div>
                             <!-- Left Side (Download Button) -->
                             <div class="flex-shrink-0">
-                                <a href="@Url.Action("DownloadTemplate")" class="btn btn-sm btn-outline-secondary px-3 py-2 rounded-pill fw-medium d-inline-flex align-items-center gap-1 shadow-sm">
+                                <a href="@Url.Action("DownloadSpecialtiesTemplate", "Departments")" class="btn btn-sm btn-outline-secondary px-3 py-2 rounded-pill fw-medium d-inline-flex align-items-center gap-1 shadow-sm">
                                     <i class="bi bi-download text-success"></i>
                                     <span>@T("تحميل القالب", "Download Template")</span>
                                 </a>
@@ -88,25 +65,19 @@
                         </div>
                         <div class="row g-2 text-body-secondary small">
                             <div class="col-md-6">
-                                <span class="text-body fw-semibold">FullName:</span> @T("اسم الطبيب بالكامل (3 - 150 حرفاً)", "Doctor Full Name (3 - 150 characters)")
+                                <span class="text-body fw-semibold">SpecializationName:</span> @T("اسم التخصص الطبي (3 - 100 حرفاً)", "Medical Specialization Name")
                             </div>
                             <div class="col-md-6">
-                                <span class="text-body fw-semibold">Specialization:</span> @T("التخصص الطبي للطبيب", "Medical Specialization")
-                            </div>
-                            <div class="col-md-6">
-                                <span class="text-body fw-semibold">Phone:</span> @T("رقم هاتف الطبيب للتواصل", "Doctor Phone / Mobile")
-                            </div>
-                            <div class="col-md-6">
-                                <span class="text-body fw-semibold">DepartmentName:</span> @T("اسم القسم التابع له (تلقائي إن لم يتوفر)", "Department Name (auto-created if not found)")
+                                <span class="text-body fw-semibold">Description:</span> @T("وصف التخصص الطبي (اختياري)", "Specialization Description (Optional)")
                             </div>
                         </div>
                     </div>
 
-                    <!-- Section 4: Actions -->
+                    <!-- Section 4: Modal Footer Actions -->
                     <div class="d-flex justify-content-end align-items-center gap-2 pt-3 border-top border-secondary-subtle mt-3">
-                        <a asp-action="Index" class="btn btn-outline-secondary px-4 py-2 rounded-pill">
+                        <button type="button" class="btn btn-outline-secondary px-4 py-2 rounded-pill" data-bs-dismiss="modal">
                             @T("إلغاء", "Cancel")
-                        </a>
+                        </button>
                         <button type="submit" class="btn btn-success px-4 py-2 rounded-pill fw-bold shadow-sm d-inline-flex align-items-center gap-2">
                             <i class="bi bi-cloud-arrow-up"></i>
                             <span>@T("بدء الاستيراد", "Start Import")</span>

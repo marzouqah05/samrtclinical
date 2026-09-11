@@ -234,17 +234,17 @@
 @* ─── 📥 Import Invoices Modal ─── *@
 <div class="modal fade" id="importInvoicesModal" tabindex="-1" aria-labelledby="importInvoicesModalLabel" aria-hidden="true" dir="@(_isAr ? "rtl" : "ltr")">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg rounded-4 p-3 bg-white">
+        <div class="modal-content border-0 shadow-lg rounded-4 p-3 bg-body">
             <div class="modal-header border-0 pb-0 d-flex justify-content-between align-items-start w-100">
                 <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 46px; height: 46px; background-color: #e8f5e9; color: #198754;">
+                    <div class="bg-success bg-opacity-10 text-success rounded-3 p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 46px; height: 46px;">
                         <i class="bi bi-cloud-arrow-up-fill fs-4"></i>
                     </div>
                     <div>
-                        <h5 class="fw-bold mb-0 text-dark" id="importInvoicesModalLabel">
+                        <h5 class="text-body fw-bold mb-0" id="importInvoicesModalLabel">
                             @T("استيراد الفواتير (Bulk Import)", "Bulk Import Invoices")
                         </h5>
-                        <span class="text-muted small">
+                        <span class="text-body-secondary small">
                             @T("رفع ملف CSV أو Excel لتسجيل البيانات دفعة واحدة", "Upload CSV or Excel file to record multiple records at once")
                         </span>
                     </div>
@@ -256,22 +256,23 @@
                 @Html.AntiForgeryToken()
                 <div class="modal-body pt-3">
                     <!-- Section 1: Template Download Card -->
-                    <div class="card border border-light-subtle rounded-3 p-3 bg-white mb-3 shadow-none">
-                        <div class="d-flex justify-content-between align-items-center flex-nowrap gap-3">
+                    <div class="card border border-secondary-subtle rounded-3 p-3 bg-body-tertiary mb-3 shadow-none">
+                        <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
                             <!-- Right Side (Text & Icon) -->
                             <div class="d-flex align-items-center gap-2">
-                                <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px; background-color: #e8f5e9; color: #198754;">
+                                <div class="bg-success bg-opacity-10 text-success rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
                                     <i class="bi bi-file-earmark-excel-fill fs-4"></i>
                                 </div>
                                 <div>
-                                    <div class="fw-bold text-dark small">@T("قالب الفواتير الجاهز", "Invoices Ready Template")</div>
-                                    <div class="text-muted" style="font-size: 0.8rem;">@T("تحميل ملف CSV بالأعمدة المطلوبة", "Download CSV template with required columns")</div>
+                                    <div class="text-body fw-bold small">@T("قالب الفواتير الجاهز", "Invoices Ready Template")</div>
+                                    <div class="text-body-secondary" style="font-size: 0.8rem;">@T("تحميل ملف CSV بالأعمدة المطلوبة", "Download CSV template with required columns")</div>
                                 </div>
                             </div>
                             <!-- Left Side (Download Button) -->
                             <div class="flex-shrink-0">
-                                <a href="@Url.Action("DownloadTemplate")" class="btn btn-sm btn-outline-secondary px-3 py-1 rounded-pill bg-white text-dark shadow-sm">
-                                    <i class="bi bi-download me-1 text-success"></i> @T("تحميل القالب", "Download Template")
+                                <a href="@Url.Action("DownloadTemplate")" class="btn btn-sm btn-outline-secondary px-3 py-2 rounded-pill fw-medium d-inline-flex align-items-center gap-1 shadow-sm">
+                                    <i class="bi bi-download text-success"></i>
+                                    <span>@T("تحميل القالب", "Download Template")</span>
                                 </a>
                             </div>
                         </div>
@@ -279,40 +280,40 @@
 
                     <!-- Section 2: File Input Field -->
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-dark">
+                        <label class="form-label fw-bold small text-body mb-1">
                             * @T("اختر ملف CSV أو Excel", "Select CSV or Excel file")
                         </label>
-                        <input type="file" name="file" class="form-control rounded-3 border py-2 px-3" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" required />
+                        <input type="file" name="file" class="form-control form-control-lg fs-6 rounded-3 bg-body text-body border-secondary-subtle py-2 px-3" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" required />
                     </div>
 
                     <!-- Section 3: Required Columns Guide Box -->
-                    <div class="rounded-3 p-3 mb-4 border" style="background-color: #f8fafc;">
-                        <div class="d-flex align-items-center gap-2 mb-2 text-dark fw-bold small">
+                    <div class="rounded-3 p-3 mb-4 border border-secondary-subtle bg-body-tertiary">
+                        <div class="d-flex align-items-center gap-2 mb-2 text-body fw-bold small">
                             <i class="bi bi-info-circle-fill text-secondary"></i>
                             <span>@T("الأعمدة المطلوبة في الملف:", "Required Columns in File:")</span>
                         </div>
-                        <div class="row g-2 small text-secondary">
+                        <div class="row g-2 text-body-secondary small">
                             <div class="col-md-6">
-                                <span class="fw-semibold text-dark">InvoiceNumber:</span> @T("رقم الفاتورة (تلقائي إن تُرِك فارغاً)", "Invoice # (auto-generated if blank)")
+                                <span class="text-body fw-semibold">InvoiceNumber:</span> @T("رقم الفاتورة (تلقائي إن تُرِك فارغاً)", "Invoice # (auto-generated if blank)")
                             </div>
                             <div class="col-md-6">
-                                <span class="fw-semibold text-dark">PatientNationalID:</span> @T("الرقم الوطني للمريض", "Patient National ID")
+                                <span class="text-body fw-semibold">PatientNationalID:</span> @T("الرقم الوطني للمريض", "Patient National ID")
                             </div>
                             <div class="col-md-6">
-                                <span class="fw-semibold text-dark">InvoiceDate:</span> @T("تاريخ الفاتورة (YYYY-MM-DD)", "Date (YYYY-MM-DD)")
+                                <span class="text-body fw-semibold">InvoiceDate:</span> @T("تاريخ الفاتورة (YYYY-MM-DD)", "Date (YYYY-MM-DD)")
                             </div>
                             <div class="col-md-6">
-                                <span class="fw-semibold text-dark">Amount / NetAmount:</span> @T("المبالغ المالية", "Billing monetary values")
+                                <span class="text-body fw-semibold">Amount / NetAmount:</span> @T("المبالغ المالية", "Billing monetary values")
                             </div>
                             <div class="col-md-12">
-                                <span class="fw-semibold text-dark">Status:</span> @T("حالة الفاتورة (Paid أو Unpaid)", "Invoice Status (Paid or Unpaid)")
+                                <span class="text-body fw-semibold">Status:</span> @T("حالة الفاتورة (Paid أو Unpaid)", "Invoice Status (Paid or Unpaid)")
                             </div>
                         </div>
                     </div>
 
                     <!-- Section 4: Modal Footer Actions -->
-                    <div class="d-flex justify-content-end align-items-center gap-2 pt-3 border-top mt-3">
-                        <button type="button" class="btn btn-light border px-4 py-2 rounded-pill text-secondary fw-semibold" data-bs-dismiss="modal">
+                    <div class="d-flex justify-content-end align-items-center gap-2 pt-3 border-top border-secondary-subtle mt-3">
+                        <button type="button" class="btn btn-outline-secondary px-4 py-2 rounded-pill" data-bs-dismiss="modal">
                             @T("إلغاء", "Cancel")
                         </button>
                         <button type="submit" class="btn btn-success px-4 py-2 rounded-pill fw-bold shadow-sm d-inline-flex align-items-center gap-2">
