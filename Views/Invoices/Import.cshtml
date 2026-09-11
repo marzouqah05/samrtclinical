@@ -5,7 +5,7 @@
     ViewData["Title"] = T("استيراد بيانات الفواتير", "Bulk Import Invoices");
 }
 
-<div class="container py-4" style="max-width: 850px;" dir="rtl">
+<div class="container py-4" style="max-width: 720px; direction: rtl; text-align: right;">
     <div class="mb-3">
         <a asp-action="Index" class="btn btn-sm btn-link text-body-secondary text-decoration-none d-inline-flex align-items-center gap-2">
             <i class="bi bi-arrow-right"></i>
@@ -29,75 +29,70 @@
         </div>
     }
 
-    <form method="post" enctype="multipart/form-data" asp-action="Import">
-        @Html.AntiForgeryToken()
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+        <!-- Cloud Header -->
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 46px; height: 46px; background-color: #e8f5e9; color: #2e7d32;">
+                <i class="bi bi-cloud-arrow-up-fill fs-4"></i>
+            </div>
+            <div>
+                <h5 class="fw-bold mb-0 text-dark">@T("استيراد الفواتير (Bulk Import)", "Bulk Import Invoices")</h5>
+                <span class="text-muted small">@T("رفع ملف CSV أو Excel لتسجيل البيانات دفعة واحدة", "Upload CSV or Excel file to record multiple records at once")</span>
+            </div>
+        </div>
 
-        <div class="card border-0 shadow-sm rounded-4 p-4 my-3 bg-white" style="direction: rtl; text-align: right;">
-            <!-- Header -->
-            <div class="d-flex align-items-center justify-content-start gap-3 mb-4">
-                <div class="bg-success bg-opacity-10 text-success rounded-3 p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
-                    <i class="bi bi-cloud-arrow-up-fill fs-4"></i>
+        <form method="post" enctype="multipart/form-data" asp-action="Import">
+            @Html.AntiForgeryToken()
+
+            <!-- Template Download Section -->
+            <div class="border rounded-3 p-3 mb-3 bg-white d-flex justify-content-between align-items-center" style="border-color: #e5e7eb !important;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background-color: #e8f5e9; color: #2e7d32;">
+                        <i class="bi bi-file-earmark-spreadsheet-fill fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-dark fs-6">@T("قالب الفواتير الجاهز", "Invoices Ready Template")</div>
+                        <div class="text-muted small">@T("تحميل ملف CSV بالأعمدة المطلوبة", "Download CSV template with required columns")</div>
+                    </div>
                 </div>
                 <div>
-                    <h5 class="fw-bold mb-1 text-dark">استيراد الفواتير (Bulk Import)</h5>
-                    <div class="text-muted small">رفع ملف CSV أو Excel لتسجيل البيانات دفعة واحدة</div>
-                </div>
-            </div>
-
-            <!-- Template Box (Strict Flex Row: Button on Far Left, Text on Far Right) -->
-            <div class="border rounded-3 p-3 mb-4 bg-white" style="border-color: #e2e8f0 !important;">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3" style="width: 100%;">
-                    <!-- Right side: Green File Icon + Title -->
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="bg-success bg-opacity-10 text-success rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 42px; height: 42px;">
-                            <i class="bi bi-file-earmark-spreadsheet-fill fs-4"></i>
-                        </div>
-                        <div>
-                            <div class="fw-bold text-dark fs-6 mb-0">قالب الفواتير الجاهز</div>
-                            <div class="text-muted small">تحميل ملف CSV بالأعمدة المطلوبة</div>
-                        </div>
-                    </div>
-
-                    <!-- Left side: Download Button -->
-                    <div class="flex-shrink-0">
-                        <a href="@Url.Action("DownloadTemplate")" class="btn btn-sm btn-outline-secondary px-3 py-2 rounded-pill fw-semibold border bg-white text-dark shadow-sm">
-                            <i class="bi bi-download me-1 text-success"></i> تحميل القالب
-                        </a>
-                    </div>
+                    <a href="@Url.Action("DownloadTemplate")" class="btn btn-outline-secondary btn-sm px-3 py-2 rounded-pill bg-white text-secondary fw-semibold border shadow-sm">
+                        <i class="bi bi-download me-1 text-success"></i> @T("تحميل القالب", "Download Template")
+                    </a>
                 </div>
             </div>
 
             <!-- File Input -->
-            <div class="mb-4">
-                <label class="form-label fw-bold text-dark small mb-1">* اختر ملف CSV أو Excel:</label>
+            <div class="mb-3">
+                <label class="form-label fw-bold text-dark small mb-1">* @T("اختر ملف CSV أو Excel:", "Select CSV or Excel file:")</label>
                 <input type="file" name="file" class="form-control form-control-lg fs-6 rounded-3" accept=".csv, .xlsx, .xls" required />
             </div>
 
             <!-- Required Columns Info Box -->
-            <div class="rounded-3 p-3 mb-4 border" style="background-color: #f8fafc; border-color: #e2e8f0 !important;">
-                <div class="d-flex align-items-center gap-2 mb-2 text-dark fw-bold" style="font-size: 14px;">
+            <div class="rounded-3 p-3 mb-4" style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
+                <div class="d-flex align-items-center gap-2 mb-2 text-dark fw-bold small">
                     <i class="bi bi-info-circle-fill text-secondary"></i>
-                    <span>الأعمدة المطلوبة في الملف:</span>
+                    <span>@T("الأعمدة المطلوبة في الملف:", "Required Columns in File:")</span>
                 </div>
                 <div class="small text-secondary" style="line-height: 1.8;">
-                    <div><strong class="text-dark">InvoiceNumber:</strong> رقم الفاتورة (تلقائي إن تُرِك فارغاً)</div>
-                    <div><strong class="text-dark">PatientNationalID:</strong> الرقم الوطني للمريض</div>
-                    <div><strong class="text-dark">InvoiceDate:</strong> تاريخ الفاتورة (YYYY-MM-DD)</div>
-                    <div><strong class="text-dark">Amount / NetAmount:</strong> المبالغ المالية</div>
-                    <div><strong class="text-dark">Status:</strong> حالة الفاتورة (Unpaid أو Paid)</div>
+                    <div><strong class="text-dark">InvoiceNumber:</strong> @T("رقم الفاتورة (تلقائي إن تُرِك فارغاً)", "Invoice # (auto-generated if blank)")</div>
+                    <div><strong class="text-dark">PatientNationalID:</strong> @T("الرقم الوطني للمريض", "Patient National ID")</div>
+                    <div><strong class="text-dark">InvoiceDate:</strong> @T("تاريخ الفاتورة (YYYY-MM-DD)", "Date (YYYY-MM-DD)")</div>
+                    <div><strong class="text-dark">Amount / NetAmount:</strong> @T("المبالغ المالية", "Billing monetary values")</div>
+                    <div><strong class="text-dark">Status:</strong> @T("حالة الفاتورة (Unpaid أو Paid)", "Invoice Status (Paid or Unpaid)")</div>
                 </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="d-flex align-items-center justify-content-start gap-2 pt-3 border-top">
-                <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm d-inline-flex align-items-center gap-2">
+            <!-- Buttons at Bottom -->
+            <div class="d-flex justify-content-start align-items-center gap-2 pt-3 border-top">
+                <button type="submit" class="btn text-white px-4 py-2 rounded-pill fw-bold shadow-sm d-inline-flex align-items-center gap-2" style="background-color: #198754; border-color: #198754;">
                     <i class="bi bi-cloud-arrow-up"></i>
-                    <span>بدء الاستيراد</span>
+                    <span>@T("بدء الاستيراد", "Start Import")</span>
                 </button>
-                <a asp-action="Index" class="btn btn-outline-secondary px-4 py-2 rounded-pill" data-bs-dismiss="modal">
-                    إلغاء
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary px-4 py-2 rounded-pill fw-semibold">
+                    @T("إلغاء", "Cancel")
                 </a>
             </div>
-        </div>
-    </form>
+        </form>
+    </div>
 </div>
