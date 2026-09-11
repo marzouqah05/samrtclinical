@@ -93,6 +93,45 @@ namespace WebApplication1.Controllers
             return View();
         }
 
+        // POST: RegisterClinic (تسجيل عيادة جديدة - تجربة مجانية 60 يوماً)
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RegisterClinic(string clinicName, string adminName, string email, string phone, string password)
+        {
+            if (string.IsNullOrWhiteSpace(clinicName) || string.IsNullOrWhiteSpace(adminName) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+            {
+                TempData["RegisterError"] = T("يرجى تعبئة جميع الحقول المطلوبة لتسجيل العيادة.", "Please fill in all required fields to register the clinic.");
+                return RedirectToAction(nameof(Login));
+            }
+
+            var existingUser = await _userManager.FindByEmailAsync(email) ?? await _userManager.FindByNameAsync(email);
+            if (existingUser != null)
+            {
+                TempData["RegisterError"] = T("البريد الإلكتروني مسجل مسبقاً، يرجى تسجيل الدخول أو استخدام بريد إلكتروني آخر.", "Email is already registered. Please sign in or use another email.");
+                return RedirectToAction(nameof(Login));
+            }
+
+            var user = new IdentityUser { UserName = email, Email = email, PhoneNumber = phone };
+            var result = await _userManager.CreateAsync(user, password);
+            if (result.Succeeded)
+            {
+                if (!await _roleManager.RoleExistsAsync("Admin"))
+                    await _roleManager.CreateAsync(new IdentityRole("Admin"));
+
+                await _userManager.AddToRoleAsync(user, "Admin");
+
+                TempData["RegisterSuccess"] = T(
+                    $"تم تسجيل عيادة '{clinicName}' وإنشاء حساب المدير بنجاح! تم إرسال رمز التحقق (OTP) إلى {email}. يمكنك الآن تسجيل الدخول والبدء بالتجربة المجانية (60 يوماً).",
+                    $"Clinic '{clinicName}' registered successfully! Verification OTP sent to {email}. You can now log in and start your 60-day free trial.");
+
+                return RedirectToAction(nameof(Login));
+            }
+
+            TempData["RegisterError"] = string.Join(" | ", result.Errors.Select(e => e.Description));
+            return RedirectToAction(nameof(Login));
+        }
+
         // GET: Register Page (لإنشاء حسابات الموظفين والأطباء)
         [Authorize(Roles = "Admin")] // فقط الأدمن يستطيع إنشاء حسابات جديدة بالنظام
         public async Task<IActionResult> Register()

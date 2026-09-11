@@ -6,20 +6,24 @@
     var _lang    = _culture.TwoLetterISOLanguageName;
     var _isAr    = _lang == "ar";
     Func<string, string, string> T = (ar, en) => _isAr ? ar : en;
+
+    var hasRegisterMsg = TempData["RegisterSuccess"] != null || TempData["RegisterError"] != null;
 }
 <!DOCTYPE html>
 <html lang="@_lang" dir="@(_isRtl ? "rtl" : "ltr")">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@T("تسجيل الدخول - ClinicFlow", "Sign In - ClinicFlow Clinical OS")</title>
+    <title>@T("نظام إدارة العيادات والمراكز الطبية | ClinicFlow SaaS", "ClinicFlow Medical OS - Clinical SaaS & Sign In")</title>
     
     <!-- Google Fonts: IBM Plex Sans Arabic & Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
+    <!-- CSS Dependencies -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
     <style>
@@ -27,38 +31,40 @@
 
         :root {
             --font-family: 'IBM Plex Sans Arabic', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            --cf-teal-dark: #006a63;
-            --cf-teal-hover: #00504a;
-            --cf-teal-light: #9cf2e8;
-            --cf-teal-subtle: #80d5cb;
-            --cf-blue: #006194;
-            --cf-text-main: #0F172A;
-            --cf-text-muted: #64748B;
-            --cf-border: #E2E8F0;
-            --cf-bg: #F8FAFC;
+            --emerald-900: #064e3b;
+            --emerald-800: #065f46;
+            --emerald-700: #047857;
+            --emerald-600: #059669;
+            --emerald-500: #10b981;
+            --emerald-100: #d1fae5;
+            --emerald-50:  #ecfdf5;
+            --whatsapp-green: #25D366;
+            --whatsapp-dark: #1da851;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --bg-body: #f8fafc;
         }
 
         body {
             font-family: var(--font-family) !important;
-            background-color: var(--cf-bg);
-            color: var(--cf-text-main);
+            background-color: var(--bg-body);
+            color: var(--text-dark);
             min-height: 100vh;
             margin: 0;
-            display: flex;
-            align-items: stretch;
             -webkit-font-smoothing: antialiased;
         }
 
         .auth-container {
             display: flex;
-            width: 100vw;
             min-height: 100vh;
+            width: 100%;
         }
 
-        /* ── Left Editorial Showcase Pane ── */
-        .auth-branding-section {
-            flex: 1.1;
-            background-color: var(--cf-teal-dark);
+        /* ── Hero Showcase Section (Left/Start) ── */
+        .hero-section {
+            flex: 1.15;
+            background: linear-gradient(145deg, #043f30 0%, #064e3b 40%, #065f46 100%);
             color: #ffffff;
             padding: 48px 56px;
             display: flex;
@@ -68,471 +74,812 @@
             overflow: hidden;
         }
 
-        .auth-grid-bg {
+        .hero-pattern {
             position: absolute;
             inset: 0;
-            opacity: 0.15;
-            background-image: linear-gradient(to right, rgba(255,255,255,0.15) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(255,255,255,0.15) 1px, transparent 1px);
-            background-size: 40px 40px;
+            opacity: 0.08;
+            background-image: radial-gradient(rgba(255,255,255,0.7) 1px, transparent 1px);
+            background-size: 24px 24px;
             pointer-events: none;
         }
 
-        .auth-ambient-glow {
+        .hero-glow {
             position: absolute;
-            bottom: -120px;
-            inset-inline-end: -120px;
-            width: 500px;
-            height: 500px;
-            background: var(--cf-teal-subtle);
+            bottom: -150px;
+            inset-inline-end: -150px;
+            width: 550px;
+            height: 550px;
+            background: #10b981;
+            border-radius: 50%;
+            filter: blur(160px);
+            opacity: 0.18;
+            pointer-events: none;
+        }
+
+        .hero-glow-top {
+            position: absolute;
+            top: -120px;
+            inset-inline-start: -120px;
+            width: 420px;
+            height: 420px;
+            background: #34d399;
             border-radius: 50%;
             filter: blur(140px);
-            opacity: 0.2;
+            opacity: 0.12;
             pointer-events: none;
         }
 
-        .auth-brand-logo {
+        .hero-brand {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
             position: relative;
             z-index: 2;
         }
 
-        .auth-brand-logo-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 10px;
+        .hero-brand-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
             background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
-            color: var(--cf-teal-light);
+            font-size: 24px;
+            color: var(--emerald-100);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
-        .auth-brand-logo h1 {
-            font-size: 26px;
+        .hero-promo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(52, 211, 153, 0.4);
+            color: #a7f3d0;
+            padding: 8px 18px;
+            border-radius: 50px;
+            font-size: 13.5px;
             font-weight: 700;
-            margin: 0;
-            color: #ffffff;
-            letter-spacing: -0.02em;
+            margin-bottom: 24px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        .auth-editorial-content {
-            max-width: 540px;
-            margin: auto 0;
-            position: relative;
-            z-index: 2;
-            padding: 32px 0;
+        .hero-promo-badge .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #34d399;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 10px #34d399;
+            animation: pulse-animation 2s infinite;
         }
 
-        .auth-editorial-content h2 {
-            font-size: 36px;
-            font-weight: 700;
-            line-height: 1.25;
+        @@keyframes pulse-animation {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+        }
+
+        .hero-title {
+            font-size: 38px;
+            font-weight: 800;
+            line-height: 1.28;
             margin-bottom: 16px;
             color: #ffffff;
             letter-spacing: -0.02em;
         }
 
-        .auth-editorial-content p {
-            font-size: 16px;
-            line-height: 1.65;
-            color: var(--cf-teal-light);
+        .hero-subtitle {
+            font-size: 17px;
+            line-height: 1.7;
+            color: #d1fae5;
+            margin-bottom: 36px;
             opacity: 0.95;
-            margin-bottom: 32px;
+            max-width: 580px;
         }
 
-        .auth-stats-bar {
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 36px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .feature-item {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 16px 18px;
+            backdrop-filter: blur(8px);
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .feature-item:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .feature-icon-box {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: rgba(52, 211, 153, 0.2);
+            color: #6ee7b7;
             display: flex;
-            gap: 36px;
-            padding-top: 24px;
-            border-top: 1px solid rgba(0, 80, 74, 0.9);
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-bottom: 12px;
         }
 
-        .auth-stat-value {
-            font-size: 28px;
+        .feature-title {
             font-weight: 700;
-            color: var(--cf-teal-light);
-            direction: ltr;
+            font-size: 15px;
+            color: #ffffff;
+            margin-bottom: 4px;
         }
 
-        .auth-stat-label {
-            font-size: 11.5px;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--cf-teal-subtle);
-            font-weight: 600;
+        .feature-desc {
+            font-size: 12.5px;
+            color: #a7f3d0;
+            line-height: 1.5;
+            margin: 0;
+            opacity: 0.9;
         }
 
-        /* ── Right Form Pane ── */
-        .auth-form-section {
-            flex: 0.9;
+        /* Hero WhatsApp Direct Card */
+        .hero-whatsapp-card {
+            background: rgba(37, 211, 102, 0.15);
+            border: 1px solid rgba(37, 211, 102, 0.35);
+            border-radius: 16px;
+            padding: 18px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            position: relative;
+            z-index: 2;
+            backdrop-filter: blur(8px);
+        }
+
+        .btn-hero-wa {
+            background-color: var(--whatsapp-green);
+            color: #ffffff !important;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 10px 22px;
+            border-radius: 50px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .btn-hero-wa:hover {
+            background-color: var(--whatsapp-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(37, 211, 102, 0.45);
+        }
+
+        /* ── Auth Form Section (Right/End) ── */
+        .auth-section {
+            flex: 0.95;
             background-color: #ffffff;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 48px;
+            padding: 40px 32px;
             position: relative;
             min-height: 100vh;
         }
 
-        .auth-lang-btn {
-            position: absolute;
-            top: 28px;
-            inset-inline-end: 28px;
-            background: #ffffff;
-            border: 1px solid var(--cf-border);
-            color: var(--cf-text-muted);
-            font-size: 13px;
-            font-weight: 500;
-            padding: 6px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.12s ease;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-        }
-
-        .auth-lang-btn:hover {
-            background: var(--cf-bg);
-            color: var(--cf-text-main);
-        }
-
-        .auth-card-wrap {
-            max-width: 430px;
+        .auth-top-bar {
             width: 100%;
-        }
-
-        .auth-header {
+            max-width: 480px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 24px;
-            text-align: start;
         }
 
-        .auth-header h2 {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--cf-text-main);
-            margin-bottom: 6px;
-            letter-spacing: -0.02em;
+        .auth-box {
+            width: 100%;
+            max-width: 480px;
         }
 
-        .auth-header p {
+        /* Nav Tabs Styling */
+        .auth-tabs-nav {
+            background-color: #f1f5f9;
+            border-radius: 14px;
+            padding: 5px;
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .auth-tab-btn {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
             font-size: 14px;
-            color: var(--cf-text-muted);
-            margin: 0;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
-        .auth-form-card {
+        .auth-tab-btn.active {
+            background-color: #ffffff;
+            color: var(--emerald-700);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            font-weight: 700;
+        }
+
+        /* Form Card */
+        .auth-card {
             background: #ffffff;
-            border: 1px solid var(--cf-border);
-            border-radius: 12px;
-            padding: 28px;
-            box-shadow: 0 1px 3px rgba(15,23,42,0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 32px 28px;
+            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
         }
 
-        /* Demo Role Preset Buttons */
-        .auth-role-grid {
+        /* Role Presets */
+        .role-pill-group {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
+            gap: 8px;
             margin-bottom: 20px;
         }
 
-        .auth-role-btn {
-            padding: 8px;
-            border: 1px solid var(--cf-border);
-            border-radius: 6px;
+        .role-pill {
+            padding: 8px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             background: #ffffff;
-            font-size: 12.5px;
-            font-weight: 500;
-            color: var(--cf-text-muted);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
             cursor: pointer;
-            transition: all 0.12s ease;
             text-align: center;
+            transition: all 0.12s ease;
         }
 
-        .auth-role-btn:hover {
-            background: var(--cf-bg);
-            color: var(--cf-text-main);
+        .role-pill:hover {
+            border-color: var(--emerald-500);
+            color: var(--emerald-700);
+            background: var(--emerald-50);
         }
 
-        .auth-role-btn.active {
-            border-color: var(--cf-blue);
-            background: #eaedff;
-            color: var(--cf-blue);
+        .role-pill.active {
+            border-color: var(--emerald-600);
+            background: var(--emerald-50);
+            color: var(--emerald-700);
             font-weight: 700;
         }
 
-        .auth-input-label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--cf-text-main);
+        .custom-label {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text-dark);
             margin-bottom: 6px;
+            display: block;
         }
 
-        .auth-input-field {
+        .custom-input {
             width: 100%;
-            height: 42px;
+            height: 46px;
             background: #ffffff;
-            border: 1px solid #CBD5E1;
-            border-radius: 6px;
-            padding: 0 12px;
-            font-size: 14px;
-            color: var(--cf-text-main);
-            font-family: inherit;
-            transition: border-color 0.12s ease, box-shadow 0.12s ease;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 0 14px;
+            font-size: 14.5px;
+            color: var(--text-dark);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
-        .auth-input-field:focus {
+        .custom-input:focus {
             outline: none;
-            border-color: var(--cf-teal-dark);
-            box-shadow: 0 0 0 3px rgba(0, 106, 99, 0.15);
+            border-color: var(--emerald-600);
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
         }
 
-        .auth-pwd-wrapper {
-            position: relative;
-        }
-
-        .auth-pwd-toggle {
-            position: absolute;
-            inset-inline-end: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--cf-text-muted);
-            cursor: pointer;
-            padding: 4px;
-            font-size: 14px;
-        }
-
-        .auth-pwd-toggle:hover { color: var(--cf-text-main); }
-
-        .auth-submit-btn {
+        .btn-submit-main {
             width: 100%;
-            height: 44px;
-            background-color: var(--cf-teal-dark);
+            height: 48px;
+            background-color: var(--emerald-600);
+            border: 1px solid var(--emerald-600);
             color: #ffffff;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
+            border-radius: 50px;
+            font-size: 15px;
+            font-weight: 700;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            transition: background-color 0.12s ease, transform 0.08s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
         }
 
-        .auth-submit-btn:hover {
-            background-color: var(--cf-teal-hover);
+        .btn-submit-main:hover {
+            background-color: var(--emerald-700);
+            border-color: var(--emerald-700);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(5, 150, 105, 0.35);
         }
 
-        .auth-submit-btn:active { transform: scale(0.99); }
-
-        .auth-error-alert {
-            background: #FEE2E2;
-            border: 1px solid #fecaca;
-            color: #991B1B;
-            padding: 10px 14px;
-            border-radius: 6px;
-            font-size: 13px;
-            display: flex;
+        /* Floating WhatsApp Button */
+        .whatsapp-floating-btn {
+            position: fixed;
+            bottom: 24px;
+            inset-inline-start: 24px;
+            z-index: 999;
+            background-color: var(--whatsapp-green);
+            color: #ffffff !important;
+            padding: 12px 20px;
+            border-radius: 50px;
+            display: inline-flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 16px;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.45);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .whatsapp-floating-btn:hover {
+            background-color: var(--whatsapp-dark);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 24px rgba(37, 211, 102, 0.6);
+        }
+
+        .whatsapp-floating-btn .wa-pulse-badge {
+            width: 10px;
+            height: 10px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            animation: pulse-white 1.8s infinite;
+        }
+
+        @@keyframes pulse-white {
+            0% { transform: scale(0.9); opacity: 0.9; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.9; }
         }
 
         @@media (max-width: 992px) {
-            .auth-branding-section { display: none; }
-            .auth-form-section { padding: 32px 20px; }
+            .auth-container { flex-direction: column; }
+            .hero-section { padding: 36px 24px; min-height: auto; }
+            .hero-title { font-size: 28px; }
+            .features-grid { grid-template-columns: 1fr; }
+            .auth-section { padding: 32px 16px; }
+            .whatsapp-floating-btn { bottom: 16px; inset-inline-start: 16px; padding: 10px 16px; font-size: 13px; }
         }
     </style>
 </head>
 <body>
+
+    <!-- ── Floating WhatsApp Action Button (Prominent & High Converting) ── -->
+    <a href="https://wa.me/962792936244?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%D8%8C%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D9%86%D8%B8%D8%A7%D9%85%20%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9%20%D8%A7%D9%84%D8%B9%D9%8A%D8%A7%D8%AF%D8%A7%D8%AA%20%D9%88%D8%A7%D9%84%D8%AA%D8%AC%D8%B1%D8%A8%D8%A9%20%D8%A7%D9%84%D9%85%D8%AC%D8%A7%D9%86%D9%8A%D8%A9" 
+       target="_blank" 
+       rel="noopener noreferrer" 
+       class="whatsapp-floating-btn shadow-lg"
+       title="@T("تواصل معنا مباشرة عبر واتساب", "Chat directly on WhatsApp")">
+        <span class="wa-pulse-badge"></span>
+        <i class="fa-brands fa-whatsapp fs-5"></i>
+        <span>@T("تواصل معنا عبر واتساب", "Chat on WhatsApp")</span>
+    </a>
+
     <div class="auth-container">
-        <!-- ── Left: Editorial Branding Section (ClinicFlow) ── -->
-        <div class="auth-branding-section">
-            <div class="auth-grid-bg"></div>
 
-            <!-- Top Logo -->
-            <div class="auth-brand-logo">
-                <div class="auth-brand-logo-icon">
-                    <i class="fa-solid fa-heart-pulse"></i>
+        <!-- ── Left / Start: Hero & SaaS Value Proposition ── -->
+        <div class="hero-section">
+            <div class="hero-pattern"></div>
+            <div class="hero-glow"></div>
+            <div class="hero-glow-top"></div>
+
+            <!-- Top Header & Logo -->
+            <div>
+                <div class="hero-brand mb-4">
+                    <div class="hero-brand-logo">
+                        <i class="fa-solid fa-heart-pulse"></i>
+                    </div>
+                    <div>
+                        <h4 class="m-0 fw-bold text-white tracking-tight">ClinicFlow OS</h4>
+                        <span class="text-white-50 small">@T("النظام السحابي الذكي للرعاية الصحية", "Intelligent Clinical Cloud OS")</span>
+                    </div>
                 </div>
-                <h1>ClinicFlow</h1>
-            </div>
 
-            <!-- Center Content -->
-            <div class="auth-editorial-content">
-                <h2>
-                    @T("نظام التشغيل الذكي للعيادات الحديثة.", "The intelligent operating system for modern clinics.")
-                </h2>
-                <p>
-                    @T("قم بتبسيط رعاية المرضى، وأتمتة الإدارة، واكتشاف رؤى عميقة من خلال منصتنا السحابية الشاملة للرعاية الصحية.",
-                       "Streamline patient care, automate administration, and unlock deep clinical insights with our comprehensive healthcare platform.")
+                <!-- 60 Days Free Trial Highlight Badge -->
+                <div class="hero-promo-badge">
+                    <span class="pulse-dot"></span>
+                    <span>@T("جرّب النظام مجاناً لمدة شهرين كاملين (60 يوماً) بدون أي التزام مالي", "Try the system free for 60 full days with zero financial commitment")</span>
+                </div>
+
+                <!-- Hero Headline & Subtitle -->
+                <h1 class="hero-title">
+                    @T("نظام إدارة العيادات والمراكز الطبية المتكامل", "Integrated Management Platform for Clinics & Medical Centers")
+                </h1>
+                <p class="hero-subtitle">
+                    @T("إدارة الحجوزات، ملفات المرضى، الكادر الطبي، والفوترة بكل سهولة وسرعة، مع دعم السجلات الطبية الإلكترونية وفق أعلى المعايير العالمية.",
+                       "Effortlessly manage scheduling, patient records, clinical staff, and billing at lightning speed.")
                 </p>
+            </div>
 
-                <!-- Stats Bar -->
-                <div class="auth-stats-bar">
-                    <div>
-                        <div class="auth-stat-value">99.9%</div>
-                        <div class="auth-stat-label">@T("ضمان وقت التشغيل", "Uptime Guarantee")</div>
+            <!-- Feature Showcase Grid -->
+            <div class="features-grid">
+                <!-- Feature 1: Scheduling -->
+                <div class="feature-item">
+                    <div class="feature-icon-box">
+                        <i class="bi bi-calendar2-check-fill"></i>
                     </div>
-                    <div>
-                        <div class="auth-stat-value">10k+</div>
-                        <div class="auth-stat-label">@T("عيادات موثوقة", "Clinics Trusted")</div>
+                    <div class="feature-title">@T("الجدولة والتقويم التفاعلي", "Smart Scheduling & Calendar")</div>
+                    <p class="feature-desc">@T("إدارة مواعيد المرضى، الحجز السريع، ومنع تضارب المواعيد للممارسين الطبيين.", "Interactive calendar, fast bookings, and conflict prevention.")</p>
+                </div>
+
+                <!-- Feature 2: EMR -->
+                <div class="feature-item">
+                    <div class="feature-icon-box">
+                        <i class="bi bi-folder2-open"></i>
                     </div>
-                    <div>
-                        <div class="auth-stat-value">256-bit</div>
-                        <div class="auth-stat-label">@T("تشفير آمن", "Encrypted Vault")</div>
+                    <div class="feature-title">@T("السجلات الطبية الإلكترونية", "Electronic Medical Records (EMR)")</div>
+                    <p class="feature-desc">@T("ملف طبي شامل لكل مريض يتضمن التشخيصات، الأدوية، والتاريخ الصحي.", "Comprehensive digital health records, diagnoses, and prescriptions.")</p>
+                </div>
+
+                <!-- Feature 3: Billing & Import -->
+                <div class="feature-item">
+                    <div class="feature-icon-box">
+                        <i class="bi bi-receipt-cutoff"></i>
                     </div>
+                    <div class="feature-title">@T("الفوترة والاستيراد السريع", "Quick Billing & Bulk Import")</div>
+                    <p class="feature-desc">@T("إصدار فواتير ذكية بنقرة واحدة، واستيراد البيانات دفعة واحدة عبر Excel و CSV.", "One-click invoice issuing and seamless bulk CSV/Excel data import.")</p>
+                </div>
+
+                <!-- Feature 4: Role-based permissions -->
+                <div class="feature-item">
+                    <div class="feature-icon-box">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div class="feature-title">@T("صلاحيات مخصصة لكل دور", "Role-Based Permissions")</div>
+                    <p class="feature-desc">@T("بيئات وصلاحيات محكمة لمدير العيادة، الأطباء، وموظفي الاستقبال والتمريض.", "Granular role controls for Admins, Doctors, and Receptionists.")</p>
                 </div>
             </div>
 
-            <!-- Bottom Glow -->
-            <div class="auth-ambient-glow"></div>
-            
-            <div style="font-size: 12px; color: var(--cf-teal-light); opacity: 0.8; z-index:2; position:relative;">
-                &copy; @DateTime.Now.Year ClinicFlow Health Systems · @T("مرخص للمؤسسات الطبية", "Enterprise Grade SaaS")
+            <!-- Bottom WhatsApp Direct Conversion Box & Copyright -->
+            <div>
+                <div class="hero-whatsapp-card mb-4">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(37,211,102,0.25); color: #25D366; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                            <i class="fa-brands fa-whatsapp"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-white fs-6">@T("هل لديك استفسار أو ترغب في عرض تجريبي؟", "Questions or need a live guided demo?")</div>
+                            <div class="text-white-50 small">@T("فريق الاستشارات الطبية متاح فوراً لخدمتك عبر واتساب", "Our clinical advisory team is available directly via WhatsApp")</div>
+                        </div>
+                    </div>
+                    <a href="https://wa.me/962792936244?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%D8%8C%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D9%86%D8%B8%D8%A7%D9%85%20%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9%20%D8%A7%D9%84%D8%B9%D9%8A%D8%A7%D8%AF%D8%A7%D8%AA%20%D9%88%D8%A7%D9%84%D8%AA%D8%AC%D8%B1%D8%A8%D8%A9%20%D8%A7%D9%84%D9%85%D8%AC%D8%A7%D9%86%D9%8A%D8%A9" 
+                       target="_blank" 
+                       rel="noopener noreferrer" 
+                       class="btn-hero-wa">
+                        <i class="fa-brands fa-whatsapp"></i>
+                        <span>@T("تواصل معنا عبر واتساب", "Chat on WhatsApp")</span>
+                    </a>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center text-white-50 small">
+                    <span>&copy; @DateTime.Now.Year ClinicFlow Health Systems. All rights reserved.</span>
+                    <span class="badge bg-white bg-opacity-10 text-white fw-normal px-2.5 py-1.5 rounded-pill">HIPAA & GDPR Compliant</span>
+                </div>
             </div>
         </div>
 
-        <!-- ── Right: Login Form Section ── -->
-        <div class="auth-form-section">
-            <!-- Language Switcher Form -->
-            <form asp-controller="Language" asp-action="SetLanguage" method="post" class="m-0">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="culture" value="@(_isAr ? "en" : "ar")" />
-                <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-                <button type="submit" class="auth-lang-btn">
-                    <i class="fa-solid fa-globe text-primary"></i>
-                    <span>@(_isAr ? "English" : "العربية")</span>
-                </button>
-            </form>
+        <!-- ── Right / End: Authentication Card with Tabs ── -->
+        <div class="auth-section">
 
-            <div class="auth-card-wrap">
-                <!-- Mobile Logo Header -->
-                <div class="d-lg-none d-flex align-items-center gap-2 mb-4">
-                    <div style="width:36px; height:36px; border-radius:8px; background:#006a63; color:#fff; display:flex; align-items:center; justify-content:center; font-size:18px;">
-                        <i class="fa-solid fa-heart-pulse"></i>
+            <!-- Top bar: WhatsApp CTA & Language Switcher -->
+            <div class="auth-top-bar">
+                <a href="https://wa.me/962792936244?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%D8%8C%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D9%86%D8%B8%D8%A7%D9%85%20%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9%20%D8%A7%D9%84%D8%B9%D9%8A%D8%A7%D8%AF%D8%A7%D8%AA%20%D9%88%D8%A7%D9%84%D8%AA%D8%AC%D8%B1%D8%A8%D8%A9%20%D8%A7%D9%84%D9%85%D8%AC%D8%A7%D9%86%D9%8A%D8%A9" 
+                   target="_blank" 
+                   rel="noopener noreferrer" 
+                   class="btn btn-sm btn-light border rounded-pill px-3 py-1.5 fw-semibold text-success shadow-sm d-inline-flex align-items-center gap-2">
+                    <i class="fa-brands fa-whatsapp fs-6 text-success"></i>
+                    <span>@T("تواصل عبر واتساب", "WhatsApp Chat")</span>
+                </a>
+
+                <form asp-controller="Language" asp-action="SetLanguage" method="post" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="culture" value="@(_isAr ? "en" : "ar")" />
+                    <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                    <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 shadow-sm d-inline-flex align-items-center gap-1.5 bg-white">
+                        <i class="fa-solid fa-globe text-muted"></i>
+                        <span>@(_isAr ? "English" : "العربية")</span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="auth-box">
+
+                <!-- Alert Messages -->
+                @if (ViewBag.Error != null)
+                {
+                    <div class="alert alert-danger rounded-4 shadow-sm border-0 d-flex align-items-center gap-2 mb-3" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
+                        <div class="small">@ViewBag.Error</div>
                     </div>
-                    <h2 class="m-0 fw-bold fs-4 text-dark">ClinicFlow</h2>
+                }
+                @if (TempData["RegisterError"] != null)
+                {
+                    <div class="alert alert-danger rounded-4 shadow-sm border-0 d-flex align-items-center gap-2 mb-3" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
+                        <div class="small">@TempData["RegisterError"]</div>
+                    </div>
+                }
+                @if (TempData["RegisterSuccess"] != null)
+                {
+                    <div class="alert alert-success rounded-4 shadow-sm border-0 d-flex align-items-center gap-2 mb-3" role="alert">
+                        <i class="bi bi-check-circle-fill fs-5 text-success flex-shrink-0"></i>
+                        <div class="small">@TempData["RegisterSuccess"]</div>
+                    </div>
+                }
+
+                <!-- Authentication Tabs Header -->
+                <div class="auth-tabs-nav" id="authTabsNav">
+                    <button type="button" 
+                            class="auth-tab-btn @(hasRegisterMsg ? "" : "active")" 
+                            id="tabBtnLogin" 
+                            onclick="switchAuthTab('login')">
+                        <i class="bi bi-box-arrow-in-left"></i>
+                        <span>@T("تسجيل الدخول", "Sign In")</span>
+                    </button>
+                    <button type="button" 
+                            class="auth-tab-btn @(hasRegisterMsg ? "active" : "")" 
+                            id="tabBtnRegister" 
+                            onclick="switchAuthTab('register')">
+                        <i class="bi bi-plus-circle-fill text-success"></i>
+                        <span>@T("تسجيل عيادة جديدة", "Register New Clinic")</span>
+                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 py-0.5" style="font-size: 10px;">@T("مجاناً", "Free")</span>
+                    </button>
                 </div>
 
-                <div class="auth-header">
-                    <h2>@T("مرحباً بك مجدداً", "Welcome back")</h2>
-                    <p>@T("يرجى إدخال بياناتك للوصول إلى لوحة التحكم الخاصة بك.", "Please enter your details to access your dashboard.")</p>
-                </div>
+                <!-- Auth Card -->
+                <div class="auth-card">
 
-                <div class="auth-form-card">
-                    <!-- Demo Role Selector Pills -->
-                    <div class="mb-3">
-                        <label class="text-muted small fw-bold text-uppercase d-block mb-1.5" style="font-size: 11px; letter-spacing:0.05em;">
-                            @T("تعبئة سريعة حسب الدور (تجريبي)", "Select Preset Role (Demo)")
-                        </label>
-                        <div class="auth-role-grid">
-                            <button type="button" class="auth-role-btn active" onclick="presetCredentials('admin', 'Admin', 'admin123')">
-                                @T("مسؤول", "Admin")
-                            </button>
-                            <button type="button" class="auth-role-btn" onclick="presetCredentials('doctor', 'Doctor', 'doctor123')">
-                                @T("طبيب", "Doctor")
-                            </button>
-                            <button type="button" class="auth-role-btn" onclick="presetCredentials('nurse', 'Receptionist', 'reception123')">
-                                @T("استقبال", "Reception")
-                            </button>
-                        </div>
-                    </div>
-
-                    @if (ViewBag.Error != null)
-                    {
-                        <div class="auth-error-alert">
-                            <i class="fa-solid fa-circle-exclamation flex-shrink-0"></i>
-                            <span>@ViewBag.Error</span>
-                        </div>
-                    }
-
-                    <form asp-controller="Account" asp-action="Login" method="post">
-                        @Html.AntiForgeryToken()
-
-                        <!-- Username Input -->
+                    <!-- ════════ TAB 1: LOGIN ════════ -->
+                    <div id="tabContentLogin" style="display: @(hasRegisterMsg ? "none" : "block");">
                         <div class="mb-3">
-                            <label for="username" class="auth-input-label">@T("اسم المستخدم أو البريد الإلكتروني", "Username or Email")</label>
-                            <input type="text" id="username" name="username" class="auth-input-field" required
-                                   placeholder="admin@clinicflow.com" dir="ltr" autofocus />
+                            <h4 class="fw-bold text-dark mb-1">@T("تسجيل الدخول إلى حسابك", "Sign In to ClinicFlow")</h4>
+                            <p class="text-muted small mb-0">@T("الوصول الآمن للوحة تحكم الكادر الطبي والإداري", "Secure access for healthcare professionals & staff")</p>
                         </div>
 
-                        <!-- Password Input -->
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label for="password" class="auth-input-label m-0">@T("كلمة المرور", "Password")</label>
-                                <span class="text-muted small" style="font-size: 12px;">@T("الافتراضي: كلمة المرور المعينة", "Secure credentials")</span>
+                        <!-- Quick Role Presets (Admin, Doctor, Receptionist) -->
+                        <div class="mb-3 pt-2">
+                            <div class="d-flex justify-content-between align-items-center mb-1.5">
+                                <span class="text-muted fw-bold" style="font-size: 11.5px; letter-spacing: 0.04em;">
+                                    @T("تعبئة سريعة حسب الدور (تجريبي):", "QUICK ROLE PRESETS (DEMO):")
+                                </span>
                             </div>
-                            <div class="auth-pwd-wrapper">
-                                <input type="password" id="password" name="password" class="auth-input-field pe-5" required
-                                       placeholder="••••••••" dir="ltr" />
-                                <button type="button" class="auth-pwd-toggle" id="pwdToggleBtn">
-                                    <i class="fa-regular fa-eye" id="pwdEyeIcon"></i>
+                            <div class="role-pill-group">
+                                <button type="button" class="role-pill active" id="roleBtnAdmin" onclick="setPresetRole('Admin', 'admin123', this)">
+                                    <i class="bi bi-shield-lock me-1"></i> @T("مسؤول", "Admin")
+                                </button>
+                                <button type="button" class="role-pill" id="roleBtnDoctor" onclick="setPresetRole('Doctor', 'doctor123', this)">
+                                    <i class="bi bi-person-badge me-1"></i> @T("طبيب", "Doctor")
+                                </button>
+                                <button type="button" class="role-pill" id="roleBtnReception" onclick="setPresetRole('Receptionist', 'reception123', this)">
+                                    <i class="bi bi-calendar-heart me-1"></i> @T("استقبال", "Reception")
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Remember Me Checkbox -->
-                        <div class="mb-4 d-flex align-items-center gap-2">
-                            <input type="checkbox" id="rememberMe" name="rememberMe" value="true" class="form-check-input mt-0" style="cursor:pointer;" />
-                            <label for="rememberMe" class="text-muted small m-0" style="cursor:pointer; user-select:none;">
-                                @T("تذكرني لمدة 30 يوماً على هذا الجهاز", "Remember me for 30 days on this device")
-                            </label>
+                        <form asp-controller="Account" asp-action="Login" method="post">
+                            @Html.AntiForgeryToken()
+
+                            <!-- Username / Email -->
+                            <div class="mb-3">
+                                <label for="loginUsername" class="custom-label">@T("اسم المستخدم أو البريد الإلكتروني", "Username or Email")</label>
+                                <div class="position-relative">
+                                    <input type="text" id="loginUsername" name="username" class="custom-input" required
+                                           value="Admin" placeholder="admin@clinicflow.com" dir="ltr" autofocus />
+                                </div>
+                            </div>
+
+                            <!-- Password -->
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label for="loginPassword" class="custom-label m-0">@T("كلمة المرور", "Password")</label>
+                                    <span class="text-muted" style="font-size: 12px;">@T("الافتراضي: admin123", "Default: admin123")</span>
+                                </div>
+                                <div class="position-relative">
+                                    <input type="password" id="loginPassword" name="password" class="custom-input pe-5" required
+                                           value="admin123" placeholder="••••••••" dir="ltr" />
+                                    <button type="button" class="btn btn-link position-absolute top-50 translate-middle-y text-muted text-decoration-none" 
+                                            style="inset-inline-end: 8px; z-index: 5;" onclick="togglePasswordVisibility('loginPassword', 'loginEyeIcon')">
+                                        <i class="fa-regular fa-eye" id="loginEyeIcon"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Remember Me Checkbox -->
+                            <div class="mb-4 d-flex align-items-center gap-2">
+                                <input type="checkbox" id="rememberMe" name="rememberMe" value="true" class="form-check-input mt-0" style="cursor:pointer;" checked />
+                                <label for="rememberMe" class="text-muted small m-0" style="cursor:pointer; user-select:none;">
+                                    @T("تذكرني لمدة 30 يوماً على هذا الجهاز", "Remember me for 30 days on this device")
+                                </label>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <button type="submit" class="btn-submit-main">
+                                <i class="fa-solid fa-lock"></i>
+                                <span>@T("تسجيل الدخول بأمان", "Sign In Securely")</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- ════════ TAB 2: SIGN UP / FREE TRIAL ════════ -->
+                    <div id="tabContentRegister" style="display: @(hasRegisterMsg ? "block" : "none");">
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <h4 class="fw-bold text-dark m-0">@T("تسجيل عيادة جديدة", "Register New Clinic")</h4>
+                                <span class="badge bg-success text-white rounded-pill px-2.5 py-1 small">@T("60 يوماً مجاناً", "60 Days Free")</span>
+                            </div>
+                            <p class="text-muted small mb-0">@T("ابدأ إدارة عيادتك فوراً بجميع المزايا وبدون أي التزام مالي", "Full featured trial with zero financial commitment")</p>
                         </div>
 
-                        <!-- Submit Button -->
-                        <button type="submit" class="auth-submit-btn">
-                            <i class="fa-solid fa-lock"></i>
-                            <span>@T("تسجيل الدخول بأمان", "Sign In securely")</span>
-                        </button>
-                    </form>
+                        <!-- Promotional Highlight Callout -->
+                        <div class="rounded-3 p-3 mb-3" style="background-color: #ecfdf5; border: 1px solid #a7f3d0;">
+                            <div class="d-flex align-items-start gap-2">
+                                <i class="bi bi-gift-fill text-success fs-5 flex-shrink-0 mt-0.5"></i>
+                                <div class="text-dark small lh-base">
+                                    <strong class="text-success fw-bold">@T("عرض التدشين الخاص:", "Special Launch Offer:")</strong>
+                                    @T("احصل على شهرين كاملين (60 يوماً) مجاناً لتجربة كافة خصائص النظام مع فريق دعم مخصص.",
+                                       "Get 2 full months (60 days) completely free to experience all features with dedicated support.")
+                                </div>
+                            </div>
+                        </div>
+
+                        <form asp-controller="Account" asp-action="RegisterClinic" method="post">
+                            @Html.AntiForgeryToken()
+
+                            <!-- 1. Clinic Name -->
+                            <div class="mb-2.5">
+                                <label for="regClinicName" class="custom-label">@T("اسم العيادة أو المركز الطبي *", "Clinic or Medical Center Name *")</label>
+                                <input type="text" id="regClinicName" name="clinicName" class="custom-input" required
+                                       placeholder="@T("مثال: عيادات الأمل التخصصية", "e.g. Hope Specialized Clinic")" />
+                            </div>
+
+                            <!-- 2. Admin Full Name -->
+                            <div class="mb-2.5">
+                                <label for="regAdminName" class="custom-label">@T("اسم المسؤول (Admin) *", "Admin Full Name *")</label>
+                                <input type="text" id="regAdminName" name="adminName" class="custom-input" required
+                                       placeholder="@T("د. أحمد الشريف", "Dr. Ahmad Al-Sharif")" />
+                            </div>
+
+                            <!-- 3. Email -->
+                            <div class="mb-2.5">
+                                <label for="regEmail" class="custom-label">@T("البريد الإلكتروني المهني *", "Professional Email *")</label>
+                                <input type="email" id="regEmail" name="email" class="custom-input" required dir="ltr"
+                                       placeholder="admin@yourclinic.com" />
+                            </div>
+
+                            <!-- 4. Phone Number -->
+                            <div class="mb-2.5">
+                                <label for="regPhone" class="custom-label">@T("رقم الهاتف / الجوال *", "Phone Number *")</label>
+                                <input type="tel" id="regPhone" name="phone" class="custom-input" required dir="ltr"
+                                       placeholder="+962 7X XXX XXXX" />
+                            </div>
+
+                            <!-- 5. Password -->
+                            <div class="mb-3">
+                                <label for="regPassword" class="custom-label">@T("كلمة المرور *", "Password *")</label>
+                                <div class="position-relative">
+                                    <input type="password" id="regPassword" name="password" class="custom-input pe-5" required dir="ltr"
+                                           placeholder="••••••••" />
+                                    <button type="button" class="btn btn-link position-absolute top-50 translate-middle-y text-muted text-decoration-none" 
+                                            style="inset-inline-end: 8px; z-index: 5;" onclick="togglePasswordVisibility('regPassword', 'regEyeIcon')">
+                                        <i class="fa-regular fa-eye" id="regEyeIcon"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Explanatory Note Box (Admin account & OTP note) -->
+                            <div class="rounded-3 p-3 mb-3 border bg-light">
+                                <div class="d-flex align-items-start gap-2">
+                                    <i class="bi bi-info-circle-fill text-secondary flex-shrink-0 mt-0.5"></i>
+                                    <div class="text-secondary small" style="font-size: 12.5px; line-height: 1.6;">
+                                        @T("يتم إنشاء حساب المدير (Admin) تلقائياً، وإرسال رمز التحقق (OTP) إلى البريد الإلكتروني لتفعيل الحساب والبدء بإضافة باقي الموظفين والأطباء.",
+                                           "The Admin account is created automatically, and a verification code (OTP) will be sent to your email to activate the account and start adding staff and doctors.")
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Submit Free Trial -->
+                            <button type="submit" class="btn-submit-main">
+                                <i class="bi bi-rocket-takeoff-fill"></i>
+                                <span>@T("بدء التجربة المجانية (60 يوماً مجاناً)", "Start 60-Day Free Trial")</span>
+                            </button>
+                        </form>
+                    </div>
+
                 </div>
 
+                <!-- Footer Trust Badges -->
                 <div class="mt-4 text-center text-muted small">
-                    @T("نظام معتمد وفق معايير الأمان الدولية HIPAA & GDPR", "Compliant with international healthcare standards HIPAA & GDPR")
+                    <div class="d-flex justify-content-center align-items-center gap-3 mb-2">
+                        <span><i class="bi bi-shield-fill-check text-success me-1"></i> @T("تشفير آمن 256-bit", "256-bit TLS Encrypted")</span>
+                        <span>•</span>
+                        <span><i class="bi bi-check2-circle text-success me-1"></i> @T("بدون فيزا أو بطاقة دفع", "No Credit Card Needed")</span>
+                    </div>
+                    <div>@T("نظام معتمد لإدارة العيادات والمراكز الطبية", "Certified Clinical Healthcare Management System")</div>
                 </div>
+
             </div>
         </div>
+
     </div>
 
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Password Visibility Toggle
-        document.addEventListener('DOMContentLoaded', function () {
-            const pwdInput = document.getElementById('password');
-            const toggleBtn = document.getElementById('pwdToggleBtn');
-            const eyeIcon = document.getElementById('pwdEyeIcon');
+        // Tab Switcher
+        function switchAuthTab(tabKey) {
+            const loginTab = document.getElementById('tabContentLogin');
+            const registerTab = document.getElementById('tabContentRegister');
+            const btnLogin = document.getElementById('tabBtnLogin');
+            const btnRegister = document.getElementById('tabBtnRegister');
 
-            if (toggleBtn && pwdInput) {
-                toggleBtn.addEventListener('click', function () {
-                    const isPwd = pwdInput.type === 'password';
-                    pwdInput.type = isPwd ? 'text' : 'password';
-                    eyeIcon.className = isPwd ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
-                });
+            if (tabKey === 'login') {
+                loginTab.style.display = 'block';
+                registerTab.style.display = 'none';
+                btnLogin.classList.add('active');
+                btnRegister.classList.remove('active');
+            } else {
+                loginTab.style.display = 'none';
+                registerTab.style.display = 'block';
+                btnLogin.classList.remove('active');
+                btnRegister.classList.add('active');
             }
-        });
+        }
 
-        // Demo Credentials Helper
-        function presetCredentials(roleKey, username, password) {
-            document.querySelectorAll('.auth-role-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            var userField = document.getElementById('username');
-            var pwdField = document.getElementById('password');
-            if (userField) userField.value = username;
-            if (pwdField) pwdField.value = password;
+        // Demo Role Preset Buttons
+        function setPresetRole(username, password, element) {
+            document.querySelectorAll('.role-pill').forEach(btn => btn.classList.remove('active'));
+            if (element) element.classList.add('active');
+
+            const userInput = document.getElementById('loginUsername');
+            const pwdInput = document.getElementById('loginPassword');
+            if (userInput) userInput.value = username;
+            if (pwdInput) pwdInput.value = password;
+        }
+
+        // Password Visibility Toggle
+        function togglePasswordVisibility(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (input && icon) {
+                const isPwd = input.type === 'password';
+                input.type = isPwd ? 'text' : 'password';
+                icon.className = isPwd ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+            }
         }
     </script>
 </body>
