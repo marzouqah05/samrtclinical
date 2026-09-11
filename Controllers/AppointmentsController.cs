@@ -208,6 +208,7 @@ namespace WebApplication1.Controllers
                     start       = startDt.ToString("yyyy-MM-ddTHH:mm:ss"),
                     end         = endDt.ToString("yyyy-MM-ddTHH:mm:ss"),
                     color,
+                    className   = a.Status == "Cancelled" ? "event-cancelled" : "",
                     extendedProps = new
                     {
                         status      = a.Status,
