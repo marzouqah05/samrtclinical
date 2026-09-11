@@ -245,22 +245,11 @@
             </p>
 
             <!-- Alerts -->
-            @if (TempData["DevOtp"] != null)
-            {
-                <div class="alert alert-warning rounded-4 shadow-sm border-0 d-flex align-items-center gap-2 mb-3 text-start" role="alert" style="background-color: #fffbeb; border: 1px dashed #f59e0b !important;">
-                    <i class="bi bi-code-slash fs-5 text-warning flex-shrink-0"></i>
-                    <div class="small text-dark">
-                        <strong>@T("وضع التطوير (Dev Mode):", "Development Mode:")</strong>
-                        <span>@T("كود التفعيل التجريبي:", "Demo Activation Code:")</span>
-                        <code class="fw-bold fs-6 text-dark px-2 py-0.5 rounded bg-white border border-warning">@TempData["DevOtp"]</code>
-                    </div>
-                </div>
-            }
-            @if (ViewBag.Error != null)
+            @if (ViewBag.Error != null || TempData["Error"] != null)
             {
                 <div class="alert alert-danger rounded-4 shadow-sm border-0 d-flex align-items-center gap-2 mb-3 text-start" role="alert">
                     <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
-                    <div class="small">@ViewBag.Error</div>
+                    <div class="small">@(ViewBag.Error ?? TempData["Error"])</div>
                 </div>
             }
             @if (TempData["OtpSent"] != null)

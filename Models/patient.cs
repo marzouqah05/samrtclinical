@@ -68,6 +68,8 @@ namespace WebApplication1.Models
         [Column(TypeName = "text")]
         public string? Notes { get; set; }
 
+        public Guid? ClinicId { get; set; }
+
         // --- العلاقات (Navigation Properties) ---
         public List<Appointment> Appointments { get; set; } = new List<Appointment>();
         public List<Treatment> Treatments { get; set; } = new List<Treatment>();

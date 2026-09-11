@@ -83,6 +83,14 @@ namespace WebApplication1.Controllers
             }
 
             // Verify password strictly against this user
+            var existingClaims = await _userManager.GetClaimsAsync(inputUser);
+            if (!existingClaims.Any(c => c.Type == "ClinicId"))
+            {
+                var clinic = await _db.Clinics.FirstOrDefaultAsync(c => c.OwnerEmail == inputUser.Email);
+                var targetClinicId = clinic?.ClinicId ?? TenantExtensions.DefaultClinicId;
+                await _userManager.AddClaimAsync(inputUser, new System.Security.Claims.Claim("ClinicId", targetClinicId.ToString()));
+            }
+
             var result = await _signInManager.PasswordSignInAsync(inputUser.UserName!, password, rememberMe, lockoutOnFailure: false);
 
             if (result.Succeeded)
@@ -148,6 +156,21 @@ namespace WebApplication1.Controllers
 
                 await _userManager.AddToRoleAsync(user, "Admin");
 
+                // ── Multi-Tenancy: Create a new isolated Clinic record ───────
+                var newClinicId = Guid.NewGuid();
+                var clinic = new Clinic
+                {
+                    ClinicId = newClinicId,
+                    Name = clinicName.Trim(),
+                    OwnerEmail = email,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _db.Clinics.Add(clinic);
+                await _db.SaveChangesAsync();
+
+                // Associate the new Admin user with this ClinicId claim
+                await _userManager.AddClaimAsync(user, new System.Security.Claims.Claim("ClinicId", newClinicId.ToString()));
+
                 // Generate 6-digit OTP code
                 var otpCode = Random.Shared.Next(100000, 999999).ToString();
 
@@ -175,11 +198,16 @@ namespace WebApplication1.Controllers
                 }
                 await _db.SaveChangesAsync();
 
-                // Dispatch OTP email via email service
-                await _emailSender.SendOtpEmailAsync(email, otpCode, adminName);
-
-                // Pass OTP in TempData for development testing convenience
-                TempData["DevOtp"] = otpCode;
+                // Dispatch OTP email via real email service
+                var emailSent = await _emailSender.SendOtpEmailAsync(email, otpCode, adminName);
+                if (!emailSent)
+                {
+                    TempData["RegisterError"] = T(
+                        "تعذر إرسال رمز التحقق إلى بريدك الإلكتروني بسبب خطأ في إعدادات SMTP أو بيانات الاعتماد. يرجى مراجعة إعدادات خادم البريد والمحاولة لاحقاً.",
+                        "Could not deliver the verification OTP to your email due to invalid SMTP settings or credentials. Please check your SMTP configuration and try again."
+                    );
+                    return RedirectToAction(nameof(Login));
+                }
 
                 // DO NOT automatically sign the user in. Redirect directly to OTP verification page
                 TempData["OtpSent"] = T($"تم إرسال رمز التحقق (OTP) إلى {email}. يرجى إدخال الرمز لإتمام تفعيل حساب المدير.",
@@ -336,10 +364,19 @@ namespace WebApplication1.Controllers
                 }
                 await _db.SaveChangesAsync();
 
-                await _emailSender.SendOtpEmailAsync(email, newOtp);
-                TempData["DevOtp"] = newOtp;
-                TempData["OtpSent"] = T($"تمت إعادة إرسال رمز تحقق جديد إلى {email}.",
-                                        $"A new verification code was sent to {email}.");
+                var emailSent = await _emailSender.SendOtpEmailAsync(email, newOtp);
+                if (!emailSent)
+                {
+                    TempData["Error"] = T(
+                        "فشل إرسال رمز التحقق الجديد إلى بريدك الإلكتروني. يرجى التحقق من إعدادات SMTP وبيانات الاعتماد.",
+                        "Failed to send the new verification code to your email. Please check your SMTP settings and credentials."
+                    );
+                }
+                else
+                {
+                    TempData["OtpSent"] = T($"تمت إعادة إرسال رمز تحقق جديد إلى {email}.",
+                                            $"A new verification code was sent to {email}.");
+                }
             }
 
             return RedirectToAction(nameof(VerifyOtp), new { email = email });
@@ -429,6 +466,11 @@ namespace WebApplication1.Controllers
                     await _userManager.AddClaimAsync(user,
                         new System.Security.Claims.Claim("DoctorId", doctorId.Value.ToString()));
                 }
+
+                // 5. Inherit current admin's ClinicId for multi-tenancy isolation
+                var adminClinicId = User.GetClinicId();
+                await _userManager.AddClaimAsync(user,
+                    new System.Security.Claims.Claim("ClinicId", adminClinicId.ToString()));
 
                 // ── Bilingual success toast ───────────────────────────────────
                 ViewBag.Success = T(

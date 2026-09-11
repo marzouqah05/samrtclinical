@@ -18,6 +18,8 @@ namespace WebApplication1.Models
         [MaxLength(20)]
         public string? DepartmentAbbr { get; set; }
 
+        public Guid? ClinicId { get; set; }
+
         public List<Doctor> Doctors { get; set; } = new List<Doctor>();
     }
 }

@@ -141,7 +141,8 @@ namespace WebApplication1.Controllers
         // GET: Departments
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Departments.ToListAsync());
+            var currentClinicId = User.GetClinicId();
+            return View(await _context.Departments.Where(d => d.ClinicId == currentClinicId).ToListAsync());
         }
 
         // GET: Departments/Details/5
@@ -176,6 +177,7 @@ namespace WebApplication1.Controllers
         {
             if (ModelState.IsValid)
             {
+                department.ClinicId = User.GetClinicId();
                 _context.Add(department);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));

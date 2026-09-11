@@ -120,7 +120,9 @@ namespace WebApplication1.Controllers
         // 1. GET: Invoices
         public async Task<IActionResult> Index()
         {
+            var currentClinicId = User.GetClinicId();
             var invoices = _context.Invoices
+                .Where(i => i.ClinicId == currentClinicId)
                 .Include(i => i.Patient)
                 .Include(i => i.Treatment)
                     .ThenInclude(t => t!.Appointment)
@@ -147,10 +149,12 @@ namespace WebApplication1.Controllers
         // 3. GET: Invoices/Create
         public IActionResult Create()
         {
+            var currentClinicId = User.GetClinicId();
             // Fetch treatments and establish a complete relational chain (Treatment -> Appointment -> Patient)
             var treatmentsList = _context.Treatments
                 .Include(t => t.Appointment)
                     .ThenInclude(a => a.Patient)
+                .Where(t => t.Appointment != null && t.Appointment.ClinicId == currentClinicId)
                 .Select(t => new {
                     TreatmentId = t.TreatmentId,
                     // English display formatting connecting Patient name, visit date, and treatment description
@@ -176,7 +180,8 @@ namespace WebApplication1.Controllers
 
             if (treatment != null)
             {
-                // Dynamic Linkage: Automatically assign PatientId from the associated appointment
+                // Dynamic Linkage: Automatically assign PatientId and ClinicId from the associated appointment / tenant
+                invoice.ClinicId = User.GetClinicId();
                 invoice.PatientId = treatment.Appointment.PatientId;
                 invoice.InvoiceDate = DateTime.Now;
 
@@ -198,7 +203,11 @@ namespace WebApplication1.Controllers
             }
 
             // Repopulate dropdown list on validation failure
-            var fallbackList = _context.Treatments.Include(t => t.Appointment).ThenInclude(a => a.Patient)
+            var currentClinicId = User.GetClinicId();
+            var fallbackList = _context.Treatments
+                .Include(t => t.Appointment)
+                    .ThenInclude(a => a.Patient)
+                .Where(t => t.Appointment != null && t.Appointment.ClinicId == currentClinicId)
                 .Select(t => new {
                     TreatmentId = t.TreatmentId,
                     DisplayText = $"Patient: {t.Appointment.Patient.PatientName} | Date: {t.Appointment.AppointmentDate.ToString("yyyy/MM/dd")}"

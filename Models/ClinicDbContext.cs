@@ -18,6 +18,7 @@ namespace WebApplication1.Models
         public DbSet<Patient> Patients { get; set; }
         public DbSet<Treatment> Treatments { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
+        public DbSet<Clinic> Clinics { get; set; }
         public DbSet<ClinicSetting> ClinicSettings { get; set; }
         public DbSet<Expense> Expenses { get; set; }
         public DbSet<UserSessionLog> UserSessionLogs { get; set; }
@@ -211,6 +212,16 @@ namespace WebApplication1.Models
                 entity.Property(e => e.EntityName).IsRequired().HasMaxLength(100);
                 entity.HasIndex(e => e.Timestamp);
                 entity.HasIndex(e => e.EntityName);
+            });
+
+            // ── Clinic ───────────────────────────────────────────────────────
+            modelBuilder.Entity<Clinic>(entity =>
+            {
+                entity.ToTable("Clinics");
+                entity.HasKey(e => e.ClinicId);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.OwnerEmail).HasMaxLength(200);
+                entity.HasIndex(e => e.OwnerEmail);
             });
         }
     }

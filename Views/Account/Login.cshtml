@@ -427,68 +427,16 @@
             box-shadow: 0 6px 16px rgba(5, 150, 105, 0.35);
         }
 
-        /* Floating WhatsApp Button */
-        .whatsapp-floating-btn {
-            position: fixed;
-            bottom: 24px;
-            inset-inline-start: 24px;
-            z-index: 999;
-            background-color: var(--whatsapp-green);
-            color: #ffffff !important;
-            padding: 12px 20px;
-            border-radius: 50px;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 700;
-            font-size: 14px;
-            text-decoration: none;
-            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.45);
-            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-        }
-
-        .whatsapp-floating-btn:hover {
-            background-color: var(--whatsapp-dark);
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 8px 24px rgba(37, 211, 102, 0.6);
-        }
-
-        .whatsapp-floating-btn .wa-pulse-badge {
-            width: 10px;
-            height: 10px;
-            background-color: #ffffff;
-            border-radius: 50%;
-            animation: pulse-white 1.8s infinite;
-        }
-
-        @@keyframes pulse-white {
-            0% { transform: scale(0.9); opacity: 0.9; }
-            50% { transform: scale(1.2); opacity: 1; }
-            100% { transform: scale(0.9); opacity: 0.9; }
-        }
-
         @@media (max-width: 992px) {
             .auth-container { flex-direction: column; }
             .hero-section { padding: 36px 24px; min-height: auto; }
             .hero-title { font-size: 28px; }
             .features-grid { grid-template-columns: 1fr; }
             .auth-section { padding: 32px 16px; }
-            .whatsapp-floating-btn { bottom: 16px; inset-inline-start: 16px; padding: 10px 16px; font-size: 13px; }
         }
     </style>
 </head>
 <body>
-
-    <!-- ── Floating WhatsApp Action Button (Prominent & High Converting) ── -->
-    <a href="https://wa.me/962792936244?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%D8%8C%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D9%86%D8%B8%D8%A7%D9%85%20%D8%A5%D8%AF%D8%A7%D8%B1%D8%A9%20%D8%A7%D9%84%D8%B9%D9%8A%D8%A7%D8%AF%D8%A7%D8%AA%20%D9%88%D8%A7%D9%84%D8%AA%D8%AC%D8%B1%D8%A8%D8%A9%20%D8%A7%D9%84%D9%85%D8%AC%D8%A7%D9%86%D9%8A%D8%A9" 
-       target="_blank" 
-       rel="noopener noreferrer" 
-       class="whatsapp-floating-btn shadow-lg"
-       title="@T("تواصل معنا مباشرة عبر واتساب", "Chat directly on WhatsApp")">
-        <span class="wa-pulse-badge"></span>
-        <i class="fa-brands fa-whatsapp fs-5"></i>
-        <span>@T("تواصل معنا عبر واتساب", "Chat on WhatsApp")</span>
-    </a>
 
     <div class="auth-container">
 

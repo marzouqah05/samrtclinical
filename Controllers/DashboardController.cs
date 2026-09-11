@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Models;
+using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {
@@ -19,6 +20,7 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Index(string? search)
         {
             var today = DateTime.UtcNow.Date;
+            var currentClinicId = User.GetClinicId();
 
             // ── Upcoming / Active Appointments for Dashboard ─────────────────
             // Explicitly exclude Cancelled and Completed appointments and only include upcoming / active appointments
@@ -26,7 +28,7 @@ namespace WebApplication1.Controllers
                 .Include(a => a.Doctor)
                     .ThenInclude(d => d!.Department)
                 .Include(a => a.Patient)
-                .Where(a => a.Status != "Cancelled" && a.Status != "Completed" && a.AppointmentDate >= today)
+                .Where(a => a.ClinicId == currentClinicId && a.Status != "Cancelled" && a.Status != "Completed" && a.AppointmentDate >= today)
                 .OrderBy(a => a.AppointmentDate)
                 .ThenBy(a => a.AppointmentTime)
                 .AsQueryable();
@@ -40,26 +42,27 @@ namespace WebApplication1.Controllers
             }
 
             // ── Core Statistics (Strictly Sequential Execution) ──────────────
-            ViewBag.TotalPatients     = await _context.Patients.CountAsync();
-            ViewBag.TotalDoctors      = await _context.Doctors.CountAsync();
-            ViewBag.TotalDepartments  = await _context.Departments.CountAsync();
+            ViewBag.TotalPatients     = await _context.Patients.Where(p => p.ClinicId == currentClinicId).CountAsync();
+            ViewBag.TotalDoctors      = await _context.Doctors.Where(d => d.ClinicId == currentClinicId).CountAsync();
+            ViewBag.TotalDepartments  = await _context.Departments.Where(d => d.ClinicId == currentClinicId).CountAsync();
 
             ViewBag.TodayAppointments = await _context.Appointments
-                .Where(a => a.AppointmentDate.Date == today && a.Status != "Cancelled")
+                .Where(a => a.ClinicId == currentClinicId && a.AppointmentDate.Date == today && a.Status != "Cancelled")
                 .CountAsync();
 
             // ── Financial Analytics (Strictly Sequential Execution) ──────────
-            ViewBag.TotalInvoicesCount = await _context.Invoices.CountAsync();
+            ViewBag.TotalInvoicesCount = await _context.Invoices.Where(i => i.ClinicId == currentClinicId).CountAsync();
 
             ViewBag.TotalRevenue = await _context.Invoices
-                .Where(i => i.Status == "Paid")
+                .Where(i => i.ClinicId == currentClinicId && i.Status == "Paid")
                 .SumAsync(i => (decimal?)i.NetAmount) ?? 0.00m;
 
             ViewBag.PendingRevenue = await _context.Invoices
-                .Where(i => i.Status == "Unpaid")
+                .Where(i => i.ClinicId == currentClinicId && i.Status == "Unpaid")
                 .SumAsync(i => (decimal?)i.NetAmount) ?? 0.00m;
 
             ViewBag.TotalExpenses = await _context.Expenses
+                .Where(e => e.ClinicId == currentClinicId)
                 .SumAsync(e => (decimal?)e.Amount) ?? 0.00m;
 
             ViewBag.SearchVal = search;
@@ -71,7 +74,9 @@ namespace WebApplication1.Controllers
         // ── 2. Calendar Event API Feed ────────────────────────────────────────
         public async Task<IActionResult> GetAppointments()
         {
+            var currentClinicId = User.GetClinicId();
             var appointments = await _context.Appointments
+                .Where(a => a.ClinicId == currentClinicId)
                 .Include(a => a.Doctor)
                 .Include(a => a.Patient)
                 .Select(a => new
@@ -89,7 +94,10 @@ namespace WebApplication1.Controllers
         // ── 3. Appointments Chart API ─────────────────────────────────────────
         public async Task<IActionResult> GetAppointmentsChart()
         {
-            var list = await _context.Appointments.ToListAsync();
+            var currentClinicId = User.GetClinicId();
+            var list = await _context.Appointments
+                .Where(a => a.ClinicId == currentClinicId)
+                .ToListAsync();
 
             var data = list
                 .GroupBy(a => a.AppointmentDate.ToString("ddd"))
@@ -102,10 +110,11 @@ namespace WebApplication1.Controllers
         // ── 4. Revenue Chart API (Last 7 Days) ────────────────────────────────
         public async Task<IActionResult> GetRevenueChart()
         {
+            var currentClinicId = User.GetClinicId();
             var sevenDaysAgo = DateTime.UtcNow.Date.AddDays(-7);
 
             var invoicesData = await _context.Invoices
-                .Where(i => i.InvoiceDate >= sevenDaysAgo && i.Status == "Paid")
+                .Where(i => i.ClinicId == currentClinicId && i.InvoiceDate >= sevenDaysAgo && i.Status == "Paid")
                 .ToListAsync();
 
             var todayUtc = DateTime.UtcNow.Date;

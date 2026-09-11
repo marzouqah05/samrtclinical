@@ -56,7 +56,9 @@ internal class Program
         builder.Services.AddScoped<ISystemMigrationService, SystemMigrationService>();
 
         // ── Email Notification & OTP Dispatch Service ───────────────────────────────
-        builder.Services.AddScoped<IEmailSenderService, EmailService>();
+        builder.Services.AddScoped<EmailService>();
+        builder.Services.AddScoped<IEmailSenderService>(sp => sp.GetRequiredService<EmailService>());
+        builder.Services.AddScoped<IEmailSender>(sp => sp.GetRequiredService<EmailService>());
 
         // ── In-Memory Cache (used by SessionTrackingService for activity throttling and OTP storage) ────────
         builder.Services.AddMemoryCache();
@@ -245,6 +247,16 @@ internal class Program
                     if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
                     {
                         await userManager.AddToRoleAsync(adminUser, "Admin");
+                    }
+                }
+
+                var effectiveAdmin = adminUser ?? await userManager.FindByNameAsync(adminUsername);
+                if (effectiveAdmin != null)
+                {
+                    var adminClaims = await userManager.GetClaimsAsync(effectiveAdmin);
+                    if (!adminClaims.Any(c => c.Type == "ClinicId"))
+                    {
+                        await userManager.AddClaimAsync(effectiveAdmin, new System.Security.Claims.Claim("ClinicId", WebApplication1.Services.TenantExtensions.DefaultClinicId.ToString()));
                     }
                 }
             }

@@ -7,10 +7,16 @@ using Microsoft.Extensions.Logging;
 
 namespace WebApplication1.Services
 {
-    public interface IEmailSenderService
+    public interface IEmailSender
     {
-        Task<bool> SendEmailAsync(string toEmail, string subject, string htmlBody);
+        Task SendEmailAsync(string email, string subject, string htmlMessage);
+    }
+
+    public interface IEmailSenderService : IEmailSender
+    {
+        new Task<bool> SendEmailAsync(string toEmail, string subject, string htmlBody);
         Task<bool> SendOtpEmailAsync(string toEmail, string otpCode, string recipientName = "");
+        Task SendAppointmentReminder(string patientEmail, string patientName, string appointmentDate);
     }
 
     public class EmailService : IEmailSenderService
@@ -24,6 +30,11 @@ namespace WebApplication1.Services
             _logger = logger;
         }
 
+        async Task IEmailSender.SendEmailAsync(string email, string subject, string htmlMessage)
+        {
+            await SendEmailAsync(email, subject, htmlMessage);
+        }
+
         public async Task<bool> SendEmailAsync(string toEmail, string subject, string htmlBody)
         {
             if (string.IsNullOrWhiteSpace(toEmail))
@@ -31,27 +42,32 @@ namespace WebApplication1.Services
 
             try
             {
-                var smtpHost = _config["Email:SmtpHost"] ?? "smtp.gmail.com";
-                var smtpPortStr = _config["Email:SmtpPort"] ?? "587";
-                var smtpUser = _config["Email:SmtpUser"] ?? "";
-                var smtpPass = _config["Email:SmtpPassword"] ?? "";
-                var fromAddress = _config["Email:FromAddress"] ?? (!string.IsNullOrEmpty(smtpUser) ? smtpUser : "noreply@clinicflow.com");
-                var fromName = _config["Email:FromName"] ?? "ClinicFlow Medical OS";
+                var smtpHost = _config["SmtpSettings:Server"] ?? _config["Email:SmtpHost"] ?? "smtp.gmail.com";
+                var smtpPortStr = _config["SmtpSettings:Port"] ?? _config["Email:SmtpPort"] ?? "587";
+                var smtpUser = _config["SmtpSettings:SenderEmail"] ?? _config["Email:SmtpUser"] ?? "";
+                var smtpPass = _config["SmtpSettings:Password"] ?? _config["Email:SmtpPassword"] ?? "";
+                var fromAddress = _config["SmtpSettings:SenderEmail"] ?? _config["Email:FromAddress"] ?? (!string.IsNullOrEmpty(smtpUser) ? smtpUser : "noreply@clinicflow.com");
+                var fromName = _config["SmtpSettings:SenderName"] ?? _config["Email:FromName"] ?? "ClinicFlow Systems";
+                var enableSsl = bool.TryParse(_config["SmtpSettings:EnableSsl"], out var ssl) ? ssl : true;
 
                 int.TryParse(smtpPortStr, out int smtpPort);
                 if (smtpPort == 0) smtpPort = 587;
 
-                // If SMTP password is not configured, log OTP visibly so verification works smoothly in test/dev
-                if (string.IsNullOrWhiteSpace(smtpPass) || string.IsNullOrWhiteSpace(smtpUser))
+                // If SMTP password is not configured or uses placeholder values, DO NOT fake delivery!
+                if (string.IsNullOrWhiteSpace(smtpPass) || 
+                    string.IsNullOrWhiteSpace(smtpUser) || 
+                    smtpPass == "YOUR_APP_PASSWORD" || 
+                    smtpUser == "YOUR_EMAIL@gmail.com")
                 {
-                    _logger.LogWarning("[EmailService] SMTP credentials not configured. Mocking email delivery to {To}. Subject: {Subject}", toEmail, subject);
-                    return true;
+                    _logger.LogError("[EmailService] SMTP credentials are not configured or still have placeholder values ({Sender}). Real delivery cannot proceed.", smtpUser);
+                    return false;
                 }
 
                 using var client = new SmtpClient(smtpHost, smtpPort)
                 {
                     Credentials = new NetworkCredential(smtpUser, smtpPass),
-                    EnableSsl = true
+                    EnableSsl = enableSsl,
+                    Timeout = 15000 // 15 seconds timeout
                 };
 
                 using var mail = new MailMessage
@@ -69,7 +85,7 @@ namespace WebApplication1.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[EmailService] Error dispatching email to {To}. Subject: {Subject}", toEmail, subject);
+                _logger.LogError(ex, "[EmailService] Error dispatching email via SMTP to {To}. Subject: {Subject}", toEmail, subject);
                 return false;
             }
         }
@@ -78,9 +94,6 @@ namespace WebApplication1.Services
         {
             var greeting = string.IsNullOrWhiteSpace(recipientName) ? "مرحباً بك" : $"مرحباً د. {recipientName}";
             var subject = $"رمز التحقق لتفعيل حساب العيادة: {otpCode}";
-
-            // Prominently log to Console for development testing convenience
-            Console.WriteLine($"\n====================\n[DEV OTP CODE]: {otpCode} for {toEmail}\n====================\n");
 
             var body = $@"
 <!DOCTYPE html>
@@ -113,13 +126,8 @@ namespace WebApplication1.Services
 </body>
 </html>";
 
-            _logger.LogInformation("[EmailService] OTP generated for {To}: {OTP}", toEmail, otpCode);
+            _logger.LogInformation("[EmailService] Sending OTP to {To}", toEmail);
             var sent = await SendEmailAsync(toEmail, subject, body);
-            if (!sent)
-            {
-                // Fallback: don't crash, ensure developer sees the code in console
-                Console.WriteLine($"\n====================\n[DEV OTP CODE (FALLBACK)]: {otpCode} for {toEmail}\n====================\n");
-            }
             return sent;
         }
 

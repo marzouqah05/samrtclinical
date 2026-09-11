@@ -16,6 +16,36 @@ namespace WebApplication1.Data
                 // Apply any pending migrations automatically
                 await context.Database.MigrateAsync();
 
+                // ── Ensure Default Clinic Exists & Backfill ───────────────────
+                try
+                {
+                    if (!await context.Clinics.AnyAsync(c => c.ClinicId == WebApplication1.Services.TenantExtensions.DefaultClinicId))
+                    {
+                        context.Clinics.Add(new Clinic
+                        {
+                            ClinicId = WebApplication1.Services.TenantExtensions.DefaultClinicId,
+                            Name = "MediCare Main Clinic (Demo)",
+                            OwnerEmail = "admin@medicare.com",
+                            CreatedAt = DateTime.UtcNow
+                        });
+                        await context.SaveChangesAsync();
+                    }
+
+                    // Backfill any existing records where ClinicId is NULL to the DefaultClinicId
+                    await context.Database.ExecuteSqlRawAsync(@"
+                        UPDATE ""Departments"" SET ""ClinicId"" = '11111111-1111-1111-1111-111111111111' WHERE ""ClinicId"" IS NULL;
+                        UPDATE ""Doctors"" SET ""ClinicId"" = '11111111-1111-1111-1111-111111111111' WHERE ""ClinicId"" IS NULL;
+                        UPDATE ""Patients"" SET ""ClinicId"" = '11111111-1111-1111-1111-111111111111' WHERE ""ClinicId"" IS NULL;
+                        UPDATE ""Appointments"" SET ""ClinicId"" = '11111111-1111-1111-1111-111111111111' WHERE ""ClinicId"" IS NULL;
+                        UPDATE ""Invoices"" SET ""ClinicId"" = '11111111-1111-1111-1111-111111111111' WHERE ""ClinicId"" IS NULL;
+                        UPDATE ""Expenses"" SET ""ClinicId"" = '11111111-1111-1111-1111-111111111111' WHERE ""ClinicId"" IS NULL;
+                    ");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "[Seed] Error ensuring default clinic or backfilling ClinicId.");
+                }
+
                 // ── 0. AUDIT LOGS TABLE & SEED ─────────────────────────────────
                 try
                 {

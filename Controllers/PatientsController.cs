@@ -108,7 +108,8 @@ namespace WebApplication1.Controllers
 
         public async Task<IActionResult> Index(string search)
         {
-            var query = _context.Patients.AsQueryable();
+            var currentClinicId = User.GetClinicId();
+            var query = _context.Patients.Where(p => p.ClinicId == currentClinicId).AsQueryable();
 
             if (!string.IsNullOrEmpty(search))
             {
@@ -193,6 +194,7 @@ namespace WebApplication1.Controllers
                     return View(patient);
                 }
 
+                patient.ClinicId = User.GetClinicId();
                 _context.Add(patient);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = T("تمت إضافة المريض بنجاح.", "Patient added successfully.");

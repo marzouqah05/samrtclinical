@@ -46,6 +46,8 @@ namespace WebApplication1.Models
         [MaxLength(100)]
         public string? TelegramChatId { get; set; }
 
+        public Guid? ClinicId { get; set; }
+
         public List<Appointment> Appointments { get; set; } = new List<Appointment>();
     }
 }

@@ -52,6 +52,8 @@ namespace WebApplication1.Models
         /// <summary>UTC timestamp of when the follow-up message was sent; null if not yet sent.</summary>
         public DateTime? FollowUpSentAt { get; set; }
 
+        public Guid? ClinicId { get; set; }
+
         // Navigation Properties
         [ForeignKey("DoctorId")]
         public Doctor? Doctor { get; set; }

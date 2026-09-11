@@ -121,7 +121,9 @@ namespace WebApplication1.Controllers
         // GET: Doctors
         public async Task<IActionResult> Index(string search)
         {
+            var currentClinicId = User.GetClinicId();
             var doctors = _context.Doctors
+                .Where(d => d.ClinicId == currentClinicId)
                 .Include(d => d.Department)
                 .AsQueryable();
 
@@ -154,7 +156,8 @@ namespace WebApplication1.Controllers
         [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
-            ViewData["DepartmentId"] = new SelectList(_context.Departments, "DepartmentId", "DepartmentName");
+            var currentClinicId = User.GetClinicId();
+            ViewData["DepartmentId"] = new SelectList(_context.Departments.Where(d => d.ClinicId == currentClinicId), "DepartmentId", "DepartmentName");
             return View();
         }
 
@@ -167,15 +170,17 @@ namespace WebApplication1.Controllers
             ModelState.Remove("Department");
             ModelState.Remove("Appointments");
 
+            var currentClinicId = User.GetClinicId();
             if (ModelState.IsValid)
             {
+                doctor.ClinicId = currentClinicId;
                 _context.Add(doctor);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = "Doctor added successfully.";
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewData["DepartmentId"] = new SelectList(_context.Departments, "DepartmentId", "DepartmentName", doctor.DepartmentId);
+            ViewData["DepartmentId"] = new SelectList(_context.Departments.Where(d => d.ClinicId == currentClinicId), "DepartmentId", "DepartmentName", doctor.DepartmentId);
             return View(doctor);
         }
 

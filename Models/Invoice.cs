@@ -33,6 +33,8 @@ namespace WebApplication1.Models
         [Column(TypeName = "varchar(20)")]
         public string Status { get; set; } = "Unpaid";
 
+        public Guid? ClinicId { get; set; }
+
         // العلاقات
         [Required]
         public int PatientId { get; set; }

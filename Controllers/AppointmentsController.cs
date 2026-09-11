@@ -115,8 +115,11 @@ namespace WebApplication1.Controllers
         // GET: Appointments
         public async Task<IActionResult> Index(string statusFilter, string searchPatient, int? doctorFilter)
         {
+            var currentClinicId = User.GetClinicId();
+
             // جلب المواعيد مع تضمين بيانات المريض والطبيب لمنع الـ Lazy Loading Nulls
             var query = _context.Appointments
+                .Where(a => a.ClinicId == currentClinicId)
                 .Include(a => a.Patient)
                 .Include(a => a.Doctor)
                 .AsQueryable();
@@ -141,11 +144,11 @@ namespace WebApplication1.Controllers
             }
 
             // حساب إجمالي مواعيد العيادة لحفظ العدادات العلوية عند الفلترة
-            ViewBag.TotalAll = await _context.Appointments.CountAsync();
-            ViewBag.TotalPending = await _context.Appointments.CountAsync(a => a.Status == "Pending");
-            ViewBag.TotalConfirmed = await _context.Appointments.CountAsync(a => a.Status == "Confirmed");
-            ViewBag.TotalCompleted = await _context.Appointments.CountAsync(a => a.Status == "Completed");
-            ViewBag.TotalCancelled = await _context.Appointments.CountAsync(a => a.Status == "Cancelled");
+            ViewBag.TotalAll = await _context.Appointments.Where(a => a.ClinicId == currentClinicId).CountAsync();
+            ViewBag.TotalPending = await _context.Appointments.Where(a => a.ClinicId == currentClinicId).CountAsync(a => a.Status == "Pending");
+            ViewBag.TotalConfirmed = await _context.Appointments.Where(a => a.ClinicId == currentClinicId).CountAsync(a => a.Status == "Confirmed");
+            ViewBag.TotalCompleted = await _context.Appointments.Where(a => a.ClinicId == currentClinicId).CountAsync(a => a.Status == "Completed");
+            ViewBag.TotalCancelled = await _context.Appointments.Where(a => a.ClinicId == currentClinicId).CountAsync(a => a.Status == "Cancelled");
 
             // ترتيب المواعيد تصاعدياً حسب التاريخ الأقرب ثم الوقت
             var appointments = await query
@@ -159,9 +162,9 @@ namespace WebApplication1.Controllers
             ViewBag.CurrentDoctor = doctorFilter;
 
             // قائمة الأطباء للفلتر
-            ViewBag.Doctors = new SelectList(await _context.Doctors.OrderBy(d => d.DoctorName).ToListAsync(), "DoctorId", "DoctorName", doctorFilter);
-            ViewBag.AllDoctors = await _context.Doctors.OrderBy(d => d.DoctorName).ToListAsync();
-            ViewBag.AllPatients = await _context.Patients.OrderBy(p => p.PatientName).ToListAsync();
+            ViewBag.Doctors = new SelectList(await _context.Doctors.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DoctorName).ToListAsync(), "DoctorId", "DoctorName", doctorFilter);
+            ViewBag.AllDoctors = await _context.Doctors.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DoctorName).ToListAsync();
+            ViewBag.AllPatients = await _context.Patients.Where(p => p.ClinicId == currentClinicId).OrderBy(p => p.PatientName).ToListAsync();
 
             return View(appointments);
         }
@@ -170,7 +173,9 @@ namespace WebApplication1.Controllers
         [HttpGet]
         public async Task<IActionResult> GetCalendarEvents(string? statusFilter, int? doctorFilter)
         {
+            var currentClinicId = User.GetClinicId();
             var query = _context.Appointments
+                .Where(a => a.ClinicId == currentClinicId)
                 .Include(a => a.Patient)
                 .Include(a => a.Doctor)
                 .AsQueryable();
@@ -224,9 +229,10 @@ namespace WebApplication1.Controllers
         // GET: Appointments/Create
         public IActionResult Create()
         {
-            // جلب قائمة الأطباء والمرضى لتعبئة القوائم المنسدلة في الواجهة
-            ViewData["DoctorId"] = new SelectList(_context.Doctors, "DoctorId", "DoctorName");
-            ViewData["PatientId"] = new SelectList(_context.Patients, "PatientId", "PatientName");
+            var currentClinicId = User.GetClinicId();
+            // جلب قائمة الأطباء والمرضى للعيادة الحالية لتعبئة القوائم المنسدلة في الواجهة
+            ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId), "DoctorId", "DoctorName");
+            ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId), "PatientId", "PatientName");
             return View();
         }
 
@@ -235,6 +241,8 @@ namespace WebApplication1.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,Notes,IsWeekendOverride")] Appointment appointment)
         {
+            var currentClinicId = User.GetClinicId();
+
             // Ensure combined local or UTC time is compared properly
             DateTime appointmentDateTime = appointment.AppointmentDate.Date.Add(appointment.AppointmentTime);
             if (appointmentDateTime < DateTime.Now)
@@ -243,8 +251,8 @@ namespace WebApplication1.Controllers
                     ? "لا يمكن حجز موعد في تاريخ أو وقت سابق عن الوقت الحالي."
                     : "Cannot schedule an appointment in the past.";
                 ModelState.AddModelError("AppointmentTime", error);
-                ViewData["DoctorId"] = new SelectList(_context.Doctors, "DoctorId", "DoctorName", appointment.DoctorId);
-                ViewData["PatientId"] = new SelectList(_context.Patients, "PatientId", "PatientName", appointment.PatientId);
+                ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId), "DoctorId", "DoctorName", appointment.DoctorId);
+                ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId), "PatientId", "PatientName", appointment.PatientId);
                 return View(appointment);
             }
 
@@ -261,7 +269,8 @@ namespace WebApplication1.Controllers
 
             if (ModelState.IsValid)
             {
-                // تعيين الحالة الافتراضية عند الإنشاء
+                // تعيين الحالة الافتراضية والعيادة عند الإنشاء
+                appointment.ClinicId = currentClinicId;
                 appointment.Status = "Pending";
                 appointment.AppointmentDate = DateTime.SpecifyKind(appointment.AppointmentDate.Date, DateTimeKind.Utc);
 
@@ -305,8 +314,8 @@ namespace WebApplication1.Controllers
             }
 
             // إعادة بناء القوائم المنسدلة في حال وجود خطأ في البيانات لمنع الـ Crash
-            ViewData["DoctorId"] = new SelectList(_context.Doctors, "DoctorId", "DoctorName", appointment.DoctorId);
-            ViewData["PatientId"] = new SelectList(_context.Patients, "PatientId", "PatientName", appointment.PatientId);
+            ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId), "DoctorId", "DoctorName", appointment.DoctorId);
+            ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId), "PatientId", "PatientName", appointment.PatientId);
             return View(appointment);
         }
 

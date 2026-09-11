@@ -67,6 +67,8 @@ namespace WebApplication1.Models
         [Display(Name = "Receipt Attachment")]
         public string? ReceiptAttachmentPath { get; set; }
 
+        public Guid? ClinicId { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
