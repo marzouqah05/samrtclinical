@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using WebApplication1.Models;
+using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {
@@ -35,9 +36,10 @@ namespace WebApplication1.Controllers
             int       page        = 1)
         {
             const int pageSize = 15;
+            var currentClinicId = User.GetClinicId();
 
             // ── Base query ───────────────────────────────────────────────────
-            var query = _context.Expenses.AsNoTracking().AsQueryable();
+            var query = _context.Expenses.AsNoTracking().Where(e => e.ClinicId == currentClinicId).AsQueryable();
 
             // ── Category filter ──────────────────────────────────────────────
             if (!string.IsNullOrWhiteSpace(category) &&
@@ -87,7 +89,7 @@ namespace WebApplication1.Controllers
             var totalExpenses    = filteredExpenses.Sum(e => e.Amount);
 
             // Total Income = paid invoices (not filtered by date to show overall P&L for visible period)
-            var incomeQuery = _context.Invoices.AsNoTracking().Where(i => i.Status == "Paid");
+            var incomeQuery = _context.Invoices.AsNoTracking().Where(i => i.ClinicId == currentClinicId && i.Status == "Paid");
             if (!string.IsNullOrWhiteSpace(dateRange) && dateRange == "this_month")
                 incomeQuery = incomeQuery.Where(i => i.InvoiceDate.Month == today.Month && i.InvoiceDate.Year == today.Year);
             else if (!string.IsNullOrWhiteSpace(dateRange) && dateRange == "this_year")
@@ -171,6 +173,7 @@ namespace WebApplication1.Controllers
                 model.ReceiptAttachmentPath = $"/uploads/receipts/{fileName}";
             }
 
+            model.ClinicId = User.GetClinicId();
             model.CreatedAt = DateTime.UtcNow;
             _context.Expenses.Add(model);
             await _context.SaveChangesAsync();

@@ -203,7 +203,7 @@ internal class Program
                 var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
 
                 // 1. إنشاء الأدوار الأساسية إذا لم تكن موجودة
-                string[] roleNames = { "Admin", "Doctor", "Receptionist" };
+                string[] roleNames = { "SuperAdmin", "Admin", "Doctor", "Receptionist" };
                 foreach (var roleName in roleNames)
                 {
                     if (!await roleManager.RoleExistsAsync(roleName))
@@ -212,15 +212,33 @@ internal class Program
                     }
                 }
 
-                // 2. إنشاء حساب Admin افتراضي للدخول الأول
+                // Immediate cleanup of specified accounts if they exist in AspNetUsers
+                var cleanupEmails = new[] { "haithammarzouqa@gmail.com", "marzouqah05@outlook.com" };
+                var dbContext = services.GetRequiredService<ClinicDbContext>();
+                foreach (var targetEmail in cleanupEmails)
+                {
+                    var staleUser = await userManager.FindByEmailAsync(targetEmail) ?? await userManager.FindByNameAsync(targetEmail);
+                    if (staleUser != null)
+                    {
+                        var sessions = await dbContext.UserSessionLogs.Where(s => s.UserId == staleUser.Id).ToListAsync();
+                        if (sessions.Count > 0)
+                        {
+                            dbContext.UserSessionLogs.RemoveRange(sessions);
+                            await dbContext.SaveChangesAsync();
+                        }
+                        await userManager.DeleteAsync(staleUser);
+                    }
+                }
+
+                // 2. إنشاء حساب SuperAdmin الافتراضي للدخول الأول (admin@medicare.com)
                 string adminUsername = "admin";
                 string adminEmail = "admin@medicare.com";
                 string adminPassword = "Admin123!"; // Must match Identity password policy
 
-                var adminUser = await userManager.FindByNameAsync(adminUsername);
+                var adminUser = await userManager.FindByNameAsync(adminUsername) ?? await userManager.FindByEmailAsync(adminEmail);
                 if (adminUser == null)
                 {
-                    // ── Create new admin user ────────────────────────────────
+                    // ── Create new SuperAdmin user ────────────────────────────────
                     var newAdmin = new IdentityUser
                     {
                         UserName = adminUsername,
@@ -231,7 +249,9 @@ internal class Program
                     var createResult = await userManager.CreateAsync(newAdmin, adminPassword);
                     if (createResult.Succeeded)
                     {
+                        await userManager.AddToRoleAsync(newAdmin, "SuperAdmin");
                         await userManager.AddToRoleAsync(newAdmin, "Admin");
+                        await userManager.AddClaimAsync(newAdmin, new System.Security.Claims.Claim("ClinicId", WebApplication1.Services.TenantExtensions.DefaultClinicId.ToString()));
                     }
                 }
                 else
@@ -243,40 +263,33 @@ internal class Program
                     await userManager.RemovePasswordAsync(adminUser);
                     await userManager.AddPasswordAsync(adminUser, adminPassword);
 
-                    // Ensure Admin role is still assigned
+                    if (!await userManager.IsInRoleAsync(adminUser, "SuperAdmin"))
+                    {
+                        await userManager.AddToRoleAsync(adminUser, "SuperAdmin");
+                    }
                     if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
                     {
                         await userManager.AddToRoleAsync(adminUser, "Admin");
                     }
-                }
 
-                var effectiveAdmin = adminUser ?? await userManager.FindByNameAsync(adminUsername);
-                if (effectiveAdmin != null)
-                {
-                    var adminClaims = await userManager.GetClaimsAsync(effectiveAdmin);
+                    var adminClaims = await userManager.GetClaimsAsync(adminUser);
                     if (!adminClaims.Any(c => c.Type == "ClinicId"))
                     {
-                        await userManager.AddClaimAsync(effectiveAdmin, new System.Security.Claims.Claim("ClinicId", WebApplication1.Services.TenantExtensions.DefaultClinicId.ToString()));
+                        await userManager.AddClaimAsync(adminUser, new System.Security.Claims.Claim("ClinicId", WebApplication1.Services.TenantExtensions.DefaultClinicId.ToString()));
                     }
                 }
             }
             catch (Exception ex)
             {
-                // يمكن تسجيل الخطأ هنا في حال حدوث مشكلة أثناء التشغيل
                 var logger = services.GetRequiredService<ILogger<Program>>();
-                logger.LogError(ex, "حدث خطأ أثناء تلقيم قاعدة البيانات بالبيانات الافتراضية.");
+                logger.LogError(ex, "حدث خطأ أثناء تلقيم الأدوار وحساب المدير الافتراضي.");
             }
         }
         // ==========================================
 
         // ==========================================
-        // Seed comprehensive demo data on every startup.
-        // SeedAsync:           Departments, Doctors, Patients, Appointments, Treatments, Invoices
-        //                      (each table seeded independently; skips tables that already have rows)
-        // SeedAdditionalAsync: Extra Doctors, Patients, Appointments, Treatments, Invoices
-        //                      (row-level checks by unique business key — never duplicates)
-        // SeedEssentialsAsync: 3 essential Doctors + 5 essential Patients
-        //                      (always checked by unique business key on every startup)
+        // Data Seeding: Runs ONLY ONCE on an empty database.
+        // STOP re-seeding demo users/records if they were deleted.
         // ==========================================
         using (var scope = app.Services.CreateScope())
         {
@@ -286,19 +299,24 @@ internal class Program
                 var context = services.GetRequiredService<ClinicDbContext>();
                 var logger = services.GetRequiredService<ILogger<Program>>();
 
-                // Step 1: seed base tables (Departments → Doctors → Patients → Appointments → Treatments → Invoices)
-                await DbInitializer.SeedAsync(context, logger);
+                // Only seed demo data if the database has NO departments and NO clinics yet
+                var hasClinics = await context.Clinics.AnyAsync();
+                var hasDepartments = await context.Departments.AnyAsync();
 
-                // Step 2: seed additional demo records (idempotent row-level checks)
-                await DbInitializer.SeedAdditionalAsync(context, logger);
-
-                // Step 3: always ensure 3 essential doctors and 5 essential patients exist
-                await DbInitializer.SeedEssentialsAsync(context, logger);
+                if (!hasClinics || !hasDepartments)
+                {
+                    logger.LogInformation("[Seed] Initializing base database schema & demo seed once...");
+                    await DbInitializer.SeedAsync(context, logger);
+                }
+                else
+                {
+                    logger.LogInformation("[Seed] Database already seeded. Skipping recurring demo data seeding.");
+                }
             }
             catch (Exception ex)
             {
                 var logger = services.GetRequiredService<ILogger<Program>>();
-                logger.LogError(ex, "[Seed] Fatal error during clinic data seeding.");
+                logger.LogError(ex, "[Seed] Fatal error during clinic data seeding check.");
             }
 
             // Step 4: Seed default ClinicSettings key-value pairs (only if table is empty)

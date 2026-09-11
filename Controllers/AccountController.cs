@@ -87,8 +87,30 @@ namespace WebApplication1.Controllers
             if (!existingClaims.Any(c => c.Type == "ClinicId"))
             {
                 var clinic = await _db.Clinics.FirstOrDefaultAsync(c => c.OwnerEmail == inputUser.Email);
-                var targetClinicId = clinic?.ClinicId ?? TenantExtensions.DefaultClinicId;
-                await _userManager.AddClaimAsync(inputUser, new System.Security.Claims.Claim("ClinicId", targetClinicId.ToString()));
+                if (clinic != null)
+                {
+                    await _userManager.AddClaimAsync(inputUser, new System.Security.Claims.Claim("ClinicId", clinic.ClinicId.ToString()));
+                }
+                else if (string.Equals(inputUser.UserName, "admin", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(inputUser.Email, "admin@medicare.com", StringComparison.OrdinalIgnoreCase))
+                {
+                    await _userManager.AddClaimAsync(inputUser, new System.Security.Claims.Claim("ClinicId", TenantExtensions.DefaultClinicId.ToString()));
+                }
+                else
+                {
+                    // For any new non-superadmin user without a clinic, assign a brand-new clean isolated ClinicId
+                    var newClinicId = Guid.NewGuid();
+                    var newClinic = new Clinic
+                    {
+                        ClinicId = newClinicId,
+                        Name = $"{inputUser.UserName}'s Clinic",
+                        OwnerEmail = inputUser.Email,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _db.Clinics.Add(newClinic);
+                    await _db.SaveChangesAsync();
+                    await _userManager.AddClaimAsync(inputUser, new System.Security.Claims.Claim("ClinicId", newClinicId.ToString()));
+                }
             }
 
             var result = await _signInManager.PasswordSignInAsync(inputUser.UserName!, password, rememberMe, lockoutOnFailure: false);
@@ -392,14 +414,19 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Register Page (لإنشاء حسابات الموظفين والأطباء)
-        [Authorize(Roles = "Admin")] // فقط الأدمن يستطيع إنشاء حسابات جديدة بالنظام
+        [Authorize(Roles = "Admin,SuperAdmin")] // فقط الأدمن يستطيع إنشاء حسابات جديدة بالنظام
         public async Task<IActionResult> Register()
         {
-            // Pass list of doctors that do NOT yet have a linked Identity user account.
-            // We detect "no linked account" by checking whether any IdentityUser's UserName
-            // matches the doctor's name (simple heuristic). The dropdown lets admins bind
-            // an existing doctor record to the new account via a hidden DoctorId field.
-            var doctors = await _db.Doctors
+            var isSuperAdmin = User.IsSuperAdmin();
+            var currentClinicId = User.GetClinicId();
+
+            var docQuery = _db.Doctors.AsQueryable();
+            if (!isSuperAdmin)
+            {
+                docQuery = docQuery.Where(d => d.ClinicId == currentClinicId);
+            }
+
+            var doctors = await docQuery
                 .OrderBy(d => d.DoctorName)
                 .Select(d => new { d.DoctorId, d.DoctorName, d.Specialization })
                 .ToListAsync();
@@ -410,16 +437,25 @@ namespace WebApplication1.Controllers
 
         // POST: Register
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(
             string username, string email, string password, string role,
             int? doctorId)
         {
+            var isSuperAdmin = User.IsSuperAdmin();
+            var currentClinicId = User.GetClinicId();
+
             // ── Reload doctors list for the view in case we return early ──────
             async Task ReloadDoctors()
             {
-                ViewBag.Doctors = await _db.Doctors
+                var docQuery = _db.Doctors.AsQueryable();
+                if (!isSuperAdmin)
+                {
+                    docQuery = docQuery.Where(d => d.ClinicId == currentClinicId);
+                }
+
+                ViewBag.Doctors = await docQuery
                     .OrderBy(d => d.DoctorName)
                     .Select(d => new { d.DoctorId, d.DoctorName, d.Specialization })
                     .ToListAsync();
@@ -523,27 +559,48 @@ namespace WebApplication1.Controllers
 
         // ── GET: Staff & User Management List ───────────────────────────────
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> StaffList()
         {
+            var isSuperAdmin = User.IsSuperAdmin();
+            var currentClinicId = User.GetClinicId();
+
             var allUsers = await _userManager.Users.OrderBy(u => u.UserName).ToListAsync();
             var staffList = new List<(IdentityUser User, string Role, string CreatedDate)>();
+
             foreach (var u in allUsers)
             {
-                var roles = await _userManager.GetRolesAsync(u);
-                var roleLabel = roles.FirstOrDefault() ?? "Unknown";
-                staffList.Add((u, roleLabel, ""));
+                var claims = await _userManager.GetClaimsAsync(u);
+                var userClinicClaim = claims.FirstOrDefault(c => c.Type == "ClinicId")?.Value;
+
+                // SuperAdmin sees all staff; Clinic Admin sees only staff belonging to their ClinicId
+                if (isSuperAdmin || (Guid.TryParse(userClinicClaim, out var uClinicGuid) && uClinicGuid == currentClinicId))
+                {
+                    var roles = await _userManager.GetRolesAsync(u);
+                    var roleLabel = roles.FirstOrDefault() ?? "Unknown";
+                    staffList.Add((u, roleLabel, ""));
+                }
             }
+
             ViewBag.StaffList = staffList;
             return View();
         }
 
         // ── AJAX: Return doctor details by id (for auto-fill) ─────────────────
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> GetDoctorDetails(int id)
         {
-            var doctor = await _db.Doctors
+            var currentClinicId = User.GetClinicId();
+            var isSuperAdmin = User.IsSuperAdmin();
+
+            var query = _db.Doctors.AsQueryable();
+            if (!isSuperAdmin)
+            {
+                query = query.Where(d => d.ClinicId == currentClinicId);
+            }
+
+            var doctor = await query
                 .Where(d => d.DoctorId == id)
                 .Select(d => new { d.DoctorId, d.DoctorName, d.Specialization, d.DoctorNumber })
                 .FirstOrDefaultAsync();
@@ -556,7 +613,7 @@ namespace WebApplication1.Controllers
 
         // ── POST: Delete a staff user ──────────────────────────────────────────
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteUser(string id)
         {
@@ -581,12 +638,42 @@ namespace WebApplication1.Controllers
                 return RedirectToAction(nameof(StaffList));
             }
 
+            // Enforce tenant boundary: non-SuperAdmin can only delete users belonging to their clinic
+            if (!User.IsSuperAdmin())
+            {
+                var userClaims = await _userManager.GetClaimsAsync(user);
+                var userClinicClaim = userClaims.FirstOrDefault(c => c.Type == "ClinicId")?.Value;
+                var currentClinicId = User.GetClinicId();
+
+                if (!Guid.TryParse(userClinicClaim, out var uClinicGuid) || uClinicGuid != currentClinicId)
+                {
+                    TempData["Error"] = T("غير مصرح لك بحذف مستخدم تابع لعيادة أخرى.", "You are not authorized to delete a user from another clinic.");
+                    return RedirectToAction(nameof(StaffList));
+                }
+            }
+
+            // Remove foreign-key linked sessions before deletion to prevent constraint violations
+            try
+            {
+                var sessions = await _db.UserSessionLogs.Where(s => s.UserId == id).ToListAsync();
+                if (sessions.Count > 0)
+                {
+                    _db.UserSessionLogs.RemoveRange(sessions);
+                    await _db.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Proceed with deletion attempt even if session cleanup logs an error
+                Console.WriteLine($"[DeleteUser] Session cleanup exception: {ex.Message}");
+            }
+
             var result = await _userManager.DeleteAsync(user);
             if (result.Succeeded)
             {
                 TempData["Success"] = T(
-                    $"تم حذف حساب '{user.UserName}' بنجاح.",
-                    $"Account '{user.UserName}' was deleted successfully.");
+                    $"تم حذف حساب '{user.UserName}' نهائياً بنجاح.",
+                    $"Account '{user.UserName}' was permanently deleted successfully.");
             }
             else
             {

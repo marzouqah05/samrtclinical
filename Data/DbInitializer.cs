@@ -92,11 +92,11 @@ namespace WebApplication1.Data
 
                     var departments = new List<Department>
                     {
-                        new() { DepartmentName = "Cardiology",        DepartmentAbbr = "CARD" },
-                        new() { DepartmentName = "Pediatrics",        DepartmentAbbr = "PEDI" },
-                        new() { DepartmentName = "General Surgery",   DepartmentAbbr = "GSUR" },
-                        new() { DepartmentName = "Neurology",         DepartmentAbbr = "NEUR" },
-                        new() { DepartmentName = "Orthopedics",       DepartmentAbbr = "ORTH" },
+                        new() { DepartmentName = "Cardiology",        DepartmentAbbr = "CARD", ClinicId = WebApplication1.Services.TenantExtensions.DefaultClinicId },
+                        new() { DepartmentName = "Pediatrics",        DepartmentAbbr = "PEDI", ClinicId = WebApplication1.Services.TenantExtensions.DefaultClinicId },
+                        new() { DepartmentName = "General Surgery",   DepartmentAbbr = "GSUR", ClinicId = WebApplication1.Services.TenantExtensions.DefaultClinicId },
+                        new() { DepartmentName = "Neurology",         DepartmentAbbr = "NEUR", ClinicId = WebApplication1.Services.TenantExtensions.DefaultClinicId },
+                        new() { DepartmentName = "Orthopedics",       DepartmentAbbr = "ORTH", ClinicId = WebApplication1.Services.TenantExtensions.DefaultClinicId },
                     };
 
                     await context.Departments.AddRangeAsync(departments);
@@ -123,7 +123,8 @@ namespace WebApplication1.Data
                             DoctorName      = "James Anderson",
                             Specialization  = "Interventional Cardiology",
                             ConsultationFee = 85.00m,
-                            DepartmentId    = deptIds[0]
+                            DepartmentId    = deptIds[0],
+                            ClinicId        = WebApplication1.Services.TenantExtensions.DefaultClinicId
                         },
                         new()
                         {
@@ -131,7 +132,8 @@ namespace WebApplication1.Data
                             DoctorName      = "Sarah Mitchell",
                             Specialization  = "Pediatric Medicine",
                             ConsultationFee = 70.00m,
-                            DepartmentId    = deptIds[1]
+                            DepartmentId    = deptIds[1],
+                            ClinicId        = WebApplication1.Services.TenantExtensions.DefaultClinicId
                         },
                         new()
                         {
@@ -139,7 +141,8 @@ namespace WebApplication1.Data
                             DoctorName      = "Robert Chen",
                             Specialization  = "General & Laparoscopic Surgery",
                             ConsultationFee = 95.00m,
-                            DepartmentId    = deptIds[2]
+                            DepartmentId    = deptIds[2],
+                            ClinicId        = WebApplication1.Services.TenantExtensions.DefaultClinicId
                         },
                         new()
                         {
@@ -147,7 +150,8 @@ namespace WebApplication1.Data
                             DoctorName      = "Emily Watson",
                             Specialization  = "Clinical Neurology",
                             ConsultationFee = 90.00m,
-                            DepartmentId    = deptIds[3]
+                            DepartmentId    = deptIds[3],
+                            ClinicId        = WebApplication1.Services.TenantExtensions.DefaultClinicId
                         },
                         new()
                         {
@@ -155,7 +159,8 @@ namespace WebApplication1.Data
                             DoctorName      = "Michael Torres",
                             Specialization  = "Orthopedic & Sports Medicine",
                             ConsultationFee = 80.00m,
-                            DepartmentId    = deptIds[4]
+                            DepartmentId    = deptIds[4],
+                            ClinicId        = WebApplication1.Services.TenantExtensions.DefaultClinicId
                         },
                     };
 
@@ -186,7 +191,8 @@ namespace WebApplication1.Data
                             BloodType       = "A+",
                             Allergies       = "Penicillin, Sulfa drugs",
                             ChronicDiseases = "Hypertension, Type-2 Diabetes",
-                            Notes           = "Patient follows a low-sodium diet. Monitor BP at every visit."
+                            Notes           = "Patient follows a low-sodium diet. Monitor BP at every visit.",
+                            ClinicId        = WebApplication1.Services.TenantExtensions.DefaultClinicId
                         },
                         new()
                         {
@@ -197,7 +203,8 @@ namespace WebApplication1.Data
                             BloodType       = "O-",
                             Allergies       = "None known",
                             ChronicDiseases = "Mild asthma",
-                            Notes           = "Asthma inhaler required before strenuous exams."
+                            Notes           = "Asthma inhaler required before strenuous exams.",
+                            ClinicId        = WebApplication1.Services.TenantExtensions.DefaultClinicId
                         },
                         new()
                         {
@@ -208,7 +215,8 @@ namespace WebApplication1.Data
                             BloodType       = "B+",
                             Allergies       = "Latex, Ibuprofen",
                             ChronicDiseases = "Chronic lower-back pain, Hypercholesterolemia",
-                            Notes           = "Pre-authorisation required for MRI. History of prior lumbar surgery 2019."
+                            Notes           = "Pre-authorisation required for MRI. History of prior lumbar surgery 2019.",
+                            ClinicId        = WebApplication1.Services.TenantExtensions.DefaultClinicId
                         },
                         new()
                         {
@@ -219,7 +227,8 @@ namespace WebApplication1.Data
                             BloodType       = "AB+",
                             Allergies       = "Shellfish",
                             ChronicDiseases = "None",
-                            Notes           = "Minor, guardian must accompany during all procedures."
+                            Notes           = "Minor, guardian must accompany during all procedures.",
+                            ClinicId        = WebApplication1.Services.TenantExtensions.DefaultClinicId
                         },
                         new()
                         {
@@ -230,7 +239,8 @@ namespace WebApplication1.Data
                             BloodType       = "A-",
                             Allergies       = "Aspirin, Codeine",
                             ChronicDiseases = "Coronary artery disease, Atrial fibrillation",
-                            Notes           = "On warfarin. Check INR before any invasive procedure. Monthly cardiologist follow-up."
+                            Notes           = "On warfarin. Check INR before any invasive procedure. Monthly cardiologist follow-up.",
+                            ClinicId        = WebApplication1.Services.TenantExtensions.DefaultClinicId
                         },
                         new()
                         {
@@ -241,7 +251,8 @@ namespace WebApplication1.Data
                             BloodType       = "O+",
                             Allergies       = "None known",
                             ChronicDiseases = "Migraine, Anxiety disorder",
-                            Notes           = "Sensitive to bright lights during neurological exams."
+                            Notes           = "Sensitive to bright lights during neurological exams.",
+                            ClinicId        = WebApplication1.Services.TenantExtensions.DefaultClinicId
                         },
                         new()
                         {
@@ -252,7 +263,8 @@ namespace WebApplication1.Data
                             BloodType       = "B-",
                             Allergies       = "Pollen seasonal",
                             ChronicDiseases = "None",
-                            Notes           = "Athletic patient, recovering from ACL repair left knee March 2026."
+                            Notes           = "Athletic patient, recovering from ACL repair left knee March 2026.",
+                            ClinicId        = WebApplication1.Services.TenantExtensions.DefaultClinicId
                         },
                     };
 
@@ -390,6 +402,11 @@ namespace WebApplication1.Data
                         },
                     };
 
+                    foreach (var a in appointments)
+                    {
+                        a.ClinicId = WebApplication1.Services.TenantExtensions.DefaultClinicId;
+                    }
+
                     await context.Appointments.AddRangeAsync(appointments);
                     await context.SaveChangesAsync();
                     logger.LogInformation("[Seed] Appointments seeded: {Count}", appointments.Count);
@@ -521,6 +538,11 @@ namespace WebApplication1.Data
                                 Status        = "Unpaid"
                             },
                         };
+
+                        foreach (var inv in invoices)
+                        {
+                            inv.ClinicId = WebApplication1.Services.TenantExtensions.DefaultClinicId;
+                        }
 
                         await context.Invoices.AddRangeAsync(invoices);
                         await context.SaveChangesAsync();
