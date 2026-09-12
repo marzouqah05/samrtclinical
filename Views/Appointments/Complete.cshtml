@@ -1,53 +1,158 @@
-﻿@model WebApplication1.Models.Appointment
+@model WebApplication1.Models.Appointment
+@inject WebApplication1.Services.ISettingsService SettingsService
+@using System.Globalization
 
 @{
     var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
     string T(string ar, string en) => _isAr ? ar : en;
-    ViewData["Title"] = T("إكمال الموعد", "Complete Appointment");
+    ViewData["Title"] = T("إكمال الموعد وتسجيل العلاج", "Complete Appointment");
+
+    var clinic = await SettingsService.GetSettingsAsync();
+    var currency = !string.IsNullOrWhiteSpace(clinic.CurrencySymbol) ? clinic.CurrencySymbol : "JOD";
+    var consultationFee = Model.Doctor?.ConsultationFee ?? (decimal)(ViewBag.ConsultationFee ?? 0m);
 }
 
-<div class="container mt-4" style="max-width: 650px;" dir="@(_isAr ? "rtl" : "ltr")">
-    <div class="card shadow">
-        <div class="card-header bg-success text-white">
-            <h4 class="mb-0">@T("إكمال الموعد وتسجيل العلاج", "Complete Appointment & Register Treatment")</h4>
+<div class="max-w-2xl mx-auto my-8 px-4" dir="@(_isAr ? "rtl" : "ltr")">
+
+    @* ── Back Navigation Link ── *@
+    <div class="mb-5">
+        <a asp-action="Index" class="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
+            <i class="fa-solid @(_isAr ? "fa-arrow-right" : "fa-arrow-left")"></i>
+            <span>@T("العودة إلى قائمة المواعيد", "Back to Appointments")</span>
+        </a>
+    </div>
+
+    @* ── SaaS Standard Emerald Card Container ── *@
+    <div class="bg-white border border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100 shadow-xl rounded-2xl p-6 text-start">
+
+        @* ── Header Section ── *@
+        <div class="flex items-center gap-3.5 pb-5 border-b border-slate-100 dark:border-slate-800 mb-6">
+            <div class="w-11 h-11 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-clipboard-check text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 m-0">
+                    @T("إكمال الموعد وتسجيل العلاج", "Complete Appointment")
+                </h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400 m-0 mt-0.5">
+                    @T("تسجيل تفاصيل العلاج والتشخيص وإصدار الفاتورة الطبية للمريض تلقائياً", "Register treatment details and generate patient bill")
+                </p>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="mb-4 pb-3 border-bottom">
-                <p><strong>@T("اسم المريض:", "Patient Name:")</strong> @Model.Patient?.PatientName</p>
-                <p><strong>@T("اسم الطبيب:", "Doctor Name:")</strong> @Model.Doctor?.DoctorName</p>
-                <p><strong>@T("كشفية الطبيب:", "Doctor Consultation Fee:")</strong> <span class="badge bg-primary">@ViewBag.ConsultationFee @T("د.أ", "JOD")</span></p>
+
+        @* ── Context Pill/Banner at Top (3-Column Grid) ── *@
+        <div class="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/70 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <div class="flex flex-col">
+                <span class="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-user text-[11px] text-slate-400"></i>
+                    @T("اسم المريض", "Patient Name")
+                </span>
+                <span class="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                    @(Model.Patient?.PatientName ?? "—")
+                </span>
             </div>
 
-            <form asp-action="Complete" method="post">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@Model.AppointmentId" />
+            <div class="flex flex-col">
+                <span class="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-user-doctor text-[11px] text-emerald-500"></i>
+                    @T("الطبيب المعالج", "Doctor Name")
+                </span>
+                <span class="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                    @(_isAr ? "د." : "Dr.") @(Model.Doctor?.DoctorName ?? "—")
+                </span>
+            </div>
 
-                <div class="mb-3">
-                    <label class="form-label fw-bold">@T("وصف العلاج", "Treatment Description")</label>
-                    <input type="text" name="treatmentDesc" class="form-control" placeholder="@T("مثال: حشوة أسنان، قناة جذر...", "e.g., Dental Filling, Root Canal...")" required />
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label fw-bold">@T("تكلفة العلاج (د.أ)", "Treatment Cost (JOD)")</label>
-                    <input type="number" name="treatmentCost" class="form-control" min="0" step="0.01" value="0" required />
-                    <small class="text-muted">@T("ستُضاف هذه التكلفة إلى كشفية الطبيب تلقائياً.", "This cost will be added to the doctor's consultation fee automatically.")</small>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label fw-bold">@T("التشخيص", "Diagnosis")</label>
-                    <input type="text" name="diagnosis" class="form-control" placeholder="@T("مثال: التهاب لب مزمن، فحص روتيني", "e.g., Chronic Pulpitis, Routine Check")" />
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label fw-bold">@T("الوصفة الطبية والملاحظات", "Prescription & Notes")</label>
-                    <textarea name="prescriptionNotes" class="form-control" rows="3" placeholder="@T("أدخل الأدوية أو الملاحظات السريرية...", "Enter medications or clinical notes...")"></textarea>
-                </div>
-
-                <div class="d-flex justify-content-between mt-4">
-                    <a asp-action="Index" class="btn btn-secondary">@T("إلغاء", "Cancel")</a>
-                    <button type="submit" class="btn btn-success">@T("إكمال وحفظ الفاتورة", "Complete & Save Bill")</button>
-                </div>
-            </form>
+            <div class="flex flex-col">
+                <span class="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-receipt text-[11px] text-blue-500"></i>
+                    @T("كشفية الطبيب", "Doctor Consultation Fee")
+                </span>
+                <span class="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                    @consultationFee.ToString("N2") @currency
+                </span>
+            </div>
         </div>
+
+        @* ── Structured Form Fields ── *@
+        <form asp-action="Complete" method="post" class="space-y-5">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.AppointmentId" />
+
+            <!-- Row 1: Treatment Description (w-full) -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
+                    @T("وصف العلاج / الإجراء الطبي", "Treatment Description") <span class="text-rose-500">*</span>
+                </label>
+                <div class="relative">
+                    <span class="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                        <i class="fa-solid fa-stethoscope text-xs"></i>
+                    </span>
+                    <input type="text" name="treatmentDesc" required
+                           placeholder="@T("مثال: حشوة أسنان، تنظيف عميق، كشف عام...", "e.g., Dental Filling, Root Canal...")"
+                           class="w-full ps-9 pe-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 transition" />
+                </div>
+            </div>
+
+            <!-- Row 2: 2-Column Grid (Treatment Cost + Diagnosis) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Left: Treatment Cost -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
+                        @T($"تكلفة العلاج ({currency})", $"Treatment Cost ({currency})") <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                            <i class="fa-solid fa-coins text-xs"></i>
+                        </span>
+                        <input type="number" name="treatmentCost" min="0" step="0.01" value="0.00" required
+                               class="w-full ps-9 pe-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 transition" />
+                    </div>
+                    <span class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">
+                        @T("ستُضاف هذه التكلفة إلى كشفية الطبيب تلقائياً.", "Added to doctor's consultation fee automatically.")
+                    </span>
+                </div>
+
+                <!-- Right: Diagnosis -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
+                        @T("التشخيص الطبي", "Diagnosis")
+                    </label>
+                    <div class="relative">
+                        <span class="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                            <i class="fa-solid fa-notes-medical text-xs"></i>
+                        </span>
+                        <input type="text" name="diagnosis"
+                               placeholder="@T("مثال: التهاب لب مزمن، فحص روتيني", "e.g., Chronic Pulpitis, Routine Check")"
+                               class="w-full ps-9 pe-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 transition" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 3: Prescription & Clinical Notes (Textarea, rows="3", full width) -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
+                    @T("الوصفة الطبية والملاحظات السريرية", "Prescription & Clinical Notes")
+                </label>
+                <div class="relative">
+                    <textarea name="prescriptionNotes" rows="3"
+                              placeholder="@T("أدخل أسماء الأدوية المقررة، الجرعات، أو أي تعليمات خاصة للمريض...", "Enter medications or clinical notes...")"
+                              class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 transition resize-y"></textarea>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 mt-6">
+                <a asp-action="Index"
+                   class="border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-5 py-2.5 rounded-lg text-sm font-medium transition cursor-pointer inline-flex items-center gap-2">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                    <span>@T("إلغاء", "Cancel")</span>
+                </a>
+                <button type="submit"
+                        class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 py-2.5 rounded-lg text-sm shadow-md inline-flex items-center gap-2 transition active:scale-95 cursor-pointer border-0">
+                    <i class="fa-solid fa-check text-xs"></i>
+                    <span>@T("إكمال وحفظ الفاتورة", "Complete & Save Bill")</span>
+                </button>
+            </div>
+        </form>
     </div>
 </div>
