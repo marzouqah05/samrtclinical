@@ -76,7 +76,14 @@
             </h2>
             <p class="text-xs text-[#727A76] m-0 mt-1 ms-10">@T("جدولة المواعيد ومعلومات إدارة المرضى.", "Appointment scheduling and patient management information.")</p>
         </div>
-        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold @badgeClass">@status</span>
+        <div class="flex items-center gap-3">
+            <a asp-action="PrintSlip" asp-route-id="@Model.AppointmentId" target="_blank"
+               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] text-[#202725] dark:text-[#EAEFEA] hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] transition shadow-xs">
+                <i class="fa-solid fa-print text-[#49665A]"></i>
+                <span>@T("طباعة بطاقة الموعد", "Print Slip")</span>
+            </a>
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold @badgeClass">@status</span>
+        </div>
     </div>
 
     <!-- ── Main Grid ── -->
@@ -142,6 +149,12 @@
 
             <!-- Action Buttons -->
             <div class="flex flex-wrap gap-3">
+                <a asp-action="PrintSlip" asp-route-id="@Model.AppointmentId" target="_blank"
+                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
+                    <i class="fa-solid fa-print text-xs"></i>
+                    @T("طباعة بطاقة الموعد", "Print Slip")
+                </a>
+
                 <a asp-action="Edit" asp-route-id="@Model.AppointmentId"
                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
                     <i class="fa-solid fa-pen text-xs"></i>

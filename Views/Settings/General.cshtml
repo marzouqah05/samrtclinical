@@ -89,9 +89,13 @@
 
                 <div>
                     <label class="clinic-label">
-                        @T("رقم هاتف الاستقبال", "Clinic Phone") <span class="text-rose-500">*</span>
+                        @T("هاتف العيادة الرسمي (الاستقبال)", "Official Clinic Phone (Reception)") <span class="text-rose-500">*</span>
                     </label>
                     <input asp-for="ClinicPhone" class="clinic-input" placeholder="+962 6 000 0000" required />
+                    <span class="text-[11px] block mt-1" style="color:var(--clinic-muted)">
+                        @T("رقم الاستقبال المعتمد بالفواتير والبطاقات (منفصل عن هاتف تسجيل الدخول الخاص بحسابك).",
+                           "Official public desk number printed on invoices & slips (independent of personal auth phone).")
+                    </span>
                 </div>
 
                 <div>
@@ -131,22 +135,34 @@
                 @* Logo Upload *@
                 <div class="md:col-span-5">
                     <label class="clinic-label">@T("شعار العيادة (Logo)", "Clinic Logo")</label>
-                    <div class="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition hover:border-[#49665A]"
+                    <div class="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition hover:border-[#49665A] relative group"
                          style="background:var(--clinic-bg);border-color:var(--clinic-border)"
                          onclick="document.getElementById('logoFile').click()">
-                        @if (!string.IsNullOrEmpty(Model.LogoPath) && Model.LogoPath != "/images/logo.png")
-                        {
-                            <img src="@Model.LogoPath" class="max-h-20 max-w-full mx-auto mb-2 rounded object-contain" id="logoPreview" alt="Logo" />
+                        @{
+                            var hasLogo = !string.IsNullOrEmpty(Model.LogoPath) && Model.LogoPath != "/images/logo.png";
                         }
-                        else
-                        {
-                            <img src="/images/logo.png" class="max-h-20 max-w-full mx-auto mb-2 rounded object-contain" id="logoPreview" alt="Logo" onerror="this.style.display='none'" />
-                        }
-                        <div id="logoUploadHint">
-                            <i class="fa-solid fa-cloud-arrow-up text-2xl mb-1 block" style="color:var(--clinic-muted)"></i>
-                            <div class="text-xs font-semibold" style="color:var(--clinic-text)">@T("انقر لتغيير الشعار", "Click to upload logo")</div>
+                        <div id="previewWrapper" class="@(hasLogo ? "flex" : "hidden") flex-col items-center justify-center">
+                            <div class="relative inline-block p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm mb-2">
+                                <img src="@(hasLogo ? Model.LogoPath : "")" 
+                                     class="h-20 w-auto max-w-[180px] object-contain mx-auto rounded-lg" 
+                                     id="logoPreview" 
+                                     alt="Clinic Logo Preview" />
+                            </div>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 group-hover:bg-emerald-500/20 transition">
+                                <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
+                                @T("انقر لتغيير الشعار", "Click to change logo")
+                            </span>
+                        </div>
+                        <div id="emptyLogoPlaceholder" class="@(hasLogo ? "hidden" : "block") py-3">
+                            <div class="w-12 h-12 mx-auto mb-2 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:text-[#49665A] transition">
+                                <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+                            </div>
+                            <div class="text-xs font-semibold mb-1" style="color:var(--clinic-text)">
+                                @T("انقر لرفع شعار العيادة", "Click to upload clinic logo")
+                            </div>
                             <div class="text-[11px]" style="color:var(--clinic-muted)">PNG, JPG, WEBP, SVG (Max 2MB)</div>
                         </div>
+                        <div id="newFileHint" class="hidden mt-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400"></div>
                     </div>
                     <input type="file" id="logoFile" name="logoFile" accept=".png,.jpg,.jpeg,.webp,.svg" class="hidden" />
                     <input asp-for="LogoPath" type="hidden" />
@@ -205,9 +221,11 @@
 @section Scripts {
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        var fileInput = document.getElementById("logoFile");
-        var preview   = document.getElementById("logoPreview");
-        var hint      = document.getElementById("logoUploadHint");
+        var fileInput       = document.getElementById("logoFile");
+        var preview         = document.getElementById("logoPreview");
+        var previewWrapper  = document.getElementById("previewWrapper");
+        var placeholder     = document.getElementById("emptyLogoPlaceholder");
+        var newFileHint     = document.getElementById("newFileHint");
 
         if (fileInput) {
             fileInput.addEventListener("change", function () {
@@ -217,10 +235,17 @@
                 reader.onload = function (e) {
                     if (preview) {
                         preview.src = e.target.result;
-                        preview.style.display = "block";
                     }
-                    if (hint) {
-                        hint.innerHTML = '<div class="font-semibold text-emerald-600 text-xs"><i class="fa-solid fa-check me-1"></i>' + file.name + '</div>';
+                    if (previewWrapper) {
+                        previewWrapper.classList.remove("hidden");
+                        previewWrapper.classList.add("flex");
+                    }
+                    if (placeholder) {
+                        placeholder.classList.add("hidden");
+                    }
+                    if (newFileHint) {
+                        newFileHint.innerHTML = '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"><i class="fa-solid fa-circle-check"></i> ' + file.name + '</span>';
+                        newFileHint.classList.remove("hidden");
                     }
                 };
                 reader.readAsDataURL(file);

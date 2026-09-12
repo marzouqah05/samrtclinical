@@ -1,9 +1,13 @@
 @model WebApplication1.Models.Invoice
+@inject WebApplication1.Services.ISettingsService SettingsService
 
 @{
     var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
     string T(string ar, string en) => _isAr ? ar : en;
     ViewData["Title"] = T("إنشاء فاتورة جديدة", "Create New Invoice");
+
+    var clinic = await SettingsService.GetSettingsAsync();
+    var currency = !string.IsNullOrWhiteSpace(clinic.CurrencySymbol) ? clinic.CurrencySymbol : "JOD";
 }
 
 <div class="max-w-3xl mx-auto px-4 py-8" dir="@(_isAr ? "rtl" : "ltr")">
@@ -60,10 +64,10 @@
                     </p>
                 </div>
 
-                <!-- Column 1: Discount Amount (JD) -->
+                <!-- Column 1: Discount Amount -->
                 <div>
                     <label asp-for="Discount" class="text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5 block">
-                        @T("مبلغ الخصم (د.أ)", "Discount Amount (JD)")
+                        @T($"مبلغ الخصم ({currency})", $"Discount Amount ({currency})")
                     </label>
                     <div class="relative">
                         <span class="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
@@ -75,10 +79,10 @@
                     <span asp-validation-for="Discount" class="text-rose-500 text-xs mt-1 block"></span>
                 </div>
 
-                <!-- Column 2: Tax Amount (JD) -->
+                <!-- Column 2: Tax Amount -->
                 <div>
                     <label asp-for="Tax" class="text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5 block">
-                        @T("مبلغ الضريبة (د.أ)", "Tax Amount (JD)")
+                        @T($"مبلغ الضريبة ({currency})", $"Tax Amount ({currency})")
                     </label>
                     <div class="relative">
                         <span class="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">

@@ -1,10 +1,17 @@
-﻿@model WebApplication1.Models.Invoice
+@model WebApplication1.Models.Invoice
+@inject WebApplication1.Services.ISettingsService SettingsService
+@using System.Globalization
 
 @{
     var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
     string T(string ar, string en) => _isAr ? ar : en;
     ViewData["Title"] = T("طباعة الفاتورة - ", "Print Invoice - ") + Model.InvoiceNumber;
-    Layout = null; // نلغي اللي آوت الأساسي للموقع عشان تطلع الفاتورة لحالها بورقة بيضاء نظيفة
+    Layout = null; // Standalone printable invoice
+
+    var clinic = await SettingsService.GetSettingsAsync();
+    var clinicName = !string.IsNullOrWhiteSpace(clinic.ClinicName) ? clinic.ClinicName : T("المركز الطبي", "Medical Center");
+    var currency = !string.IsNullOrWhiteSpace(clinic.CurrencySymbol) ? clinic.CurrencySymbol : "JOD";
+    var hasLogo = !string.IsNullOrWhiteSpace(clinic.LogoPath) && clinic.LogoPath != "/images/logo.png";
 }
 
 <!DOCTYPE html>
@@ -14,42 +21,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"]</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     
     <style>
         body {
             background-color: #f8f9fa;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #1a202c;
         }
         .invoice-card {
             background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
             padding: 40px;
             margin-top: 30px;
             margin-bottom: 30px;
-        }
-        .invoice-logo {
-            font-size: 28px;
-            font-weight: 700;
-            color: #0d6efd;
+            border: 1px solid #e2e8f0;
         }
         .table-invoice th {
-            background-color: #f8f9fa;
-            color: #495057;
+            background-color: #f8fafc;
+            color: #475569;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .badge-print {
             padding: 6px 12px;
             border-radius: 50px;
             font-weight: 600;
         }
-        /* تنسيقات خاصة عند الطباعة الورقية */
         @@media print {
             body {
                 background-color: #fff;
             }
             .invoice-card {
                 box-shadow: none;
+                border: none;
                 padding: 0;
                 margin: 0;
             }
@@ -62,8 +69,8 @@
 <body>
 
 <div class="container">
-    <!-- شريط التحكم العلوي (يختفي تلقائياً عند الطباعة) -->
-    <div class="d-flex justify-content-between align-items-center mt-4 p-3 bg-white rounded shadow-sm no-print">
+    <!-- Screen-only toolbar -->
+    <div class="d-flex justify-content-between align-items-center mt-4 p-3 bg-white rounded-3 shadow-sm border no-print">
         <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
             <i class="fa-solid fa-arrow-left @(_isAr ? "ms-1" : "me-1")"></i> @T("العودة للقائمة", "Back to List")
         </a>
@@ -72,25 +79,56 @@
         </button>
     </div>
 
-    <!-- كرت الفاتورة الرئيسي الرسمي -->
+    <!-- Official Invoice Card -->
     <div class="invoice-card">
-        <!-- ترويسة الفاتورة -->
-        <div class="row align-items-center mb-5">
-            <div class="col-sm-6">
-                <div class="invoice-logo">
-                    <i class="fa-solid fa-heart-pulse @(_isAr ? "ms-2" : "me-2")"></i>@T("ميديكير", "MediCare")
+        <!-- Clinic Branding Header -->
+        <div class="row align-items-center mb-5 pb-4 border-bottom">
+            <div class="col-sm-7">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    @if (hasLogo)
+                    {
+                        <img src="@clinic.LogoPath" style="height: 56px; width: auto; max-width: 160px; object-fit: contain;" alt="@clinicName" onerror="this.style.display='none'" />
+                    }
+                    else
+                    {
+                        <div style="width:52px;height:52px;border-radius:12px;background:#49665a;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;">
+                            <i class="fa-solid fa-hospital"></i>
+                        </div>
+                    }
+                    <div>
+                        <h3 class="fw-bold mb-0 text-dark">@clinicName</h3>
+                        <p class="text-muted small mb-0">@T("نظام الفوترة الطبية المعتمد", "Official Clinical Billing System")</p>
+                    </div>
                 </div>
-                <p class="text-muted small mb-0">@T("نظام إدارة العيادة", "Clinic Management System")</p>
+                <!-- Contact info badges -->
+                <div class="small text-muted d-flex flex-wrap gap-3 mt-2">
+                    @if (!string.IsNullOrWhiteSpace(clinic.ClinicPhone))
+                    {
+                        <span><i class="fa-solid fa-phone @(_isAr ? "ms-1" : "me-1") text-primary"></i><strong>@clinic.ClinicPhone</strong></span>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(clinic.ClinicAddress))
+                    {
+                        <span><i class="fa-solid fa-location-dot @(_isAr ? "ms-1" : "me-1") text-danger"></i>@clinic.ClinicAddress</span>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(clinic.ClinicEmail))
+                    {
+                        <span><i class="fa-solid fa-envelope @(_isAr ? "ms-1" : "me-1") text-secondary"></i>@clinic.ClinicEmail</span>
+                    }
+                </div>
             </div>
-            <div class="col-sm-6 @(_isAr ? "text-sm-start" : "text-sm-end") mt-3 mt-sm-0">
-                <h3 class="text-uppercase fw-bold text-secondary">@T("إيصال / فاتورة", "Receipt / Invoice")</h3>
-                <span class="text-muted">@T("رقم الفاتورة:", "Invoice No:")</span> <span class="fw-bold text-dark">#@Model.InvoiceNumber</span>
+            <div class="col-sm-5 @(_isAr ? "text-sm-start" : "text-sm-end") mt-3 mt-sm-0">
+                <h3 class="text-uppercase fw-bold text-secondary mb-1">@T("إيصال / فاتورة", "Receipt / Invoice")</h3>
+                <div class="fs-5">
+                    <span class="text-muted">@T("رقم الفاتورة:", "Invoice No:")</span> 
+                    <span class="fw-bold text-dark font-monospace">#@Model.InvoiceNumber</span>
+                </div>
+                <div class="text-muted small mt-1">
+                    @Model.InvoiceDate.ToString("yyyy-MM-dd HH:mm")
+                </div>
             </div>
         </div>
 
-        <hr class="my-4" />
-
-        <!-- تفاصيل المريض والزيارة -->
+        <!-- Patient & Visit Details -->
         <div class="row mb-5">
             <div class="col-sm-6">
                 <h6 class="text-primary fw-bold text-uppercase mb-3">@T("فاتورة للمريض", "Billed To (Patient)")</h6>
@@ -99,30 +137,30 @@
                 <p class="text-muted mb-0"><i class="fa-solid fa-id-card @(_isAr ? "ms-1" : "me-1") small"></i> @T("رقم المريض:", "Patient No:") @Model.Patient?.PatientNumber</p>
             </div>
             <div class="col-sm-6 @(_isAr ? "text-sm-start" : "text-sm-end") mt-4 mt-sm-0">
-                <h6 class="text-primary fw-bold text-uppercase mb-3">@T("تفاصيل الفاتورة", "Invoice Details")</h6>
-                <p class="text-muted mb-1"><strong>@T("التاريخ:", "Date:")</strong> @Model.InvoiceDate.ToString("yyyy-MM-dd HH:mm")</p>
-                <p class="text-muted mb-1">
+                <h6 class="text-primary fw-bold text-uppercase mb-3">@T("بيانات الطبيب والدفع", "Doctor & Payment Info")</h6>
+                <p class="text-muted mb-1"><strong>@T("الطبيب المعالج:", "Attending Doctor:")</strong> @(_isAr ? "د." : "Dr.") @Model.Treatment?.Appointment?.Doctor?.DoctorName</p>
+                <p class="text-muted mb-1"><strong>@T("التخصص:", "Specialization:")</strong> @Model.Treatment?.Appointment?.Doctor?.Specialization</p>
+                <p class="text-muted mb-0">
                     <strong>@T("حالة الدفع:", "Payment Status:")</strong> 
                     @if (Model.Status == "Paid")
                     {
-                        <span class="badge bg-success-subtle text-success badge-print">@T("مدفوع", "Paid")</span>
+                        <span class="badge bg-success-subtle text-success badge-print">@T("مدفوع بالكامل", "Paid in Full")</span>
                     }
                     else
                     {
-                        <span class="badge bg-danger-subtle text-danger badge-print">@T("غير مدفوع", "Unpaid")</span>
+                        <span class="badge bg-danger-subtle text-danger badge-print">@T("غير مدفوع (معلّق)", "Unpaid / Pending")</span>
                     }
                 </p>
-                <p class="text-muted mb-0"><strong>@T("الطبيب:", "Doctor:")</strong> @(_isAr ? "د." : "Dr.") @Model.Treatment?.Appointment?.Doctor?.DoctorName</p>
             </div>
         </div>
 
-        <!-- جدول الحسابات التفصيلي -->
+        <!-- Breakdown Table -->
         <div class="table-responsive mb-4">
             <table class="table table-bordered table-invoice align-middle">
                 <thead>
                     <tr>
-                        <th class="text-center" style="width: 10%">#</th>
-                        <th style="width: 60%">@T("وصف الخدمة", "Service Description")</th>
+                        <th class="text-center" style="width: 8%">#</th>
+                        <th style="width: 62%">@T("وصف الخدمة / العلاج", "Service / Treatment Description")</th>
                         <th class="@(_isAr ? "text-start" : "text-end")" style="width: 30%">@T("المبلغ", "Amount")</th>
                     </tr>
                 </thead>
@@ -131,55 +169,69 @@
                         <td class="text-center">1</td>
                         <td>
                             <strong>@T("رسوم استشارة الطبيب", "Doctor Consultation Fee")</strong><br />
-                            <small class="text-muted">@T("التخصص:", "Specialization:") @Model.Treatment?.Appointment?.Doctor?.Specialization</small>
+                            <small class="text-muted">@T("الطبيب:", "Doctor:") @(_isAr ? "د." : "Dr.") @Model.Treatment?.Appointment?.Doctor?.DoctorName (@Model.Treatment?.Appointment?.Doctor?.Specialization)</small>
                         </td>
-                        <td class="@(_isAr ? "text-start" : "text-end")">@((Model.Treatment?.Appointment?.Doctor?.ConsultationFee ?? 0).ToString("C2"))</td>
+                        <td class="@(_isAr ? "text-start" : "text-end") fw-semibold">
+                            @((Model.Treatment?.Appointment?.Doctor?.ConsultationFee ?? 0).ToString("N2")) @currency
+                        </td>
                     </tr>
                     <tr>
                         <td class="text-center">2</td>
                         <td>
-                            <strong>@T("تكلفة العلاج الطبي", "Medical Treatment Cost")</strong><br />
+                            <strong>@T("تكلفة الإجراء والعلاج الطبي", "Medical Treatment Cost")</strong><br />
                             <small class="text-muted">@T("الوصف:", "Description:") @Model.Treatment?.TreatmentDesc</small>
+                            @if (!string.IsNullOrEmpty(Model.Treatment?.Diagnosis))
+                            {
+                                <br /><small class="text-muted">@T("التشخيص:", "Diagnosis:") @Model.Treatment.Diagnosis</small>
+                            }
                         </td>
-                        <td class="@(_isAr ? "text-start" : "text-end")">@((Model.Treatment?.TreatmentCost ?? 0).ToString("C2"))</td>
+                        <td class="@(_isAr ? "text-start" : "text-end") fw-semibold">
+                            @((Model.Treatment?.TreatmentCost ?? 0).ToString("N2")) @currency
+                        </td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- المجاميع النهائية بالأسفل -->
+        <!-- Totals Summary -->
         <div class="row justify-content-end">
             <div class="col-md-5 col-sm-7 @(_isAr ? "text-start" : "text-end")">
-                <div class="row mb-2">
-                    <div class="col-7 text-muted">@T("المجموع الإجمالي:", "Gross Total:")</div>
-                    <div class="col-5 fw-semibold">@Model.Amount.ToString("C2")</div>
-                </div>
-                <div class="row mb-2">
-                    <div class="col-7 text-muted">@T("الخصم (-):", "Discount (-):")</div>
-                    <div class="col-5 text-danger">@Model.Discount.ToString("C2")</div>
-                </div>
-                <div class="row mb-2">
-                    <div class="col-7 text-muted">@T("الضريبة (+):", "Tax (+):")</div>
-                    <div class="col-5 text-success">@Model.Tax.ToString("C2")</div>
-                </div>
-                <hr class="my-2" />
-                <div class="row align-items-center">
-                    <div class="col-7 fs-5 fw-bold text-dark">@T("صافي المبلغ المستحق:", "Net Amount Due:")</div>
-                    <div class="col-5 fs-4 fw-bold text-primary">@Model.NetAmount.ToString("C2")</div>
+                <div class="p-3 rounded-3 bg-light border">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">@T("المجموع الإجمالي:", "Gross Total:")</span>
+                        <span class="fw-semibold">@Model.Amount.ToString("N2") @currency</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">@T("الخصم (-):", "Discount (-):")</span>
+                        <span class="text-danger fw-semibold">@Model.Discount.ToString("N2") @currency</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">@T("الضريبة", "VAT / Tax") (@clinic.TaxPercentage%):</span>
+                        <span class="text-success fw-semibold">@Model.Tax.ToString("N2") @currency</span>
+                    </div>
+                    <hr class="my-2" />
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fs-5 fw-bold text-dark">@T("صافي المبلغ المستحق:", "Net Amount Due:")</span>
+                        <span class="fs-4 fw-bold text-primary">@Model.NetAmount.ToString("N2") @currency</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- تذييل الفاتورة السفلي -->
+        <!-- Official Footer -->
         <div class="mt-5 pt-4 border-top text-center text-muted small">
-            <p class="mb-1">@T("شكراً لاختياركم نظام عيادة ميديكير.", "Thank you for choosing MediCare Clinic Systems.")</p>
-            <p class="mb-0">@T("هذا إيصال رسمي صادر من نظام العيادة الإلكتروني.", "This is a computer-generated official clinic receipt.")</p>
+            <p class="mb-1">
+                @T($"شكراً لاختياركم {clinicName}.", $"Thank you for choosing {clinicName}.")
+            </p>
+            <p class="mb-0">
+                @T("هذا إيصال رسمي معتمد صادر من النظام الإلكتروني.", "This is a computer-generated official clinic receipt.")
+            </p>
         </div>
     </div>
 </div>
 
 <script>
-    // Auto-open print dialog when the page loads (after a short render delay).
+    // Auto-open print dialog when the page loads
     window.addEventListener('load', function () {
         setTimeout(function () { window.print(); }, 400);
     });

@@ -20,13 +20,15 @@ namespace WebApplication1.Controllers
         private readonly ClinicDbContext _context;
         private readonly IWhatsAppService _whatsApp;
         private readonly IDataImportExportService _importExportService;
+        private readonly ISettingsService _settingsService;
         private readonly ILogger<AppointmentsController> _logger;
 
-        public AppointmentsController(ClinicDbContext context, IWhatsAppService whatsApp, IDataImportExportService importExportService, ILogger<AppointmentsController> logger)
+        public AppointmentsController(ClinicDbContext context, IWhatsAppService whatsApp, IDataImportExportService importExportService, ISettingsService settingsService, ILogger<AppointmentsController> logger)
         {
             _context  = context;
             _whatsApp = whatsApp;
             _importExportService = importExportService;
+            _settingsService = settingsService;
             _logger = logger;
         }
 
@@ -658,6 +660,23 @@ namespace WebApplication1.Controllers
             return View(appointment);
         }
 
+        // GET: Appointments/PrintSlip/5
+        [HttpGet]
+        public async Task<IActionResult> PrintSlip(int? id)
+        {
+            if (id == null) return NotFound();
+            var currentClinicId = User.GetClinicId();
+
+            var appointment = await _context.Appointments
+                .Include(a => a.Doctor)
+                .Include(a => a.Patient)
+                .FirstOrDefaultAsync(m => m.AppointmentId == id && m.ClinicId == currentClinicId);
+
+            if (appointment == null) return NotFound();
+
+            return View(appointment);
+        }
+
         // GET: Appointments/Complete/5
         public async Task<IActionResult> Complete(int? id)
         {
@@ -711,8 +730,11 @@ namespace WebApplication1.Controllers
 
             await _context.SaveChangesAsync();
 
+            var clinicSettings = await _settingsService.GetSettingsAsync();
+            var currency = !string.IsNullOrWhiteSpace(clinicSettings.CurrencySymbol) ? clinicSettings.CurrencySymbol : "JOD";
+
             // عرض رسالة النجاح والمالية كاملة للمستخدم
-            TempData["Success"] = $"Appointment marked as Completed! Invoice Total: {totalInvoice} JOD (Consultation: {consultationFee} JOD + Treatment: {treatmentCost} JOD).";
+            TempData["Success"] = $"Appointment marked as Completed! Invoice Total: {totalInvoice:N2} {currency} (Consultation: {consultationFee:N2} {currency} + Treatment: {treatmentCost:N2} {currency}).";
 
             return RedirectToAction(nameof(Index));
         }

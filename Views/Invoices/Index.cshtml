@@ -1,10 +1,14 @@
 @model IEnumerable<WebApplication1.Models.Invoice>
+@inject WebApplication1.Services.ISettingsService SettingsService
 @using System.Text.Json
 
 @{
     var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
     string T(string ar, string en) => _isAr ? ar : en;
     ViewData["Title"] = T("إدارة الفواتير", "Invoices Management");
+
+    var clinicSettings = await SettingsService.GetSettingsAsync();
+    var currency = !string.IsNullOrWhiteSpace(clinicSettings.CurrencySymbol) ? clinicSettings.CurrencySymbol : "JOD";
 
     List<string>? importErrors = null;
     if (TempData["ImportErrors"] != null)
@@ -175,12 +179,12 @@
 
                                 @* Gross Amount *@
                                 <td class="py-3.5 px-4 text-[#6B7D75] dark:text-[#9CA8A3] whitespace-nowrap">
-                                    @item.Amount.ToString("N2") JOD
+                                    @item.Amount.ToString("N2") @currency
                                 </td>
 
                                 @* Net Amount *@
                                 <td class="py-3.5 px-4 whitespace-nowrap">
-                                    <span class="font-bold text-emerald-600 dark:text-emerald-400">@item.NetAmount.ToString("N2") JOD</span>
+                                    <span class="font-bold text-emerald-600 dark:text-emerald-400">@item.NetAmount.ToString("N2") @currency</span>
                                 </td>
 
                                 @* Status Badge *@
@@ -282,11 +286,11 @@
                 </p>
             </div>
 
-            <!-- Row 1 (2-Column Grid): Discount Amount (JD) | Tax Amount (JD) -->
+            <!-- Row 1 (2-Column Grid): Discount Amount | Tax Amount -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
-                        @T("مبلغ الخصم (د.أ)", "Discount Amount (JD)")
+                        @T($"مبلغ الخصم ({currency})", $"Discount Amount ({currency})")
                     </label>
                     <div class="relative">
                         <span class="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
@@ -299,7 +303,7 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
-                        @T("مبلغ الضريبة (د.أ)", "Tax Amount (JD)")
+                        @T($"مبلغ الضريبة ({currency})", $"Tax Amount ({currency})")
                     </label>
                     <div class="relative">
                         <span class="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">

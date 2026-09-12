@@ -20,11 +20,13 @@ namespace WebApplication1.Controllers
     {
         private readonly ClinicDbContext _context;
         private readonly IDataImportExportService _importExportService;
+        private readonly ISettingsService _settingsService;
 
-        public InvoicesController(ClinicDbContext context, IDataImportExportService importExportService)
+        public InvoicesController(ClinicDbContext context, IDataImportExportService importExportService, ISettingsService settingsService)
         {
             _context = context;
             _importExportService = importExportService;
+            _settingsService = settingsService;
         }
 
         #region Bulk Import & Export
@@ -139,6 +141,10 @@ namespace WebApplication1.Controllers
 
             ViewData["TreatmentId"] = new SelectList(treatmentsList, "TreatmentId", "DisplayText");
 
+            var settings = await _settingsService.GetSettingsAsync();
+            ViewBag.CurrencySymbol = settings.CurrencySymbol;
+            ViewBag.TaxPercentage = settings.TaxPercentage;
+
             return View(await invoices.ToListAsync());
         }
 
@@ -203,6 +209,12 @@ namespace WebApplication1.Controllers
                 decimal treatmentCost = treatment.TreatmentCost;
 
                 invoice.Amount = doctorFee + treatmentCost;
+
+                var settings = await _settingsService.GetSettingsAsync();
+                if (invoice.Tax == 0 && settings.TaxPercentage > 0)
+                {
+                    invoice.Tax = Math.Round(invoice.Amount * (settings.TaxPercentage / 100m), 2);
+                }
 
                 // Calculate final Net Amount (Gross Amount + Tax - Discount)
                 invoice.NetAmount = invoice.Amount + invoice.Tax - invoice.Discount;

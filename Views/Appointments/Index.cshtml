@@ -1085,6 +1085,14 @@
                                                 @T("تفاصيل", "Details")
                                             </a>
 
+                                            @* ── Print Slip link ─────────────────────────────── *@
+                                            <a asp-action="PrintSlip" asp-route-id="@item.AppointmentId" target="_blank"
+                                               class="px-2.5 py-1 rounded-lg text-xs font-medium bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] transition flex items-center gap-1.5"
+                                               title="@T("طباعة بطاقة الموعد", "Print Slip")">
+                                                <i class="fa-solid fa-print text-[#49665A]"></i>
+                                                @T("طباعة", "Slip")
+                                            </a>
+
                                             @* ── Edit / Reschedule link (Only for Pending or Confirmed) ───── *@
                                             @if (item.Status == "Pending" || item.Status == "Confirmed")
                                             {

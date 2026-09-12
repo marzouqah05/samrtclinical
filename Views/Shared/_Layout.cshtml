@@ -1,3 +1,4 @@
+@inject WebApplication1.Services.ISettingsService SettingsService
 @using System.Globalization
 @{
     var _culture = CultureInfo.CurrentCulture;
@@ -7,13 +8,18 @@
     Func<string, string, string> T = (ar, en) => _isAr ? ar : en;
     var currentController = ViewContext.RouteData.Values["Controller"]?.ToString() ?? "";
     var currentAction = ViewContext.RouteData.Values["Action"]?.ToString() ?? "";
+
+    var clinicSettings = await SettingsService.GetSettingsAsync();
+    var clinicName = !string.IsNullOrWhiteSpace(clinicSettings.ClinicName) ? clinicSettings.ClinicName : T("المركز الطبي", "ClinicFlow OS");
+    var clinicLogo = clinicSettings.LogoUrl;
+    var hasClinicLogo = !string.IsNullOrWhiteSpace(clinicLogo) && clinicLogo != "/images/logo.png";
 }
 <!DOCTYPE html>
 <html lang="@_lang" dir="@(_isRtl ? "rtl" : "ltr")" id="app-root">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@(ViewData["Title"] != null ? ViewData["Title"] + " - " : "")ClinicFlow</title>
+    <title>@(ViewData["Title"] != null ? ViewData["Title"] + " - " : "")@clinicName</title>
 
     <!-- 1. Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -356,11 +362,20 @@
             <div class="flex flex-col gap-4">
                 <!-- Brand / Logo Header -->
                 <div class="flex items-center gap-3 px-2 py-2 mb-1">
-                    <div class="w-9 h-9 rounded-xl bg-[#49665A]/10 border border-[#49665A]/20 flex items-center justify-center text-[#49665A] text-base shrink-0">
-                        <i class="fa-solid fa-hospital"></i>
-                    </div>
+                    @if (hasClinicLogo)
+                    {
+                        <div class="w-9 h-9 rounded-xl bg-white dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-xs">
+                            <img src="@clinicLogo" class="h-8 w-auto object-contain" alt="Clinic Logo" onerror="this.parentElement.innerHTML='<div class=\'w-9 h-9 rounded-xl bg-[#49665A]/10 border border-[#49665A]/20 flex items-center justify-center text-[#49665A] text-base shrink-0\'><i class=\'fa-solid fa-hospital\'></i></div>'" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="w-9 h-9 rounded-xl bg-[#49665A]/10 border border-[#49665A]/20 flex items-center justify-center text-[#49665A] text-base shrink-0">
+                            <i class="fa-solid fa-hospital"></i>
+                        </div>
+                    }
                     <div class="min-w-0">
-                        <h1 class="text-[13px] font-bold text-[#202725] dark:text-[#EAEFEA] leading-tight truncate">@T("المركز الطبي", "ClinicFlow OS")</h1>
+                        <h1 class="text-[13px] font-bold text-[#202725] dark:text-[#EAEFEA] leading-tight truncate" title="@clinicName">@clinicName</h1>
                         <span class="text-[11px] font-medium text-[#727A76] dark:text-[#9CA8A3] block truncate">@T("فئة ممتازة • سحابي", "Premium Tier • Cloud")</span>
                     </div>
                 </div>
@@ -498,6 +513,13 @@
                         <i class="fa-solid fa-bars text-base"></i>
                     </button>
 
+                    <div class="flex items-center gap-2 md:hidden shrink-0">
+                        @if (hasClinicLogo)
+                        {
+                            <img src="@clinicLogo" class="h-7 w-auto object-contain" alt="Clinic Logo" />
+                        }
+                    </div>
+
                     <div class="min-w-0">
                         <h2 class="text-base sm:text-lg font-bold text-[#202725] dark:text-[#EAEFEA] tracking-tight truncate m-0">
                             @(ViewData["Title"] ?? (currentController switch
@@ -513,7 +535,7 @@
                                 "Settings" => T("مركز التحكم والإعدادات", "Settings"),
                                 "AuditTrail" => T("سجل تدقيق العمليات", "Audit Trail"),
                                 "Audit" => T("سجل تدقيق العمليات", "Audit Trail"),
-                                _ => T("المركز الطبي", "Medical Center")
+                                _ => clinicName
                             }))
                         </h2>
                     </div>
