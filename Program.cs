@@ -204,10 +204,11 @@ internal class Program
             try
             {
                 var context = services.GetRequiredService<ClinicDbContext>();
+                var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
                 var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
                 var logger = services.GetRequiredService<ILogger<Program>>();
 
-                await DbInitializer.InitializeAsync(context, roleManager, logger);
+                await DbInitializer.InitializeAsync(context, userManager, roleManager, logger);
             }
             catch (Exception ex)
             {

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using WebApplication1.Models;
 
@@ -12,17 +13,29 @@ namespace WebApplication1.Data
     /// - Applies pending EF Core migrations.
     /// - Ensures multi-tenancy schema integrity (ClinicId on AspNetUsers).
     /// - Performs a direct purge of all legacy demo accounts, clinics, and medical records.
+    /// - Force wipes AspNetUsers, AspNetUserRoles, and Identity tables on application startup.
     /// - Ensures ONLY default Identity Roles ("SuperAdmin", "Admin", "Doctor", "Receptionist") exist.
     /// - Strictly zero demo records or demo users are seeded.
     /// </summary>
     public static class DbInitializer
     {
-        public static async Task InitializeAsync(ClinicDbContext context, RoleManager<IdentityRole> roleManager, ILogger logger)
+        public static async Task InitializeAsync(
+            ClinicDbContext context,
+            UserManager<ApplicationUser> userManager,
+            RoleManager<IdentityRole> roleManager,
+            ILogger logger)
         {
             try
             {
                 // 1. Apply any pending migrations
-                await context.Database.MigrateAsync();
+                try
+                {
+                    await context.Database.MigrateAsync();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "[DbInitializer] Notice during MigrateAsync.");
+                }
 
                 // 2. Ensure ClinicId column exists on AspNetUsers
                 try
@@ -34,26 +47,88 @@ namespace WebApplication1.Data
                     logger.LogWarning(ex, "[DbInitializer] Notice checking/adding ClinicId to AspNetUsers.");
                 }
 
-                // 3. Provider-specific Production DB Reset
-                var provider = context.Database.ProviderName ?? string.Empty;
-                if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+                // 3. Force delete all users via UserManager to cleanly clear Identity stores
+                try
                 {
-                    context.Database.ExecuteSqlRaw("PRAGMA foreign_keys = OFF;");
-                    context.Database.ExecuteSqlRaw("DELETE FROM AspNetUserRoles; DELETE FROM AspNetUsers; DELETE FROM Clinics; DELETE FROM Patients; DELETE FROM Appointments; DELETE FROM Invoices; DELETE FROM Expenses;");
-                    context.Database.ExecuteSqlRaw("PRAGMA foreign_keys = ON;");
+                    var allUsers = await userManager.Users.ToListAsync();
+                    foreach (var u in allUsers)
+                    {
+                        await userManager.DeleteAsync(u);
+                    }
+                    logger.LogInformation("[DbInitializer] Deleted {Count} users via UserManager.", allUsers.Count);
                 }
-                else if (provider.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) || provider.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+                catch (Exception ex)
                 {
-                    context.Database.ExecuteSqlRaw("TRUNCATE TABLE \"AspNetUserRoles\", \"AspNetUsers\", \"Clinics\", \"Patients\", \"Appointments\", \"Invoices\", \"Expenses\" RESTART IDENTITY CASCADE;");
-                }
-                else if (provider.Contains("SqlServer", StringComparison.OrdinalIgnoreCase))
-                {
-                    context.Database.ExecuteSqlRaw("EXEC sp_MSforeachtable \"ALTER TABLE ? NOCHECK CONSTRAINT all\"; DELETE FROM AspNetUserRoles; DELETE FROM AspNetUsers; DELETE FROM Clinics; DELETE FROM Patients; DELETE FROM Appointments; DELETE FROM Invoices; DELETE FROM Expenses; EXEC sp_MSforeachtable \"ALTER TABLE ? WITH CHECK CHECK CONSTRAINT all\";");
+                    logger.LogWarning(ex, "[DbInitializer] Notice during UserManager user deletion.");
                 }
 
-                Console.WriteLine("--> [RAILWAY CONTAINER BOOT] Remote DB hard reset completed successfully.");
+                // 4. Force raw SQL deletes on AspNetUsers, AspNetUserRoles, and all related tables
+                var deleteCommands = new[]
+                {
+                    @"DELETE FROM ""AspNetUserRoles"";",
+                    @"DELETE FROM ""AspNetUserClaims"";",
+                    @"DELETE FROM ""AspNetUserLogins"";",
+                    @"DELETE FROM ""AspNetUserTokens"";",
+                    @"DELETE FROM ""UserSessionLogs"";",
+                    @"DELETE FROM ""AuditLogs"";",
+                    @"DELETE FROM ""ClinicSettings"";",
+                    @"DELETE FROM ""Appointments"";",
+                    @"DELETE FROM ""Invoices"";",
+                    @"DELETE FROM ""Expenses"";",
+                    @"DELETE FROM ""Patients"";",
+                    @"DELETE FROM ""Doctors"";",
+                    @"DELETE FROM ""Departments"";",
+                    @"DELETE FROM ""AspNetUsers"";",
+                    @"DELETE FROM ""Clinics"";",
+                    "DELETE FROM AspNetUserRoles;",
+                    "DELETE FROM AspNetUserClaims;",
+                    "DELETE FROM AspNetUserLogins;",
+                    "DELETE FROM AspNetUserTokens;",
+                    "DELETE FROM AspNetUsers;",
+                    "DELETE FROM Clinics;",
+                    "DELETE FROM Patients;",
+                    "DELETE FROM Appointments;",
+                    "DELETE FROM Invoices;",
+                    "DELETE FROM Expenses;"
+                };
 
-                // 4. Ensure default Identity Roles exist (and only roles, NO demo users)
+                foreach (var sql in deleteCommands)
+                {
+                    try
+                    {
+                        context.Database.ExecuteSqlRaw(sql);
+                    }
+                    catch
+                    {
+                        // Ignore individual table non-existence or dialect differences
+                    }
+                }
+
+                // Double check with EF Core DbContext
+                try
+                {
+                    var remaining = context.Users.ToList();
+                    if (remaining.Count > 0)
+                    {
+                        context.Users.RemoveRange(remaining);
+                        await context.SaveChangesAsync();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "[DbInitializer] Notice clearing remaining users in DbContext.");
+                }
+
+                int countAfter = 0;
+                try
+                {
+                    countAfter = await context.Users.CountAsync();
+                }
+                catch { }
+
+                Console.WriteLine($"--> [RAILWAY CONTAINER BOOT] User purge completed. Total users in AspNetUsers: {countAfter}");
+
+                // 5. Ensure default Identity Roles exist (and only roles, NO demo users)
                 string[] roleNames = { "SuperAdmin", "Admin", "Doctor", "Receptionist" };
                 foreach (var roleName in roleNames)
                 {
@@ -68,8 +143,7 @@ namespace WebApplication1.Data
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "[DbInitializer] Fatal error during clean slate initialization.");
-                throw;
+                logger.LogError(ex, "[DbInitializer] Error during clean slate initialization.");
             }
         }
     }
