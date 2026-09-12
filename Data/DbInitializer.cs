@@ -34,88 +34,24 @@ namespace WebApplication1.Data
                     logger.LogWarning(ex, "[DbInitializer] Notice checking/adding ClinicId to AspNetUsers.");
                 }
 
-                // 3. Permanent database purge: reset all clinical records, users, and tenants to absolute ZERO
-                try
+                // 3. Provider-specific Production DB Reset
+                var provider = context.Database.ProviderName ?? string.Empty;
+                if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
                 {
-                    await context.Database.ExecuteSqlRawAsync(@"
-                        DO $$ 
-                        DECLARE 
-                            t text;
-                        BEGIN
-                            FOR t IN 
-                                SELECT tablename FROM pg_tables 
-                                WHERE schemaname = 'public' 
-                                  AND tablename NOT IN ('__EFMigrationsHistory', 'AspNetRoles')
-                            LOOP
-                                BEGIN
-                                    EXECUTE 'TRUNCATE TABLE public.\""' || t || '\"" CASCADE;';
-                                EXCEPTION WHEN OTHERS THEN
-                                    BEGIN
-                                        EXECUTE 'DELETE FROM public.\""' || t || '\"";';
-                                    EXCEPTION WHEN OTHERS THEN
-                                        NULL;
-                                    END;
-                                END;
-                            END LOOP;
-                        END $$;
-                    ");
-                    logger.LogInformation("[DbInitializer] Dynamic PostgreSQL table truncate completed.");
+                    context.Database.ExecuteSqlRaw("PRAGMA foreign_keys = OFF;");
+                    context.Database.ExecuteSqlRaw("DELETE FROM AspNetUserRoles; DELETE FROM AspNetUsers; DELETE FROM Clinics; DELETE FROM Patients; DELETE FROM Appointments; DELETE FROM Invoices; DELETE FROM Expenses;");
+                    context.Database.ExecuteSqlRaw("PRAGMA foreign_keys = ON;");
                 }
-                catch (Exception ex)
+                else if (provider.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) || provider.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase))
                 {
-                    logger.LogWarning(ex, "[DbInitializer] Dynamic truncate block failed, executing explicit table deletions.");
+                    context.Database.ExecuteSqlRaw("TRUNCATE TABLE \"AspNetUserRoles\", \"AspNetUsers\", \"Clinics\", \"Patients\", \"Appointments\", \"Invoices\", \"Expenses\" RESTART IDENTITY CASCADE;");
+                }
+                else if (provider.Contains("SqlServer", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Database.ExecuteSqlRaw("EXEC sp_MSforeachtable \"ALTER TABLE ? NOCHECK CONSTRAINT all\"; DELETE FROM AspNetUserRoles; DELETE FROM AspNetUsers; DELETE FROM Clinics; DELETE FROM Patients; DELETE FROM Appointments; DELETE FROM Invoices; DELETE FROM Expenses; EXEC sp_MSforeachtable \"ALTER TABLE ? WITH CHECK CHECK CONSTRAINT all\";");
                 }
 
-                // Explicit sequential table cleanup as foolproof guarantee
-                var explicitCleanup = @"
-                    DELETE FROM ""AspNetUserRoles"";
-                    DELETE FROM ""AspNetUserClaims"";
-                    DELETE FROM ""AspNetUserLogins"";
-                    DELETE FROM ""AspNetUserTokens"";
-                    DELETE FROM ""AspNetRoleClaims"";
-                    DELETE FROM ""PatientAttachments"";
-                    DELETE FROM ""MedicalRecords"";
-                    DELETE FROM ""Treatments"";
-                    DELETE FROM ""Invoices"";
-                    DELETE FROM ""Expenses"";
-                    DELETE FROM ""Appointments"";
-                    DELETE FROM ""Patients"";
-                    DELETE FROM ""Doctors"";
-                    DELETE FROM ""Departments"";
-                    DELETE FROM ""UserSessionLogs"";
-                    DELETE FROM ""AuditLogs"";
-                    DELETE FROM ""ClinicSettings"";
-                    DELETE FROM ""AspNetUsers"";
-                    DELETE FROM ""Clinics"";
-                ";
-
-                try
-                {
-                    await context.Database.ExecuteSqlRawAsync(explicitCleanup);
-                    logger.LogInformation("[DbInitializer] Explicit sequential table purge executed successfully.");
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "[DbInitializer] Explicit SQL delete encountered a warning, falling back to individual deletes.");
-                    var tables = new[]
-                    {
-                        "AspNetUserRoles", "AspNetUserClaims", "AspNetUserLogins", "AspNetUserTokens", "AspNetRoleClaims",
-                        "PatientAttachments", "MedicalRecords", "Treatments", "Invoices", "Expenses", "Appointments",
-                        "Patients", "Doctors", "Departments", "UserSessionLogs", "AuditLogs", "ClinicSettings",
-                        "AspNetUsers", "Clinics"
-                    };
-                    foreach (var tbl in tables)
-                    {
-                        try
-                        {
-                            await context.Database.ExecuteSqlRawAsync($"DELETE FROM \"{tbl}\";");
-                        }
-                        catch (Exception tableEx)
-                        {
-                            logger.LogWarning(tableEx, "[DbInitializer] Failed deleting table {Table}", tbl);
-                        }
-                    }
-                }
+                Console.WriteLine("--> [RAILWAY CONTAINER BOOT] Remote DB hard reset completed successfully.");
 
                 // 4. Ensure default Identity Roles exist (and only roles, NO demo users)
                 string[] roleNames = { "SuperAdmin", "Admin", "Doctor", "Receptionist" };
