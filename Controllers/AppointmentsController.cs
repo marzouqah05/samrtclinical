@@ -243,6 +243,18 @@ namespace WebApplication1.Controllers
         {
             var currentClinicId = User.GetClinicId();
 
+            // Explicitly enforce AppointmentDate >= DateTime.Today
+            if (appointment.AppointmentDate.Date < DateTime.Today)
+            {
+                string error = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
+                    ? "لا يمكن حجز موعد في تاريخ سابق لليوم (يجب أن يكون الموعد اليوم أو في تاريخ مستقبلي)."
+                    : "Appointment date must be today or in the future.";
+                ModelState.AddModelError(nameof(appointment.AppointmentDate), error);
+                ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId), "DoctorId", "DoctorName", appointment.DoctorId);
+                ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId), "PatientId", "PatientName", appointment.PatientId);
+                return View(appointment);
+            }
+
             // Ensure combined local or UTC time is compared properly
             DateTime appointmentDateTime = appointment.AppointmentDate.Date.Add(appointment.AppointmentTime);
             if (appointmentDateTime < DateTime.Now)
@@ -388,6 +400,17 @@ namespace WebApplication1.Controllers
             ModelState.Remove(nameof(appointment.Doctor));
             ModelState.Remove(nameof(appointment.Patient));
             ModelState.Remove(nameof(appointment.Treatment));
+
+            // Explicitly enforce AppointmentDate >= DateTime.Today
+            if (appointment.AppointmentDate.Date < DateTime.Today)
+            {
+                string error = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
+                    ? "لا يمكن حجز موعد في تاريخ سابق لليوم (يجب أن يكون الموعد اليوم أو في تاريخ مستقبلي)."
+                    : "Appointment date must be today or in the future.";
+                ModelState.AddModelError(nameof(appointment.AppointmentDate), error);
+                PopulateAppointmentDropdowns(appointment);
+                return View(appointment);
+            }
 
             // Ensure combined local or UTC time is compared properly
             DateTime appointmentDateTime = appointment.AppointmentDate.Date.Add(appointment.AppointmentTime);
@@ -565,6 +588,15 @@ namespace WebApplication1.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> QuickBook([Bind("AppointmentDate,AppointmentTime,DoctorId,PatientId,Notes")] Appointment appointment)
         {
+            if (appointment.AppointmentDate.Date < DateTime.Today)
+            {
+                string error = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
+                    ? "لا يمكن حجز موعد في تاريخ سابق لليوم (يجب أن يكون الموعد اليوم أو في تاريخ مستقبلي)."
+                    : "Appointment date must be today or in the future.";
+                TempData["Error"] = error;
+                return RedirectToAction(nameof(Index));
+            }
+
             DateTime appointmentDateTime = appointment.AppointmentDate.Date.Add(appointment.AppointmentTime);
             if (appointmentDateTime < DateTime.Now)
             {

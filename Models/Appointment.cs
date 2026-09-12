@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -62,5 +64,15 @@ namespace WebApplication1.Models
         public Patient? Patient { get; set; }
 
         public Treatment? Treatment { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (AppointmentDate.Date < DateTime.Today)
+            {
+                yield return new ValidationResult(
+                    "تاريخ الموعد يجب أن يكون اليوم أو في تاريخ مستقبلي.",
+                    new[] { nameof(AppointmentDate) });
+            }
+        }
     }
 }

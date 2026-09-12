@@ -809,6 +809,10 @@ namespace WebApplication1.Services
                         {
                             rowErrors.Add($"Appointment Date '{dateRaw}' is invalid (use YYYY-MM-DD).");
                         }
+                        else if (apptDate.Date < DateTime.Today)
+                        {
+                            rowErrors.Add($"Appointment Date '{dateRaw}' cannot be in the past. Must be today or a future date.");
+                        }
                     }
 
                     // 4. Parse Time

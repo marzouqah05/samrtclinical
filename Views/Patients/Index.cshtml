@@ -213,93 +213,152 @@
     </div>
 </div>
 
-@* ─── 📥 Import Patients Modal ─── *@
+@* ─── 📥 Import Patients Modal (Strict SaaS Medical UI) ─── *@
 <div class="modal fade" id="importPatientsModal" tabindex="-1" aria-labelledby="importPatientsModalLabel" aria-hidden="true" dir="@(_isAr ? "rtl" : "ltr")">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow rounded-4 p-4 bg-white">
+        <div class="modal-content rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 bg-white overflow-hidden">
+            
             <!-- Header -->
-            <div class="d-flex justify-content-between align-items-start mb-4">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="bg-success bg-opacity-10 text-success rounded-3 p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
-                        <i class="bi bi-cloud-arrow-up-fill fs-4"></i>
+            <div class="flex items-start justify-between gap-4 mb-6">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
                     </div>
                     <div>
-                        <h5 class="fw-bold mb-0 text-dark" id="importPatientsModalLabel">
-                            @T("استيراد المرضى (Bulk Import)", "Bulk Import Patients")
+                        <h5 class="font-semibold text-slate-900 text-lg m-0" id="importPatientsModalLabel">
+                            @T("استيراد بيانات المرضى دفعة واحدة", "Bulk Import Patients")
                         </h5>
-                        <p class="text-muted small mb-0">
-                            @T("رفع ملف CSV أو Excel لتسجيل البيانات دفعة واحدة", "Upload CSV or Excel file to record multiple records at once")
+                        <p class="text-sm text-slate-500 m-0 mt-0.5">
+                            @T("رفع ملف CSV أو Excel لإضافة وتحديث سجلات المرضى سريعاً", "Upload CSV or Excel file to quickly import or update patient records")
                         </p>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors" data-bs-dismiss="modal" aria-label="Close">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
 
-            <form method="post" enctype="multipart/form-data" asp-action="Import">
+            <form method="post" enctype="multipart/form-data" asp-action="Import" id="importPatientsForm" onsubmit="handleImportSubmit(event)">
                 @Html.AntiForgeryToken()
 
-                <!-- Template Download Box -->
-                <div class="border rounded-3 p-3 mb-4 bg-white" style="border-color: #e2e8f0 !important;">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3" style="width: 100%;">
-                        <!-- Right side: Green File Icon + Title -->
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="bg-success bg-opacity-10 text-success rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 42px; height: 42px;">
-                                <i class="bi bi-file-earmark-spreadsheet-fill fs-4"></i>
+                <!-- Template Download Banner -->
+                <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shrink-0 font-bold font-mono text-xs">
+                            CSV
+                        </div>
+                        <div>
+                            <div class="text-sm font-semibold text-slate-900">
+                                @T("قالب بيانات المرضى القياسي", "Standard Patient Data Template")
                             </div>
-                            <div>
-                                <div class="fw-bold text-dark fs-6 mb-0">@T("قالب المرضى الجاهز", "Patients Ready Template")</div>
-                                <div class="text-muted small">@T("تحميل ملف CSV بالأعمدة المطلوبة", "Download CSV template with required columns")</div>
+                            <div class="text-xs text-slate-500 mt-0.5">
+                                @T("حمّل القالب المعتمد للتعرف على صيغة الأعمدة وترتيبها المطلوب", "Download the verified template to match required column headers and formatting")
                             </div>
                         </div>
+                    </div>
+                    <a href="@Url.Action("DownloadTemplate")" class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl border border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold transition-colors shrink-0">
+                        <svg class="w-4 h-4 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span>@T("تحميل قالب CSV", "Download CSV Template")</span>
+                    </a>
+                </div>
 
-                        <!-- Left side: Download Button -->
-                        <div class="flex-shrink-0">
-                            <a href="@Url.Action("DownloadTemplate")" class="btn btn-sm btn-outline-secondary px-3 py-2 rounded-pill fw-semibold border bg-white text-dark shadow-sm">
-                                <i class="bi bi-download me-1 text-success"></i> @T("تحميل القالب", "Download Template")
-                            </a>
+                <!-- Dropzone / File Upload -->
+                <div class="mb-6">
+                    <div id="patientDropzone"
+                         class="relative border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-6 text-center cursor-pointer transition-colors bg-slate-50/30 hover:bg-blue-50/20 group">
+                        
+                        <input type="file" id="patientFileInput" name="file" class="hidden" accept=".csv, .xlsx, .xls" required onchange="handlePatientFileSelected(this)" />
+                        
+                        <!-- Empty / Prompt State -->
+                        <div id="dropzonePrompt" class="py-2">
+                            <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-slate-100 group-hover:bg-blue-100 text-slate-400 group-hover:text-blue-600 flex items-center justify-center transition-colors">
+                                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                            </div>
+                            <p class="text-sm font-medium text-slate-800 mb-1">
+                                <span class="text-blue-600 hover:underline">@T("اضغط لتصفح الملف", "Click to browse")</span>
+                                @T("أو اسحب وأفلت الملف هنا", "or drag and drop your file here")
+                            </p>
+                            <p class="text-xs text-slate-400 m-0">
+                                @T("الصيغ المدعومة: .csv, .xlsx (الحد الأقصى 10MB)", "Supported formats: .csv, .xlsx (Max 10MB)")
+                            </p>
+                        </div>
+
+                        <!-- Selected File State -->
+                        <div id="dropzoneFileSelected" class="hidden flex items-center justify-between p-3.5 bg-white border border-blue-200 rounded-xl text-start shadow-xs">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-10 h-10 rounded-lg bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                                    <i class="fa-solid fa-file-csv text-lg"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <p id="patientSelectedFileName" class="text-sm font-semibold text-slate-900 truncate m-0"></p>
+                                    <p id="patientSelectedFileSize" class="text-xs text-slate-500 m-0 mt-0.5"></p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <button type="button" onclick="event.stopPropagation(); document.getElementById('patientFileInput').click();" class="px-2.5 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors">
+                                    @T("تغيير", "Change")
+                                </button>
+                                <button type="button" onclick="event.stopPropagation(); removePatientSelectedFile();" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors" title="@T("إزالة الملف", "Remove file")">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- File Input -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold text-dark small mb-1">* @T("اختر ملف CSV أو Excel:", "Select CSV or Excel file:")</label>
-                    <input type="file" name="file" class="form-control form-control-lg fs-6 rounded-3" accept=".csv, .xlsx, .xls" required />
+                <!-- Required Columns Specs -->
+                <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-4 mb-6">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                            @T("الأعمدة المطلوبة في الملف ومواصفاتها:", "Required Columns Specifications:")
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                        <div class="p-2.5 rounded-lg bg-white border border-slate-200 flex items-start gap-2">
+                            <span class="bg-slate-100 text-slate-700 font-mono text-xs px-2 py-1 rounded shrink-0 font-semibold">NationalID</span>
+                            <span class="text-xs text-slate-600 self-center">@T("10 خانات فريدة", "10 digits, Unique")</span>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-white border border-slate-200 flex items-start gap-2">
+                            <span class="bg-slate-100 text-slate-700 font-mono text-xs px-2 py-1 rounded shrink-0 font-semibold">FullName</span>
+                            <span class="text-xs text-slate-600 self-center">@T("مطلوب (3 - 150 حرفاً)", "Required (3-150 chars)")</span>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-white border border-slate-200 flex items-start gap-2">
+                            <span class="bg-slate-100 text-slate-700 font-mono text-xs px-2 py-1 rounded shrink-0 font-semibold">Phone</span>
+                            <span class="text-xs text-slate-600 self-center">@T("مطلوب للتواصل", "Required")</span>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-white border border-slate-200 flex items-start gap-2">
+                            <span class="bg-slate-100 text-slate-700 font-mono text-xs px-2 py-1 rounded shrink-0 font-semibold">DateOfBirth</span>
+                            <span class="text-xs text-slate-600 self-center">YYYY-MM-DD</span>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-white border border-slate-200 flex items-start gap-2 sm:col-span-2 lg:col-span-2">
+                            <span class="bg-slate-100 text-slate-700 font-mono text-xs px-2 py-1 rounded shrink-0 font-semibold">Gender</span>
+                            <span class="text-xs text-slate-600 self-center">Male / Female (@T("ذكر أو أنثى", "Male or Female"))</span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Required Columns Guide -->
-                <div class="rounded-3 p-3 mb-4" style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
-                    <div class="d-flex align-items-center gap-2 mb-2 text-dark fw-bold small">
-                        <i class="bi bi-info-circle-fill text-secondary"></i>
-                        <span>@T("الأعمدة المطلوبة في الملف:", "Required Columns in File:")</span>
-                    </div>
-                    <div class="row g-2 text-secondary small">
-                        <div class="col-md-6">
-                            <span class="fw-bold text-dark">NationalID:</span> @T("رقم الهوية الوطنية للمريض (10 خانات فريدة)", "Patient National ID (10 digits, unique)")
-                        </div>
-                        <div class="col-md-6">
-                            <span class="fw-bold text-dark">FullName:</span> @T("الاسم الكامل للمريض (3 - 150 حرفاً)", "Full Name (3 - 150 characters)")
-                        </div>
-                        <div class="col-md-6">
-                            <span class="fw-bold text-dark">Phone:</span> @T("رقم الهاتف أو الجوال للتواصل", "Phone / Mobile Number")
-                        </div>
-                        <div class="col-md-6">
-                            <span class="fw-bold text-dark">DateOfBirth:</span> @T("تاريخ الميلاد بتنسيق (YYYY-MM-DD)", "Date of Birth (YYYY-MM-DD)")
-                        </div>
-                        <div class="col-12">
-                            <span class="fw-bold text-dark">Gender:</span> @T("الجنس (ذكر / أنثى - Male / Female)", "Gender (Male / Female)")
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action Buttons Footer -->
-                <div class="d-flex justify-content-start align-items-center gap-2 pt-2 border-top">
-                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm d-inline-flex align-items-center gap-2">
-                        <i class="bi bi-cloud-arrow-up"></i>
-                        <span>@T("بدء الاستيراد", "Start Import")</span>
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary px-4 py-2 rounded-pill fw-semibold" data-bs-dismiss="modal">
+                <!-- Actions Footer -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+                    <button type="button" class="h-11 px-5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition" data-bs-dismiss="modal">
                         @T("إلغاء", "Cancel")
+                    </button>
+                    <button type="submit" id="btnSubmitPatientImport" class="h-11 px-6 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-2">
+                        <svg id="importIcon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <span id="importSpinner" class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                        <span id="importText">@T("بدء الاستيراد", "Start Import")</span>
                     </button>
                 </div>
             </form>
@@ -308,13 +367,88 @@
 </div>
 
 <script>
-    function handleFileSelected(input) {
+    document.addEventListener('DOMContentLoaded', function () {
+        const dropzone = document.getElementById('patientDropzone');
+        const fileInput = document.getElementById('patientFileInput');
+        if (!dropzone || !fileInput) return;
+
+        dropzone.addEventListener('click', function (e) {
+            if (e.target.closest('button')) return;
+            fileInput.click();
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.add('border-blue-500', 'bg-blue-50/30');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.remove('border-blue-500', 'bg-blue-50/30');
+            });
+        });
+
+        dropzone.addEventListener('drop', function (e) {
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                handlePatientFileSelected(fileInput);
+            }
+        });
+    });
+
+    function handlePatientFileSelected(input) {
         if (input.files && input.files[0]) {
-            var fileName = input.files[0].name;
-            var display = document.querySelector('.file-name-display');
-            if (display) {
-                display.innerHTML = '<i class="fa-solid fa-file-csv text-success me-1"></i> ' + fileName;
+            const file = input.files[0];
+            const nameEl = document.getElementById('patientSelectedFileName');
+            const sizeEl = document.getElementById('patientSelectedFileSize');
+            const promptEl = document.getElementById('dropzonePrompt');
+            const selectedEl = document.getElementById('dropzoneFileSelected');
+
+            if (nameEl) nameEl.textContent = file.name;
+            if (sizeEl) {
+                const sizeKb = (file.size / 1024).toFixed(1);
+                const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+                sizeEl.textContent = file.size > 1024 * 1024 ? `${sizeMb} MB` : `${sizeKb} KB`;
+            }
+
+            if (promptEl) promptEl.classList.add('hidden');
+            if (selectedEl) {
+                selectedEl.classList.remove('hidden');
+                selectedEl.classList.add('flex');
             }
         }
+    }
+
+    function removePatientSelectedFile() {
+        const fileInput = document.getElementById('patientFileInput');
+        const promptEl = document.getElementById('dropzonePrompt');
+        const selectedEl = document.getElementById('dropzoneFileSelected');
+
+        if (fileInput) fileInput.value = '';
+        if (promptEl) promptEl.classList.remove('hidden');
+        if (selectedEl) {
+            selectedEl.classList.add('hidden');
+            selectedEl.classList.remove('flex');
+        }
+    }
+
+    function handleImportSubmit(e) {
+        const btn = document.getElementById('btnSubmitPatientImport');
+        const icon = document.getElementById('importIcon');
+        const spinner = document.getElementById('importSpinner');
+        const text = document.getElementById('importText');
+
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add('opacity-80', 'cursor-not-allowed');
+        }
+        if (icon) icon.classList.add('hidden');
+        if (spinner) spinner.classList.remove('hidden');
+        if (text) text.textContent = '@T("جاري الاستيراد...", "Importing...")';
     }
 </script>
