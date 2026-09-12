@@ -33,7 +33,7 @@
                     <div class="w-16 h-16 rounded-2xl bg-[#49665A]/15 border border-[#49665A]/30 text-[#49665A] font-bold text-2xl flex items-center justify-center">
                         @(Model.Patient.PatientName.Length > 0 ? Model.Patient.PatientName.Substring(0, 1).ToUpper() : "P")
                     </div>
-                    <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-sm ring-2 ring-emerald-500/20" title="@T("ملف نشط", "Active File")"></span>
+                    <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 dark:bg-emerald-400 border-2 border-white dark:border-slate-900 shadow-md ring-2 ring-emerald-400/30" title="@T("ملف نشط", "Active File")"></span>
                 </div>
 
                 <div class="space-y-1.5 min-w-0">
@@ -520,9 +520,9 @@
                     <span class="text-xs font-bold uppercase tracking-wider text-[#727A76] dark:text-[#9CA8A3]">
                         @T("حالة الملف الطبي", "EMR Status")
                     </span>
-                    <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-500/40 dark:shadow-[0_0_12px_rgba(16,185,129,0.2)] font-semibold px-3 py-1 rounded-full text-xs inline-flex items-center gap-1.5">
-                        <i class="fa-solid fa-circle-check text-[10px]"></i>
-                        <span>@T("سجل نشط", "Active Record")</span>
+                    <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/80 dark:border-emerald-500/60 dark:text-emerald-300 dark:shadow-[0_0_10px_rgba(16,185,129,0.25)] font-semibold px-3 py-1 rounded-full text-xs inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-check text-[10px] text-emerald-600 dark:text-emerald-300"></i>
+                        <span class="text-emerald-700 dark:text-emerald-300">@T("سجل نشط", "Active Record")</span>
                     </span>
                 </div>
                 <div class="pt-2 border-t border-[#DDE3DF] dark:border-[#2B3833] text-xs">
