@@ -271,61 +271,122 @@
 
     /* FullCalendar overrides */
     .fc .fc-toolbar-title { font-size: 20px; font-weight: 800; color: #0f172a; }
-    .fc .fc-button-primary { background: #3b82f6 !important; border-color: #3b82f6 !important; border-radius: 9px !important; font-weight: 600 !important; }
-    .fc .fc-button-primary:hover { background: #1d4ed8 !important; border-color: #1d4ed8 !important; }
-    .fc .fc-button-active { background: #1d4ed8 !important; }
+    .fc .fc-button-primary {
+        background: #2563eb !important;
+        border-color: #2563eb !important;
+        color: #ffffff !important;
+        border-radius: 9px !important;
+        font-weight: 600 !important;
+        opacity: 1 !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+        transition: all 0.15s ease !important;
+    }
+    .fc .fc-button-primary:hover {
+        background: #1d4ed8 !important;
+        border-color: #1d4ed8 !important;
+        color: #ffffff !important;
+        filter: brightness(1.1) !important;
+    }
+    .fc .fc-button-active {
+        background: #1d4ed8 !important;
+        border-color: #1d4ed8 !important;
+        color: #ffffff !important;
+    }
+    /* "Today" button contrast: keep solid primary blue and bright white text matching navigation arrows */
+    .fc .fc-today-button,
+    .fc .fc-today-button:disabled,
+    .fc .fc-button-primary:disabled {
+        background: #2563eb !important;
+        border-color: #2563eb !important;
+        color: #ffffff !important;
+        opacity: 1 !important;
+        cursor: pointer !important;
+        font-weight: 600 !important;
+    }
+    .fc .fc-today-button:hover,
+    .fc .fc-today-button:disabled:hover,
+    .fc .fc-button-primary:disabled:hover {
+        background: #1d4ed8 !important;
+        border-color: #1d4ed8 !important;
+        color: #ffffff !important;
+        filter: brightness(1.1) !important;
+    }
+
     .fc .fc-daygrid-day-number { font-weight: 600; color: #475569; }
     .fc .fc-col-header-cell-cushion { font-weight: 700; color: #0f172a; font-size: 13px; }
+
+    /* Vibrant solid event pills */
     .fc-event,
     .fc .fc-daygrid-event,
     .fc .fc-timegrid-event {
         border: 0 !important;
         outline: none !important;
-        box-shadow: none !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.12) !important;
         border-radius: 6px !important;
         padding: 3px 6px !important;
         font-size: 12px !important;
         font-weight: 500 !important;
-        background-color: rgba(59, 130, 246, 0.15) !important;
-        color: #93c5fd !important;
-        transition: filter 0.15s ease, background-color 0.15s ease !important;
+        background-color: #2563eb !important;
+        color: #ffffff !important;
+        transition: filter 0.15s ease, transform 0.15s ease !important;
         cursor: pointer;
-    }
-    html.dark .fc-event,
-    html.dark .fc .fc-daygrid-event,
-    [data-bs-theme="dark"] .fc-event,
-    [data-bs-theme="dark"] .fc .fc-daygrid-event {
-        color: #bfdbfe !important;
-        background-color: rgba(59, 130, 246, 0.18) !important;
     }
     .fc-event:hover,
     .fc .fc-daygrid-event:hover {
         filter: brightness(1.1) !important;
-        box-shadow: none !important;
     }
-    .fc .fc-daygrid-event-dot {
-        border-color: #3b82f6 !important;
-        margin-inline-end: 5px !important;
-        margin-inline-start: 2px !important;
+
+    /* Event status colors */
+    .fc-event.event-confirmed,
+    .fc .event-confirmed {
+        background-color: #2563eb !important;
+        color: #ffffff !important;
     }
+    .fc-event.event-completed,
+    .fc .event-completed {
+        background-color: #059669 !important;
+        color: #ffffff !important;
+    }
+    .fc-event.event-pending,
+    .fc .event-pending {
+        background-color: #d97706 !important;
+        color: #ffffff !important;
+    }
+    .fc-event.event-cancelled,
+    .fc .event-cancelled {
+        background-color: #dc2626 !important;
+        color: #ffffff !important;
+        text-decoration: line-through;
+    }
+
     .fc-event-time,
-    .fc-event-title {
+    .fc-event-title,
+    .fc-event-main {
+        color: #ffffff !important;
         font-weight: 500 !important;
     }
 
-    .event-cancelled {
-        background-color: #fee2e2 !important;
-        border: 1px solid #fca5a5 !important;
-        border-inline-start: 4px solid #dc3545 !important;
-        color: #991b1b !important;
-        text-decoration: line-through;
+    .fc .fc-daygrid-event-dot {
+        border-color: #ffffff !important;
+        background-color: #ffffff !important;
+        margin-inline-end: 6px !important;
+        margin-inline-start: 2px !important;
+        width: 6px !important;
+        height: 6px !important;
+        border-radius: 50% !important;
+        display: inline-block !important;
+        vertical-align: middle !important;
     }
+
     .event-cancelled,
     .event-cancelled .fc-event-title,
     .event-cancelled .fc-event-main,
     .event-cancelled .fc-event-time {
-        color: #991b1b !important;
+        background-color: #dc2626 !important;
+        border: 0 !important;
+        color: #ffffff !important;
         text-decoration: line-through !important;
+        opacity: 0.85;
     }
     .fc .fc-daygrid-day.fc-day-today { background: #eff6ff !important; }
     .fc .fc-scrollgrid { border-radius: 12px; overflow: hidden; }
@@ -1425,9 +1486,16 @@
                     hideTooltip();
                 },
                 eventClassNames: function (arg) {
-                    const classes = ['border-0', 'rounded-md', 'px-2', 'py-1', 'text-xs', 'font-medium', 'bg-blue-500/15', 'text-blue-300', 'dark:text-blue-200', 'hover:brightness-110', 'shadow-none', 'transition'];
-                    if (arg.event.extendedProps && arg.event.extendedProps.status === 'Cancelled') {
-                        classes.push('event-cancelled');
+                    const status = (arg.event.extendedProps && arg.event.extendedProps.status) ? arg.event.extendedProps.status : '';
+                    const classes = ['border-0', 'rounded-md', 'px-2.5', 'py-1', 'text-xs', 'font-medium', 'text-white', 'hover:brightness-110', 'shadow-sm', 'transition', 'cursor-pointer'];
+                    if (status === 'Cancelled') {
+                        classes.push('event-cancelled', 'bg-rose-600');
+                    } else if (status === 'Completed') {
+                        classes.push('event-completed', 'bg-emerald-600');
+                    } else if (status === 'Pending') {
+                        classes.push('event-pending', 'bg-amber-600');
+                    } else {
+                        classes.push('event-confirmed', 'bg-blue-600');
                     }
                     return classes;
                 },
