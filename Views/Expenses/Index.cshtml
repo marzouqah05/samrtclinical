@@ -38,6 +38,87 @@
     };
 }
 
+<style>
+@@media print {
+    /* 1. Hide all layout chrome, navigation, toolbars, and actions */
+    aside,
+    nav,
+    header,
+    .sidebar,
+    #cf-main-sidebar,
+    #themeToggleBtn,
+    .no-print,
+    #filterForm,
+    #customDateRow,
+    .date-pill,
+    button,
+    #expenseModal,
+    a[href*="ExportExcel"],
+    a[href*="PrintSummary"],
+    th:last-child,
+    td:last-child,
+    .border-t.border-\[\#E5E9E7\] {
+        display: none !important;
+    }
+
+    /* 2. Reset page body to pure white sheet with high contrast */
+    html, body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .max-w-7xl {
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* 3. Formal high-contrast table borders */
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        border: 1px solid #cbd5e1 !important;
+        page-break-inside: avoid !important;
+    }
+
+    table th, table td {
+        border: 1px solid #cbd5e1 !important;
+        padding: 6px 10px !important;
+        color: #0f172a !important;
+    }
+
+    table thead th {
+        background-color: #f8fafc !important;
+        color: #0f172a !important;
+        font-weight: 700 !important;
+    }
+
+    .bg-white,
+    .dark\:bg-\[\#1B2421\],
+    .bg-\[\#F4F7F5\],
+    .dark\:bg-\[\#151E1B\] {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        box-shadow: none !important;
+    }
+
+    .text-\[\#1A2621\],
+    .dark\:text-\[\#EAEFEA\] {
+        color: #0f172a !important;
+    }
+
+    .text-\[\#6B7D75\],
+    .dark\:text-\[\#9CA8A3\] {
+        color: #475569 !important;
+    }
+}
+</style>
+
 <div class="max-w-7xl mx-auto px-4 py-8 space-y-6" dir="@(_isAr ? "rtl" : "ltr")">
 
     @* ── Toast container ── *@
@@ -81,6 +162,14 @@
                class="bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-2 shadow-sm">
                 <i class="fa-solid fa-file-excel text-emerald-500"></i>
                 <span>@T("تصدير Excel", "Export Excel")</span>
+            </a>
+            <a href="@Url.Action("PrintSummary", new { search=ViewBag.Search, category=ViewBag.Category, dateRange=ViewBag.DateRange, dateFrom=ViewBag.DateFrom, dateTo=ViewBag.DateTo })" target="_blank"
+               class="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 rounded-lg text-sm border border-slate-200 dark:border-slate-700 inline-flex items-center gap-2 transition cursor-pointer shadow-sm"
+               title="@T("طباعة تقرير الملخص المالي للفترة", "Print Filter-Aware Periodic Summary Report")">
+                <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                <span>@T("طباعة تقرير الملخص", "Print Summary Report")</span>
             </a>
             @if (User.IsInRole("Admin") || User.IsInRole("Receptionist"))
             {
@@ -342,6 +431,13 @@
                                                 <i class="fa-solid fa-receipt text-[10px]"></i>
                                             </a>
                                         }
+                                        <a href="@Url.Action("PrintVoucher", new { id = exp.Id })" target="_blank"
+                                           class="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-emerald-600 hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-slate-800 flex items-center justify-center transition cursor-pointer"
+                                           title="@T("طباعة سند الصرف", "Print Payment Voucher")">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                            </svg>
+                                        </a>
                                         @if (User.IsInRole("Admin") || User.IsInRole("Receptionist"))
                                         {
                                             <button type="button"

@@ -412,5 +412,105 @@ namespace WebApplication1.Controllers
                 e.ReceiptAttachmentPath
             });
         }
+
+        // ── GET /Expenses/PrintVoucher/{id} ───────────────────────────────────
+        [HttpGet]
+        public async Task<IActionResult> PrintVoucher(int id)
+        {
+            var currentClinicId = User.GetClinicId();
+            var expense = await _context.Expenses.AsNoTracking()
+                .FirstOrDefaultAsync(e => e.Id == id && e.ClinicId == currentClinicId);
+
+            if (expense == null)
+            {
+                TempData["Error"] = "Expense voucher record not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            return View(expense);
+        }
+
+        // ── GET /Expenses/PrintSummary ─────────────────────────────────────────
+        [HttpGet]
+        public async Task<IActionResult> PrintSummary(
+            string?   search    = null,
+            string?   category  = null,
+            string?   dateRange = null,
+            DateTime? dateFrom  = null,
+            DateTime? dateTo    = null)
+        {
+            var currentClinicId = User.GetClinicId();
+            var query = _context.Expenses.AsNoTracking().Where(e => e.ClinicId == currentClinicId).AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(category) &&
+                Enum.TryParse<ExpenseCategory>(category, out var catEnum))
+            {
+                query = query.Where(e => e.Category == catEnum);
+            }
+
+            var today = DateTime.Today;
+            string periodTitleAr = "جميع المصروفات المسجلة";
+            string periodTitleEn = "All Recorded Expenses";
+
+            if (!string.IsNullOrWhiteSpace(dateRange))
+            {
+                switch (dateRange)
+                {
+                    case "today":
+                        query = query.Where(e => e.ExpenseDate.Date == today);
+                        periodTitleAr = $"اليوم ({today:yyyy-MM-dd})";
+                        periodTitleEn = $"Today ({today:yyyy-MM-dd})";
+                        break;
+                    case "this_week":
+                        var weekStart = today.AddDays(-(int)today.DayOfWeek);
+                        query = query.Where(e => e.ExpenseDate >= weekStart && e.ExpenseDate <= today);
+                        periodTitleAr = $"هذا الأسبوع ({weekStart:yyyy-MM-dd} إلى {today:yyyy-MM-dd})";
+                        periodTitleEn = $"This Week ({weekStart:yyyy-MM-dd} to {today:yyyy-MM-dd})";
+                        break;
+                    case "this_month":
+                        query = query.Where(e => e.ExpenseDate.Month == today.Month && e.ExpenseDate.Year == today.Year);
+                        periodTitleAr = $"هذا الشهر ({today:MMMM yyyy})";
+                        periodTitleEn = $"This Month ({today:MMMM yyyy})";
+                        break;
+                    case "this_year":
+                        query = query.Where(e => e.ExpenseDate.Year == today.Year);
+                        periodTitleAr = $"هذا العام ({today.Year})";
+                        periodTitleEn = $"This Year ({today.Year})";
+                        break;
+                    case "custom":
+                        if (dateFrom.HasValue) query = query.Where(e => e.ExpenseDate >= dateFrom.Value);
+                        if (dateTo.HasValue)   query = query.Where(e => e.ExpenseDate <= dateTo.Value.AddDays(1));
+                        periodTitleAr = $"فترة مخصصة ({(dateFrom.HasValue ? dateFrom.Value.ToString("yyyy-MM-dd") : "البداية")} إلى {(dateTo.HasValue ? dateTo.Value.ToString("yyyy-MM-dd") : "الآن")})";
+                        periodTitleEn = $"Custom Period ({(dateFrom.HasValue ? dateFrom.Value.ToString("yyyy-MM-dd") : "Start")} to {(dateTo.HasValue ? dateTo.Value.ToString("yyyy-MM-dd") : "Now")})";
+                        break;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                query = query.Where(e =>
+                    e.Title.ToLower().Contains(term) ||
+                    (e.VendorOrPayee != null && e.VendorOrPayee.ToLower().Contains(term)) ||
+                    (e.Notes != null && e.Notes.ToLower().Contains(term)));
+            }
+
+            var expenses = await query
+                .OrderByDescending(e => e.ExpenseDate)
+                .ThenByDescending(e => e.CreatedAt)
+                .ToListAsync();
+
+            ViewBag.PeriodTitleAr = periodTitleAr;
+            ViewBag.PeriodTitleEn = periodTitleEn;
+            ViewBag.DateRange = dateRange;
+            ViewBag.DateFrom = dateFrom?.ToString("yyyy-MM-dd");
+            ViewBag.DateTo = dateTo?.ToString("yyyy-MM-dd");
+            ViewBag.FilterSearch = search;
+            ViewBag.FilterCategory = category;
+            ViewBag.TotalAmount = expenses.Sum(e => e.Amount);
+            ViewBag.TotalCount = expenses.Count;
+
+            return View(expenses);
+        }
     }
 }
