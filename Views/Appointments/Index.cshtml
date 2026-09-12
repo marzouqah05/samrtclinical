@@ -388,13 +388,21 @@
         text-decoration: line-through !important;
         opacity: 0.85;
     }
-    .fc .fc-daygrid-day.fc-day-today { background: #eff6ff !important; }
+    .fc-theme-standard td.fc-day-today,
+    .fc .fc-daygrid-day.fc-day-today {
+        background-color: transparent !important;
+        background: transparent !important;
+    }
     .fc .fc-scrollgrid { border-radius: 12px; overflow: hidden; }
     html.dark .calendar-card { background: #1B2421 !important; border-color: #2B3833 !important; }
     html.dark .fc .fc-toolbar-title { color: #EAEFEA !important; }
     html.dark .fc .fc-col-header-cell-cushion,
     html.dark .fc .fc-daygrid-day-number { color: #9CA8A3 !important; }
-    html.dark .fc .fc-daygrid-day.fc-day-today { background: #202B27 !important; }
+    html.dark .fc-theme-standard td.fc-day-today,
+    html.dark .fc .fc-daygrid-day.fc-day-today {
+        background-color: transparent !important;
+        background: transparent !important;
+    }
     html.dark .fc td, html.dark .fc th { border-color: #2B3833 !important; }
     html.dark .fc-theme-standard .fc-scrollgrid { border-color: #2B3833 !important; }
     html.dark .cal-legend { color: #9CA8A3 !important; border-top-color: #2B3833 !important; }
@@ -1434,6 +1442,7 @@
 @section Scripts {
     <!-- FullCalendar -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales-all.global.min.js"></script>
 
     <script>
         /* ──────────────────────────────────
@@ -1454,10 +1463,11 @@
            ────────────────────────────────── */
         let calendar;
         document.addEventListener('DOMContentLoaded', function () {
+            const isRtl = document.documentElement.dir === 'rtl' || document.documentElement.lang.startsWith('ar');
             const calEl = document.getElementById('appointmentCalendar');
             calendar = new FullCalendar.Calendar(calEl, {
-                locale: 'en',
-                direction: 'ltr',
+                locale: isRtl ? 'ar' : 'en',
+                direction: isRtl ? 'rtl' : 'ltr',
                 initialView: 'dayGridMonth',
                 height: 680,
                 headerToolbar: {
@@ -1465,7 +1475,13 @@
                     center: 'title',
                     right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
                 },
-                buttonText: {
+                buttonText: isRtl ? {
+                    today: 'اليوم',
+                    month: 'شهر',
+                    week: 'أسبوع',
+                    day: 'يوم',
+                    list: 'أجندة'
+                } : {
                     today: 'Today',
                     month: 'Month',
                     week: 'Week',
