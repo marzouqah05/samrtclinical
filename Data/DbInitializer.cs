@@ -38,38 +38,71 @@ namespace WebApplication1.Data
                 try
                 {
                     await context.Database.ExecuteSqlRawAsync(@"
-                        TRUNCATE TABLE 
-                            ""AspNetUserRoles"",
-                            ""AspNetUserClaims"",
-                            ""AspNetUserLogins"",
-                            ""AspNetUserTokens"",
-                            ""AspNetRoleClaims"",
-                            ""Invoices"",
-                            ""Treatments"",
-                            ""Appointments"",
-                            ""PatientAttachments"",
-                            ""MedicalRecords"",
-                            ""Doctors"",
-                            ""Patients"",
-                            ""Expenses"",
-                            ""Departments"",
-                            ""Clinics"",
-                            ""UserSessionLogs"",
-                            ""AuditLogs"",
-                            ""AspNetUsers""
-                        CASCADE;
+                        DO $$ 
+                        DECLARE 
+                            t text;
+                        BEGIN
+                            FOR t IN 
+                                SELECT tablename FROM pg_tables 
+                                WHERE schemaname = 'public' 
+                                  AND tablename NOT IN ('__EFMigrationsHistory', 'AspNetRoles')
+                            LOOP
+                                BEGIN
+                                    EXECUTE 'TRUNCATE TABLE public.\""' || t || '\"" CASCADE;';
+                                EXCEPTION WHEN OTHERS THEN
+                                    BEGIN
+                                        EXECUTE 'DELETE FROM public.\""' || t || '\"";';
+                                    EXCEPTION WHEN OTHERS THEN
+                                        NULL;
+                                    END;
+                                END;
+                            END LOOP;
+                        END $$;
                     ");
-                    logger.LogInformation("[DbInitializer] Database successfully purged to clean slate (zero records).");
+                    logger.LogInformation("[DbInitializer] Dynamic PostgreSQL table truncate completed.");
                 }
                 catch (Exception ex)
                 {
-                    logger.LogWarning(ex, "[DbInitializer] Truncate cascade failed, falling back to individual table deletes.");
+                    logger.LogWarning(ex, "[DbInitializer] Dynamic truncate block failed, executing explicit table deletions.");
+                }
+
+                // Explicit sequential table cleanup as foolproof guarantee
+                var explicitCleanup = @"
+                    DELETE FROM ""AspNetUserRoles"";
+                    DELETE FROM ""AspNetUserClaims"";
+                    DELETE FROM ""AspNetUserLogins"";
+                    DELETE FROM ""AspNetUserTokens"";
+                    DELETE FROM ""AspNetRoleClaims"";
+                    DELETE FROM ""PatientAttachments"";
+                    DELETE FROM ""MedicalRecords"";
+                    DELETE FROM ""Treatments"";
+                    DELETE FROM ""Invoices"";
+                    DELETE FROM ""Expenses"";
+                    DELETE FROM ""Appointments"";
+                    DELETE FROM ""Patients"";
+                    DELETE FROM ""Doctors"";
+                    DELETE FROM ""Departments"";
+                    DELETE FROM ""UserSessionLogs"";
+                    DELETE FROM ""AuditLogs"";
+                    DELETE FROM ""ClinicSettings"";
+                    DELETE FROM ""AspNetUsers"";
+                    DELETE FROM ""Clinics"";
+                ";
+
+                try
+                {
+                    await context.Database.ExecuteSqlRawAsync(explicitCleanup);
+                    logger.LogInformation("[DbInitializer] Explicit sequential table purge executed successfully.");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "[DbInitializer] Explicit SQL delete encountered a warning, falling back to individual deletes.");
                     var tables = new[]
                     {
-                        "Invoices", "Treatments", "Appointments", "PatientAttachments", "MedicalRecords",
-                        "Doctors", "Patients", "Expenses", "Departments", "Clinics", "UserSessionLogs", "AuditLogs",
                         "AspNetUserRoles", "AspNetUserClaims", "AspNetUserLogins", "AspNetUserTokens", "AspNetRoleClaims",
-                        "AspNetUsers"
+                        "PatientAttachments", "MedicalRecords", "Treatments", "Invoices", "Expenses", "Appointments",
+                        "Patients", "Doctors", "Departments", "UserSessionLogs", "AuditLogs", "ClinicSettings",
+                        "AspNetUsers", "Clinics"
                     };
                     foreach (var tbl in tables)
                     {
@@ -79,7 +112,7 @@ namespace WebApplication1.Data
                         }
                         catch (Exception tableEx)
                         {
-                            logger.LogWarning(tableEx, "[DbInitializer] Error deleting table {Table}", tbl);
+                            logger.LogWarning(tableEx, "[DbInitializer] Failed deleting table {Table}", tbl);
                         }
                     }
                 }
