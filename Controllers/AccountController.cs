@@ -152,99 +152,135 @@ namespace WebApplication1.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RegisterClinic(string clinicName, string adminName, string email, string phone, string password)
         {
+            Console.WriteLine($"--> [REGISTER START] Received clinic registration: ClinicName='{clinicName}', AdminName='{adminName}', Email='{email}'");
+
             if (string.IsNullOrWhiteSpace(clinicName) || string.IsNullOrWhiteSpace(adminName) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
             {
+                Console.WriteLine("--> [REGISTER REJECTED] One or more required fields are empty.");
                 TempData["RegisterError"] = T("يرجى تعبئة جميع الحقول المطلوبة لتسجيل العيادة.", "Please fill in all required fields to register the clinic.");
                 return RedirectToAction(nameof(Login));
             }
 
-            email = email.Trim().ToLowerInvariant();
+            var cleanEmail = email.Trim().ToLowerInvariant();
+            Console.WriteLine($"--> [REGISTER CHECK] Querying _userManager.FindByEmailAsync('{cleanEmail}')...");
 
-            var existingUser = await _userManager.FindByEmailAsync(email) ?? await _userManager.FindByNameAsync(email);
+            var existingUser = await _userManager.FindByEmailAsync(cleanEmail);
             if (existingUser != null)
             {
-                TempData["RegisterError"] = T("البريد الإلكتروني مسجل مسبقاً، يرجى تسجيل الدخول أو استخدام بريد إلكتروني آخر.", "Email is already registered. Please sign in or use another email.");
-                return RedirectToAction(nameof(Login));
+                Console.WriteLine($"--> [REGISTER CHECK] User found: ID='{existingUser.Id}', EmailConfirmed={existingUser.EmailConfirmed}");
+                if (existingUser.EmailConfirmed)
+                {
+                    Console.WriteLine($"--> [REGISTER REJECTED] Email '{cleanEmail}' is already confirmed. Returning duplicate email notice.");
+                    TempData["RegisterError"] = T("البريد الإلكتروني مسجل مسبقاً، يرجى تسجيل الدخول أو استخدام بريد إلكتروني آخر.", "Email is already registered. Please sign in or use another email.");
+                    return RedirectToAction(nameof(Login));
+                }
+                else
+                {
+                    Console.WriteLine($"--> [REGISTER CLEANUP] Email '{cleanEmail}' was previously registered but unconfirmed. Removing incomplete user to start fresh.");
+                    await _userManager.DeleteAsync(existingUser);
+                    var oldClinic = await _db.Clinics.FirstOrDefaultAsync(c => c.OwnerEmail == cleanEmail);
+                    if (oldClinic != null)
+                    {
+                        _db.Clinics.Remove(oldClinic);
+                        await _db.SaveChangesAsync();
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine($"--> [REGISTER CHECK] Email '{cleanEmail}' does not exist in AspNetUsers. Proceeding with registration.");
             }
 
+            // ── 1. Multi-Tenancy: Create a new isolated Clinic record ───────
             var newClinicId = Guid.NewGuid();
+            var clinic = new Clinic
+            {
+                ClinicId = newClinicId,
+                Name = clinicName.Trim(),
+                OwnerEmail = cleanEmail,
+                CreatedAt = DateTime.UtcNow
+            };
+            _db.Clinics.Add(clinic);
+            await _db.SaveChangesAsync();
+            Console.WriteLine($"--> [REGISTER] Created clinic '{clinic.Name}' (ID: {newClinicId})");
+
+            // ── 2. Create ApplicationUser with ClinicId ────────────────────
             var user = new ApplicationUser
             {
-                UserName = email,
-                Email = email,
-                PhoneNumber = phone,
+                UserName = cleanEmail,
+                Email = cleanEmail,
+                PhoneNumber = phone?.Trim(),
                 ClinicId = newClinicId,
                 EmailConfirmed = false
             };
 
             var result = await _userManager.CreateAsync(user, password);
-            if (result.Succeeded)
+            if (!result.Succeeded)
             {
-                // Ensure Admin role exists and explicitly assign it to this clinic owner
-                if (!await _roleManager.RoleExistsAsync("Admin"))
-                    await _roleManager.CreateAsync(new IdentityRole("Admin"));
+                var errorSummary = string.Join(" | ", result.Errors.Select(e => $"{e.Code}: {e.Description}"));
+                Console.WriteLine($"--> [REGISTER ERROR] UserManager.CreateAsync failed: {errorSummary}");
 
-                await _userManager.AddToRoleAsync(user, "Admin");
-
-                // ── Multi-Tenancy: Create a new isolated Clinic record ───────
-                var clinic = new Clinic
-                {
-                    ClinicId = newClinicId,
-                    Name = clinicName.Trim(),
-                    OwnerEmail = email,
-                    CreatedAt = DateTime.UtcNow
-                };
-                _db.Clinics.Add(clinic);
+                // Rollback clinic creation
+                _db.Clinics.Remove(clinic);
                 await _db.SaveChangesAsync();
 
-                // Associate the new Admin user with this ClinicId claim
-                await _userManager.AddClaimAsync(user, new System.Security.Claims.Claim("ClinicId", newClinicId.ToString()));
-
-                // Generate cryptographically secure 6-digit numeric OTP code
-                var otpCode = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 1000000).ToString("D6");
-
-                // Store OTP in cache for 10 minutes
-                var cacheKey = $"clinic_reg_otp_{email}";
-                _cache.Set(cacheKey, otpCode, TimeSpan.FromMinutes(10));
-
-                // Also persist in ClinicSettings as secondary fallback
-                var settingKey = $"OTP_{email}";
-                var existingSetting = await _db.ClinicSettings.FirstOrDefaultAsync(s => s.Key == settingKey);
-                if (existingSetting != null)
-                {
-                    existingSetting.Value = $"{otpCode}|{DateTime.UtcNow.AddMinutes(10):o}";
-                    existingSetting.UpdatedAt = DateTime.UtcNow;
-                }
-                else
-                {
-                    _db.ClinicSettings.Add(new ClinicSetting
-                    {
-                        Key = settingKey,
-                        Value = $"{otpCode}|{DateTime.UtcNow.AddMinutes(10):o}",
-                        Description = $"Registration OTP for {email}",
-                        UpdatedAt = DateTime.UtcNow
-                    });
-                }
-                await _db.SaveChangesAsync();
-
-                // Dispatch OTP email via Gmail SMTP
-                try
-                {
-                    await _emailSender.SendOtpEmailAsync(email, otpCode, adminName);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[EmailService] Failed to send OTP: {ex.Message}");
-                }
-
-                // DO NOT automatically sign the user in. Redirect directly to OTP verification page
-                TempData["OtpSent"] = T($"تم إرسال رمز التحقق (OTP) إلى {email}. يرجى إدخال الرمز لإتمام تفعيل حساب المدير.",
-                                        $"A verification code (OTP) was sent to {email}. Please enter the code to activate your Admin account.");
-                return RedirectToAction(nameof(VerifyOtp), new { email = email });
+                TempData["RegisterError"] = string.Join(" | ", result.Errors.Select(e => e.Description));
+                return RedirectToAction(nameof(Login));
             }
 
-            TempData["RegisterError"] = string.Join(" | ", result.Errors.Select(e => e.Description));
-            return RedirectToAction(nameof(Login));
+            Console.WriteLine($"--> [REGISTER] ApplicationUser created successfully (ID: {user.Id})");
+
+            // ── 3. Assign Admin Role & Tenant Claim ────────────────────────
+            if (!await _roleManager.RoleExistsAsync("Admin"))
+                await _roleManager.CreateAsync(new IdentityRole("Admin"));
+
+            await _userManager.AddToRoleAsync(user, "Admin");
+            await _userManager.AddClaimAsync(user, new System.Security.Claims.Claim("ClinicId", newClinicId.ToString()));
+
+            // ── 4. Generate cryptographically secure 6-digit numeric OTP ──
+            var otpCode = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 1000000).ToString("D6");
+            Console.WriteLine($"--> [REGISTER] Generated 6-digit OTP code.");
+
+            // Store OTP in cache for 10 minutes
+            var cacheKey = $"clinic_reg_otp_{cleanEmail}";
+            _cache.Set(cacheKey, otpCode, TimeSpan.FromMinutes(10));
+
+            // Also persist in ClinicSettings as secondary fallback
+            var settingKey = $"OTP_{cleanEmail}";
+            var existingSetting = await _db.ClinicSettings.FirstOrDefaultAsync(s => s.Key == settingKey);
+            if (existingSetting != null)
+            {
+                existingSetting.Value = $"{otpCode}|{DateTime.UtcNow.AddMinutes(10):o}";
+                existingSetting.UpdatedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                _db.ClinicSettings.Add(new ClinicSetting
+                {
+                    Key = settingKey,
+                    Value = $"{otpCode}|{DateTime.UtcNow.AddMinutes(10):o}",
+                    Description = $"Registration OTP for {cleanEmail}",
+                    UpdatedAt = DateTime.UtcNow
+                });
+            }
+            await _db.SaveChangesAsync();
+
+            // ── 5. Dispatch OTP email via Gmail SMTP ───────────────────────
+            try
+            {
+                Console.WriteLine($"--> [REGISTER] Sending OTP email to '{cleanEmail}' via Gmail SMTP...");
+                await _emailSender.SendOtpEmailAsync(cleanEmail, otpCode, adminName.Trim());
+                Console.WriteLine("--> [REGISTER] OTP email sent successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"--> [REGISTER ERROR] Failed to send OTP email: {ex.Message}");
+            }
+
+            // ── 6. Redirect to VerifyOtp ───────────────────────────────────
+            TempData["OtpSent"] = T($"تم إرسال رمز التحقق (OTP) إلى {cleanEmail}. يرجى إدخال الرمز لإتمام تفعيل حساب المدير.",
+                                    $"A verification code (OTP) was sent to {cleanEmail}. Please enter the code to activate your Admin account.");
+            return RedirectToAction(nameof(VerifyOtp), new { email = cleanEmail });
         }
 
         // GET: VerifyOtp
@@ -432,12 +468,28 @@ namespace WebApplication1.Controllers
 
         // POST: Register
         [HttpPost]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [AllowAnonymous]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(
-            string username, string email, string password, string role,
-            int? doctorId)
+            string? username, string? email, string? password, string? role,
+            int? doctorId, string? clinicName, string? adminName, string? phone)
         {
+            if (!User.Identity?.IsAuthenticated ?? true)
+            {
+                // Anonymous user registration: route to clinic onboarding
+                return await RegisterClinic(
+                    clinicName ?? username ?? "",
+                    adminName ?? username ?? "",
+                    email ?? "",
+                    phone ?? "",
+                    password ?? "");
+            }
+
+            if (!User.IsInRole("Admin") && !User.IsInRole("SuperAdmin"))
+            {
+                return Forbid();
+            }
+
             var isSuperAdmin = User.IsSuperAdmin();
             var currentClinicId = User.GetClinicId();
 
