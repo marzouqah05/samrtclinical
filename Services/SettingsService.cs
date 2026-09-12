@@ -35,7 +35,7 @@ namespace WebApplication1.Services
             ["EmergencyPhone"]                   = "+962 799 000 000",
             ["ClinicEmail"]                      = "info@medicare-clinic.com",
             ["ClinicAddress"]                    = "Amman, Jordan",
-            ["LogoUrl"]                          = "/images/logo.png",
+            ["LogoUrl"]                          = "",
             ["CurrencySymbol"]                   = "JOD",
             ["TaxPercentage"]                    = "16",
             // Scheduling

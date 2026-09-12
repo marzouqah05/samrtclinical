@@ -69,14 +69,23 @@
         }
         @@media print {
             body {
-                background-color: #fff;
+                background-color: #fff !important;
+                color: #0f172a !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
             .slip-card {
-                box-shadow: none;
-                border: 1px solid #94a3b8;
-                padding: 24px;
-                margin: 0 auto;
-                max-width: 100%;
+                box-shadow: none !important;
+                border: 1px solid #94a3b8 !important;
+                padding: 24px !important;
+                margin: 0 auto !important;
+                max-width: 100% !important;
+            }
+            img.clinic-logo-print {
+                max-height: 64px !important;
+                max-width: 180px !important;
+                object-fit: contain !important;
+                image-rendering: -webkit-optimize-contrast;
             }
             .no-print {
                 display: none !important;
@@ -100,38 +109,38 @@
     <!-- Official Appointment Slip Card -->
     <div class="slip-card">
         <!-- Clinic Branding Header -->
-        <div class="row align-items-center mb-4 pb-3 border-bottom">
+        <div class="row align-items-center mb-4 pb-3" style="border-bottom: 2px solid #0f172a;">
             <div class="col-sm-8">
-                <div class="d-flex align-items-center gap-3 mb-2">
+                <div class="d-flex align-items-center gap-3">
                     @if (hasLogo)
                     {
-                        <img src="@clinic.LogoPath" style="height: 54px; width: auto; max-width: 150px; object-fit: contain;" alt="@clinicName" onerror="this.style.display='none'" />
+                        <img src="@clinic.LogoPath" class="clinic-logo-print shrink-0" style="max-height: 64px; max-width: 180px; object-fit: contain;" alt="@clinicName" onerror="this.parentElement.innerHTML='<div style=\'width:54px;height:54px;border-radius:12px;background:#059669;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;\'><i class=\'fa-solid fa-hospital\'></i></div>'" />
                     }
                     else
                     {
-                        <div style="width:50px;height:50px;border-radius:12px;background:#49665a;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;">
+                        <div style="width:54px;height:54px;border-radius:12px;background:#059669;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;" class="shrink-0">
                             <i class="fa-solid fa-hospital"></i>
                         </div>
                     }
                     <div>
-                        <h4 class="fw-bold mb-0 text-dark">@clinicName</h4>
-                        <p class="text-muted small mb-0">@T("بطاقة موعد ومراجعة طبية معتمدة", "Official Patient Appointment Pass")</p>
+                        <h2 class="fw-bold mb-0 text-dark" style="font-size: 20px;">@clinicName</h2>
+                        <p class="text-muted small mb-1">@T("بطاقة موعد ومراجعة طبية معتمدة", "Official Patient Appointment Pass")</p>
+                        <!-- Contact info -->
+                        <div class="small text-muted d-flex flex-wrap gap-3">
+                            @if (!string.IsNullOrWhiteSpace(clinic.ClinicPhone))
+                            {
+                                <span><i class="fa-solid fa-phone @(_isAr ? "ms-1" : "me-1") text-success"></i><strong>@clinic.ClinicPhone</strong></span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(clinic.ClinicAddress))
+                            {
+                                <span><i class="fa-solid fa-location-dot @(_isAr ? "ms-1" : "me-1") text-secondary"></i>@clinic.ClinicAddress</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(clinic.ClinicEmail))
+                            {
+                                <span><i class="fa-solid fa-envelope @(_isAr ? "ms-1" : "me-1") text-secondary"></i>@clinic.ClinicEmail</span>
+                            }
+                        </div>
                     </div>
-                </div>
-                <!-- Contact info -->
-                <div class="small text-muted d-flex flex-wrap gap-3 mt-2">
-                    @if (!string.IsNullOrWhiteSpace(clinic.ClinicPhone))
-                    {
-                        <span><i class="fa-solid fa-phone @(_isAr ? "ms-1" : "me-1") text-primary"></i><strong>@clinic.ClinicPhone</strong></span>
-                    }
-                    @if (!string.IsNullOrWhiteSpace(clinic.ClinicAddress))
-                    {
-                        <span><i class="fa-solid fa-location-dot @(_isAr ? "ms-1" : "me-1") text-danger"></i>@clinic.ClinicAddress</span>
-                    }
-                    @if (!string.IsNullOrWhiteSpace(clinic.ClinicEmail))
-                    {
-                        <span><i class="fa-solid fa-envelope @(_isAr ? "ms-1" : "me-1") text-secondary"></i>@clinic.ClinicEmail</span>
-                    }
                 </div>
             </div>
             <div class="col-sm-4 @(_isAr ? "text-sm-start" : "text-sm-end") mt-3 mt-sm-0">

@@ -32,6 +32,8 @@ namespace WebApplication1.Models
         [Display(Name = "Logo Path")]
         public string? LogoPath { get; set; }
 
+        public bool RemoveLogo { get; set; } = false;
+
         [Required(ErrorMessage = "Currency symbol is required")]
         [Display(Name = "Currency Symbol")]
         [MaxLength(10)]

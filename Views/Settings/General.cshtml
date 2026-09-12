@@ -135,25 +135,45 @@
                 @* Logo Upload *@
                 <div class="md:col-span-5">
                     <label class="clinic-label">@T("شعار العيادة (Logo)", "Clinic Logo")</label>
-                    <div class="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition hover:border-[#49665A] relative group"
-                         style="background:var(--clinic-bg);border-color:var(--clinic-border)"
-                         onclick="document.getElementById('logoFile').click()">
+
+                    <input type="hidden" asp-for="RemoveLogo" id="removeLogoInput" value="false" />
+                    <input asp-for="LogoPath" type="hidden" id="logoPathInput" />
+                    <input type="file" id="logoFile" name="logoFile" accept=".png,.jpg,.jpeg,.webp,.svg" class="hidden" />
+
+                    <div class="border-2 border-dashed rounded-xl p-4 text-center transition hover:border-[#49665A] relative group"
+                         style="background:var(--clinic-bg);border-color:var(--clinic-border)">
                         @{
-                            var hasLogo = !string.IsNullOrEmpty(Model.LogoPath) && Model.LogoPath != "/images/logo.png";
+                            var hasLogo = !string.IsNullOrWhiteSpace(Model.LogoPath) && Model.LogoPath != "/images/logo.png";
                         }
+
+                        <!-- 1. Interactive Preview Card (when logo exists or is chosen) -->
                         <div id="previewWrapper" class="@(hasLogo ? "flex" : "hidden") flex-col items-center justify-center">
-                            <div class="relative inline-block p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm mb-2">
+                            <div class="mb-3">
                                 <img src="@(hasLogo ? Model.LogoPath : "")" 
-                                     class="h-20 w-auto max-w-[180px] object-contain mx-auto rounded-lg" 
+                                     class="max-h-24 object-contain rounded-lg border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 p-2" 
                                      id="logoPreview" 
                                      alt="Clinic Logo Preview" />
                             </div>
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 group-hover:bg-emerald-500/20 transition">
-                                <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
-                                @T("انقر لتغيير الشعار", "Click to change logo")
-                            </span>
+                            <!-- Action Badges below image -->
+                            <div class="flex items-center justify-center gap-3 flex-wrap">
+                                <button type="button"
+                                        onclick="document.getElementById('logoFile').click()"
+                                        class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 transition inline-flex items-center gap-1.5 cursor-pointer">
+                                    <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
+                                    <span>@T("تغيير الشعار", "Change Logo")</span>
+                                </button>
+                                <button type="button"
+                                        id="removeLogoBtn"
+                                        onclick="removeClinicLogo()"
+                                        class="text-rose-600 hover:text-rose-700 dark:text-rose-400 text-xs font-semibold inline-flex items-center gap-1 cursor-pointer bg-transparent border-0 p-1">
+                                    <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                    <span>@T("إزالة الشعار", "Remove Logo")</span>
+                                </button>
+                            </div>
                         </div>
-                        <div id="emptyLogoPlaceholder" class="@(hasLogo ? "hidden" : "block") py-3">
+
+                        <!-- 2. Empty State Dropzone -->
+                        <div id="emptyLogoPlaceholder" class="@(hasLogo ? "hidden" : "block") py-3 cursor-pointer" onclick="document.getElementById('logoFile').click()">
                             <div class="w-12 h-12 mx-auto mb-2 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:text-[#49665A] transition">
                                 <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
                             </div>
@@ -162,10 +182,9 @@
                             </div>
                             <div class="text-[11px]" style="color:var(--clinic-muted)">PNG, JPG, WEBP, SVG (Max 2MB)</div>
                         </div>
-                        <div id="newFileHint" class="hidden mt-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400"></div>
+
+                        <div id="logoNoticeMsg" class="hidden mt-2 text-xs"></div>
                     </div>
-                    <input type="file" id="logoFile" name="logoFile" accept=".png,.jpg,.jpeg,.webp,.svg" class="hidden" />
-                    <input asp-for="LogoPath" type="hidden" />
                 </div>
 
                 @* Currency & Tax *@
@@ -220,17 +239,46 @@
 
 @section Scripts {
 <script>
+    function removeClinicLogo() {
+        var removeInput = document.getElementById("removeLogoInput");
+        var logoPathInput = document.getElementById("logoPathInput");
+        var fileInput = document.getElementById("logoFile");
+        var previewWrapper = document.getElementById("previewWrapper");
+        var placeholder = document.getElementById("emptyLogoPlaceholder");
+        var notice = document.getElementById("logoNoticeMsg");
+
+        if (removeInput) removeInput.value = "true";
+        if (logoPathInput) logoPathInput.value = "";
+        if (fileInput) fileInput.value = "";
+
+        if (previewWrapper) {
+            previewWrapper.classList.add("hidden");
+            previewWrapper.classList.remove("flex");
+        }
+        if (placeholder) {
+            placeholder.classList.remove("hidden");
+        }
+        if (notice) {
+            notice.innerHTML = '<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-500/20 font-semibold"><i class="fa-solid fa-triangle-exclamation"></i> @T("تم تحديد الشعار للإزالة. اضغط \"حفظ بيانات العيادة\" للعودة إلى الشعار الافتراضي.", "Logo marked for removal. Save changes to reset to default.")</span>';
+            notice.classList.remove("hidden");
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         var fileInput       = document.getElementById("logoFile");
         var preview         = document.getElementById("logoPreview");
         var previewWrapper  = document.getElementById("previewWrapper");
         var placeholder     = document.getElementById("emptyLogoPlaceholder");
-        var newFileHint     = document.getElementById("newFileHint");
+        var notice          = document.getElementById("logoNoticeMsg");
+        var removeInput     = document.getElementById("removeLogoInput");
 
         if (fileInput) {
             fileInput.addEventListener("change", function () {
                 var file = this.files[0];
                 if (!file) return;
+
+                if (removeInput) removeInput.value = "false";
+
                 var reader = new FileReader();
                 reader.onload = function (e) {
                     if (preview) {
@@ -243,9 +291,9 @@
                     if (placeholder) {
                         placeholder.classList.add("hidden");
                     }
-                    if (newFileHint) {
-                        newFileHint.innerHTML = '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"><i class="fa-solid fa-circle-check"></i> ' + file.name + '</span>';
-                        newFileHint.classList.remove("hidden");
+                    if (notice) {
+                        notice.innerHTML = '<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold"><i class="fa-solid fa-circle-check"></i> ' + file.name + '</span>';
+                        notice.classList.remove("hidden");
                     }
                 };
                 reader.readAsDataURL(file);

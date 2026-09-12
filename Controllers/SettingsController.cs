@@ -132,6 +132,20 @@ namespace WebApplication1.Controllers
 
                     model.LogoPath = $"/uploads/logos/{fileName}";
                 }
+                else if (model.RemoveLogo)
+                {
+                    // User requested to remove custom logo and reset to default brand icon
+                    var currentLogo = await _settingsService.GetSettingValueAsync("LogoUrl");
+                    if (!string.IsNullOrEmpty(currentLogo) && currentLogo.StartsWith("/uploads/logos/"))
+                    {
+                        var oldFilePath = Path.Combine(_env.WebRootPath, currentLogo.TrimStart('/'));
+                        if (System.IO.File.Exists(oldFilePath))
+                        {
+                            try { System.IO.File.Delete(oldFilePath); } catch { }
+                        }
+                    }
+                    model.LogoPath = "";
+                }
                 else if (string.IsNullOrEmpty(model.LogoPath))
                 {
                     // Preserve existing logo if no new file uploaded

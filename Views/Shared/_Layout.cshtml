@@ -13,6 +13,7 @@
     var clinicName = !string.IsNullOrWhiteSpace(clinicSettings.ClinicName) ? clinicSettings.ClinicName : T("المركز الطبي", "ClinicFlow OS");
     var clinicLogo = clinicSettings.LogoUrl;
     var hasClinicLogo = !string.IsNullOrWhiteSpace(clinicLogo) && clinicLogo != "/images/logo.png";
+    var clinicInitial = !string.IsNullOrWhiteSpace(clinicName) ? clinicName.Trim().Substring(0, 1).ToUpper() : "M";
 }
 <!DOCTYPE html>
 <html lang="@_lang" dir="@(_isRtl ? "rtl" : "ltr")" id="app-root">
@@ -362,18 +363,16 @@
             <div class="flex flex-col gap-4">
                 <!-- Brand / Logo Header -->
                 <div class="flex items-center gap-3 px-2 py-2 mb-1">
-                    @if (hasClinicLogo)
-                    {
-                        <div class="w-9 h-9 rounded-xl bg-white dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833] flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-xs">
-                            <img src="@clinicLogo" class="h-8 w-auto object-contain" alt="Clinic Logo" onerror="this.parentElement.innerHTML='<div class=\'w-9 h-9 rounded-xl bg-[#49665A]/10 border border-[#49665A]/20 flex items-center justify-center text-[#49665A] text-base shrink-0\'><i class=\'fa-solid fa-hospital\'></i></div>'" />
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="w-9 h-9 rounded-xl bg-[#49665A]/10 border border-[#49665A]/20 flex items-center justify-center text-[#49665A] text-base shrink-0">
-                            <i class="fa-solid fa-hospital"></i>
-                        </div>
-                    }
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 border border-slate-200 dark:border-slate-700/60 flex items-center justify-center overflow-hidden shrink-0">
+                        @if (hasClinicLogo)
+                        {
+                            <img src="@clinicLogo" class="w-full h-full object-contain p-1" alt="@clinicName" onerror="this.parentElement.innerHTML='<span class=\'font-bold text-emerald-600 dark:text-emerald-400 text-lg\'>@clinicInitial</span>'" />
+                        }
+                        else
+                        {
+                            <span class="font-bold text-emerald-600 dark:text-emerald-400 text-lg">@clinicInitial</span>
+                        }
+                    </div>
                     <div class="min-w-0">
                         <h1 class="text-[13px] font-bold text-[#202725] dark:text-[#EAEFEA] leading-tight truncate" title="@clinicName">@clinicName</h1>
                         <span class="text-[11px] font-medium text-[#727A76] dark:text-[#9CA8A3] block truncate">@T("فئة ممتازة • سحابي", "Premium Tier • Cloud")</span>
@@ -514,10 +513,16 @@
                     </button>
 
                     <div class="flex items-center gap-2 md:hidden shrink-0">
-                        @if (hasClinicLogo)
-                        {
-                            <img src="@clinicLogo" class="h-7 w-auto object-contain" alt="Clinic Logo" />
-                        }
+                        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 border border-slate-200 dark:border-slate-700/60 flex items-center justify-center overflow-hidden shrink-0">
+                            @if (hasClinicLogo)
+                            {
+                                <img src="@clinicLogo" class="w-full h-full object-contain p-0.5" alt="@clinicName" onerror="this.parentElement.innerHTML='<span class=\'font-bold text-emerald-600 text-sm\'>@clinicInitial</span>'" />
+                            }
+                            else
+                            {
+                                <span class="font-bold text-emerald-600 text-sm">@clinicInitial</span>
+                            }
+                        </div>
                     </div>
 
                     <div class="min-w-0">
