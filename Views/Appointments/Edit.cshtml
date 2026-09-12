@@ -147,14 +147,14 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-200 dark:border-slate-800 mt-6">
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800/80 mt-6">
                 <a asp-action="Index"
-                   class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700/80 font-medium px-4 py-2 rounded-lg text-sm transition inline-flex items-center gap-2">
+                   class="bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 font-medium px-5 py-2.5 rounded-lg text-sm transition cursor-pointer inline-flex items-center gap-1.5">
                     <i class="fa-solid fa-xmark text-xs"></i>
                     <span>@T("إلغاء", "Cancel")</span>
                 </a>
                 <button type="submit"
-                        class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-sm shadow-sm transition active:scale-95 inline-flex items-center gap-2 border-0 cursor-pointer">
+                        class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 py-2.5 rounded-lg text-sm shadow-md shadow-emerald-950/40 inline-flex items-center gap-2 transition active:scale-95 cursor-pointer border-0">
                     <i class="fa-solid fa-floppy-disk text-xs"></i>
                     <span>@T("حفظ التعديلات", "Save Changes")</span>
                 </button>
