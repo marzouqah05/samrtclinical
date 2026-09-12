@@ -100,6 +100,13 @@ namespace WebApplication1.Controllers
                 await _userManager.UpdateAsync(user);
             }
 
+            // Ensure user is not locked out from prior failed attempts
+            if (user != null && await _userManager.IsLockedOutAsync(user))
+            {
+                await _userManager.SetLockoutEndDateAsync(user, null);
+                await _userManager.ResetAccessFailedCountAsync(user);
+            }
+
             // Ensure tenant claim exists
             try
             {

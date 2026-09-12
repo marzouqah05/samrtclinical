@@ -9,13 +9,11 @@ using WebApplication1.Models;
 namespace WebApplication1.Data
 {
     /// <summary>
-    /// Clean Slate Database Initializer:
+    /// Database Initializer:
     /// - Applies pending EF Core migrations.
     /// - Ensures multi-tenancy schema integrity (ClinicId on AspNetUsers).
-    /// - Performs a direct purge of all legacy demo accounts, clinics, and medical records.
-    /// - Force wipes AspNetUsers, AspNetUserRoles, and Identity tables on application startup.
-    /// - Ensures ONLY default Identity Roles ("SuperAdmin", "Admin", "Doctor", "Receptionist") exist.
-    /// - Strictly zero demo records or demo users are seeded.
+    /// - Preserves all registered users, clinics, and medical data across container restarts.
+    /// - Ensures default Identity Roles ("SuperAdmin", "Admin", "Doctor", "Receptionist") exist.
     /// </summary>
     public static class DbInitializer
     {
@@ -58,11 +56,18 @@ namespace WebApplication1.Data
                     }
                 }
 
-                logger.LogInformation("[DbInitializer] System initialized at absolute zero with clean multi-tenancy isolation.");
+                int userCount = 0;
+                try
+                {
+                    userCount = await userManager.Users.CountAsync();
+                }
+                catch { }
+
+                logger.LogInformation("[DbInitializer] Database initialized successfully in persistent mode. Total users preserved: {Count}", userCount);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "[DbInitializer] Error during clean slate initialization.");
+                logger.LogError(ex, "[DbInitializer] Error during database initialization.");
             }
         }
     }
