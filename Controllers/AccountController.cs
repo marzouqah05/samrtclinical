@@ -149,9 +149,15 @@ namespace WebApplication1.Controllers
         // POST: RegisterClinic (تسجيل عيادة جديدة - تجربة مجانية 60 يوماً)
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RegisterClinic(string clinicName, string adminName, string email, string phone, string password)
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> RegisterClinic([FromForm] RegisterClinicViewModel model)
         {
+            var clinicName = model?.ClinicName;
+            var adminName  = model?.AdminName;
+            var email      = model?.Email;
+            var phone      = model?.Phone;
+            var password   = model?.Password;
+
             Console.WriteLine($"--> [REGISTER START] Received clinic registration: ClinicName='{clinicName}', AdminName='{adminName}', Email='{email}'");
 
             if (string.IsNullOrWhiteSpace(clinicName) || string.IsNullOrWhiteSpace(adminName) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
@@ -469,20 +475,23 @@ namespace WebApplication1.Controllers
         // POST: Register
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> Register(
+            [FromForm] RegisterClinicViewModel? model,
             string? username, string? email, string? password, string? role,
-            int? doctorId, string? clinicName, string? adminName, string? phone)
+            int? doctorId)
         {
             if (!User.Identity?.IsAuthenticated ?? true)
             {
                 // Anonymous user registration: route to clinic onboarding
-                return await RegisterClinic(
-                    clinicName ?? username ?? "",
-                    adminName ?? username ?? "",
-                    email ?? "",
-                    phone ?? "",
-                    password ?? "");
+                var clinicModel = model ?? new RegisterClinicViewModel
+                {
+                    ClinicName = username ?? "",
+                    AdminName = username ?? "",
+                    Email = email ?? "",
+                    Password = password ?? ""
+                };
+                return await RegisterClinic(clinicModel);
             }
 
             if (!User.IsInRole("Admin") && !User.IsInRole("SuperAdmin"))
