@@ -1,14 +1,40 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using WebApplication1.Services;
 
 namespace WebApplication1.Models
 {
-    public class ClinicDbContext : IdentityDbContext<IdentityUser, IdentityRole, string>
+    public class ClinicDbContext : IdentityDbContext<ApplicationUser, IdentityRole, string>
     {
-        public ClinicDbContext(DbContextOptions<ClinicDbContext> options)
+        private readonly IHttpContextAccessor? _httpContextAccessor;
+
+        public ClinicDbContext(DbContextOptions<ClinicDbContext> options, IHttpContextAccessor? httpContextAccessor = null)
             : base(options)
         {
+            _httpContextAccessor = httpContextAccessor;
+        }
+
+        public Guid? CurrentClinicId
+        {
+            get
+            {
+                var user = _httpContextAccessor?.HttpContext?.User;
+                if (user == null) return null;
+                var id = user.GetClinicId();
+                return id == Guid.Empty ? null : id;
+            }
+        }
+
+        public bool IsSuperAdminUser
+        {
+            get
+            {
+                var user = _httpContextAccessor?.HttpContext?.User;
+                if (user == null) return true; // Background tasks, migrations, and CLI bypass filter
+                return user.IsSuperAdmin();
+            }
         }
 
         // جداول مشروع العيادة (MediCare)
@@ -30,11 +56,19 @@ namespace WebApplication1.Models
         {
             base.OnModelCreating(modelBuilder);
 
-            // Ensure unique index on Email column for IdentityUser
-            modelBuilder.Entity<IdentityUser>(entity =>
+            // Ensure unique index on Email column for ApplicationUser
+            modelBuilder.Entity<ApplicationUser>(entity =>
             {
                 entity.HasIndex(u => u.Email).IsUnique();
             });
+
+            // ── Global Query Filters for Strict Multi-Tenancy Isolation ────────
+            modelBuilder.Entity<Patient>().HasQueryFilter(e => IsSuperAdminUser || (CurrentClinicId != null && e.ClinicId == CurrentClinicId));
+            modelBuilder.Entity<Appointment>().HasQueryFilter(e => IsSuperAdminUser || (CurrentClinicId != null && e.ClinicId == CurrentClinicId));
+            modelBuilder.Entity<Doctor>().HasQueryFilter(e => IsSuperAdminUser || (CurrentClinicId != null && e.ClinicId == CurrentClinicId));
+            modelBuilder.Entity<Department>().HasQueryFilter(e => IsSuperAdminUser || (CurrentClinicId != null && e.ClinicId == CurrentClinicId));
+            modelBuilder.Entity<Invoice>().HasQueryFilter(e => IsSuperAdminUser || (CurrentClinicId != null && e.ClinicId == CurrentClinicId));
+            modelBuilder.Entity<Expense>().HasQueryFilter(e => IsSuperAdminUser || (CurrentClinicId != null && e.ClinicId == CurrentClinicId));
 
             // إعدادات جدول الـ Department
             modelBuilder.Entity<Department>(entity =>
@@ -223,6 +257,34 @@ namespace WebApplication1.Models
                 entity.Property(e => e.OwnerEmail).HasMaxLength(200);
                 entity.HasIndex(e => e.OwnerEmail);
             });
+
+            // ── ApplicationUser Tenant Mapping ────────────────────────────────
+            modelBuilder.Entity<ApplicationUser>(entity =>
+            {
+                entity.Property(u => u.ClinicId).HasColumnType("uuid");
+                entity.HasIndex(u => u.ClinicId);
+            });
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            var clinicId = CurrentClinicId;
+            if (clinicId.HasValue && clinicId.Value != Guid.Empty)
+            {
+                foreach (var entry in ChangeTracker.Entries())
+                {
+                    if (entry.State == EntityState.Added)
+                    {
+                        var prop = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "ClinicId");
+                        if (prop != null && (prop.CurrentValue == null || (prop.CurrentValue is Guid g && g == Guid.Empty)))
+                        {
+                            prop.CurrentValue = clinicId.Value;
+                        }
+                    }
+                }
+            }
+
+            return base.SaveChangesAsync(cancellationToken);
         }
     }
 }

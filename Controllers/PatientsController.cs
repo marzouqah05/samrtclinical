@@ -128,11 +128,12 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
+            var currentClinicId = User.GetClinicId();
 
             var patient = await _context.Patients
                 .Include(p => p.Appointments).ThenInclude(a => a.Doctor)
                 .Include(p => p.Treatments)
-                .FirstOrDefaultAsync(m => m.PatientId == id);
+                .FirstOrDefaultAsync(m => m.PatientId == id && m.ClinicId == currentClinicId);
 
             if (patient == null) return NotFound();
 
@@ -149,6 +150,7 @@ namespace WebApplication1.Controllers
                 .ToListAsync();
 
             var doctors = await _context.Doctors
+                .Where(d => d.ClinicId == currentClinicId)
                 .OrderBy(d => d.DoctorName)
                 .ToListAsync();
 
@@ -184,7 +186,8 @@ namespace WebApplication1.Controllers
 
             if (ModelState.IsValid)
             {
-                bool exists = await _context.Patients.AnyAsync(p => p.NationalId == patient.NationalId);
+                var currentClinicId = User.GetClinicId();
+                bool exists = await _context.Patients.AnyAsync(p => p.NationalId == patient.NationalId && p.ClinicId == currentClinicId);
                 if (exists)
                 {
                     string errorMessage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en"
@@ -194,7 +197,7 @@ namespace WebApplication1.Controllers
                     return View(patient);
                 }
 
-                patient.ClinicId = User.GetClinicId();
+                patient.ClinicId = currentClinicId;
                 _context.Add(patient);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = T("تمت إضافة المريض بنجاح.", "Patient added successfully.");
@@ -206,7 +209,8 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
-            var patient = await _context.Patients.FindAsync(id);
+            var currentClinicId = User.GetClinicId();
+            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.PatientId == id && p.ClinicId == currentClinicId);
             if (patient == null) return NotFound();
             return View(patient);
         }
@@ -218,8 +222,9 @@ namespace WebApplication1.Controllers
             Patient patient)
         {
             if (id != patient.PatientId) return NotFound();
+            var currentClinicId = User.GetClinicId();
 
-            var dbPatient = await _context.Patients.FindAsync(id);
+            var dbPatient = await _context.Patients.FirstOrDefaultAsync(p => p.PatientId == id && p.ClinicId == currentClinicId);
             if (dbPatient == null) return NotFound();
 
             if (patient.DOB > DateTime.UtcNow.Date)
@@ -231,8 +236,8 @@ namespace WebApplication1.Controllers
                 return View(patient);
             }
 
-            // Check NationalId uniqueness, excluding the current patient
-            bool exists = await _context.Patients.AnyAsync(p => p.NationalId == patient.NationalId && p.PatientId != patient.PatientId);
+            // Check NationalId uniqueness within clinic, excluding current patient
+            bool exists = await _context.Patients.AnyAsync(p => p.NationalId == patient.NationalId && p.PatientId != patient.PatientId && p.ClinicId == currentClinicId);
             if (exists)
             {
                 string errorMessage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en"
@@ -272,7 +277,8 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
-            var patient = await _context.Patients.FirstOrDefaultAsync(m => m.PatientId == id);
+            var currentClinicId = User.GetClinicId();
+            var patient = await _context.Patients.FirstOrDefaultAsync(m => m.PatientId == id && m.ClinicId == currentClinicId);
             if (patient == null) return NotFound();
             return View(patient);
         }
@@ -282,9 +288,10 @@ namespace WebApplication1.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            var currentClinicId = User.GetClinicId();
             var patient = await _context.Patients
                 .Include(p => p.Appointments)
-                .FirstOrDefaultAsync(p => p.PatientId == id);
+                .FirstOrDefaultAsync(p => p.PatientId == id && p.ClinicId == currentClinicId);
 
             if (patient == null) return NotFound();
 

@@ -10,9 +10,7 @@ namespace WebApplication1.Services
         public static bool IsSuperAdmin(this ClaimsPrincipal user)
         {
             if (user == null) return false;
-            return user.IsInRole("SuperAdmin") ||
-                   string.Equals(user.Identity?.Name, "admin", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(user.FindFirst(ClaimTypes.Email)?.Value, "admin@medicare.com", StringComparison.OrdinalIgnoreCase);
+            return user.IsInRole("SuperAdmin");
         }
 
         public static Guid GetClinicId(this ClaimsPrincipal user)
@@ -23,11 +21,6 @@ namespace WebApplication1.Services
             if (!string.IsNullOrEmpty(claimValue) && Guid.TryParse(claimValue, out var clinicGuid))
             {
                 return clinicGuid;
-            }
-
-            if (user.IsSuperAdmin())
-            {
-                return DefaultClinicId;
             }
 
             return Guid.Empty;

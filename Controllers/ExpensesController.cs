@@ -196,7 +196,8 @@ namespace WebApplication1.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var existing = await _context.Expenses.FindAsync(model.Id);
+            var currentClinicId = User.GetClinicId();
+            var existing = await _context.Expenses.FirstOrDefaultAsync(e => e.Id == model.Id && e.ClinicId == currentClinicId);
             if (existing == null)
             {
                 TempData["Error"] = "Expense record not found.";
@@ -246,7 +247,8 @@ namespace WebApplication1.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
-            var expense = await _context.Expenses.FindAsync(id);
+            var currentClinicId = User.GetClinicId();
+            var expense = await _context.Expenses.FirstOrDefaultAsync(e => e.Id == id && e.ClinicId == currentClinicId);
             if (expense == null)
             {
                 TempData["Error"] = "Expense record not found.";
@@ -278,7 +280,8 @@ namespace WebApplication1.Controllers
             DateTime? dateFrom  = null,
             DateTime? dateTo    = null)
         {
-            var query = _context.Expenses.AsNoTracking().AsQueryable();
+            var currentClinicId = User.GetClinicId();
+            var query = _context.Expenses.AsNoTracking().Where(e => e.ClinicId == currentClinicId).AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(category) &&
                 Enum.TryParse<ExpenseCategory>(category, out var catEnum))
@@ -314,7 +317,7 @@ namespace WebApplication1.Controllers
             var expenses = await query.OrderByDescending(e => e.ExpenseDate).ToListAsync();
             var totalIncome = await _context.Invoices
                 .AsNoTracking()
-                .Where(i => i.Status == "Paid")
+                .Where(i => i.ClinicId == currentClinicId && i.Status == "Paid")
                 .SumAsync(i => i.NetAmount);
 
             using var wb = new XLWorkbook();
@@ -392,7 +395,8 @@ namespace WebApplication1.Controllers
         [HttpGet]
         public async Task<IActionResult> GetExpense(int id)
         {
-            var e = await _context.Expenses.FindAsync(id);
+            var currentClinicId = User.GetClinicId();
+            var e = await _context.Expenses.FirstOrDefaultAsync(x => x.Id == id && x.ClinicId == currentClinicId);
             if (e == null) return NotFound();
 
             return Json(new

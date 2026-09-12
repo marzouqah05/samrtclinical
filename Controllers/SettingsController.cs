@@ -19,14 +19,14 @@ namespace WebApplication1.Controllers
     {
         private readonly ISettingsService _settingsService;
         private readonly IBackupService _backupService;
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IWebHostEnvironment _env;
 
         public SettingsController(
             ISettingsService settingsService,
             IBackupService backupService,
-            UserManager<IdentityUser> userManager,
+            UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
             IWebHostEnvironment env)
         {

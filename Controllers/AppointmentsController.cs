@@ -328,10 +328,11 @@ namespace WebApplication1.Controllers
                 return NotFound();
             }
 
+            var currentClinicId = User.GetClinicId();
             var appointment = await _context.Appointments
                 .Include(a => a.Doctor)
                 .Include(a => a.Patient)
-                .FirstOrDefaultAsync(m => m.AppointmentId == id);
+                .FirstOrDefaultAsync(m => m.AppointmentId == id && m.ClinicId == currentClinicId);
 
             if (appointment == null)
             {
@@ -364,7 +365,8 @@ namespace WebApplication1.Controllers
                 return NotFound();
             }
 
-            var existing = await _context.Appointments.FindAsync(id);
+            var currentClinicId = User.GetClinicId();
+            var existing = await _context.Appointments.FirstOrDefaultAsync(a => a.AppointmentId == id && a.ClinicId == currentClinicId);
             if (existing == null)
             {
                 return NotFound();
@@ -464,8 +466,9 @@ namespace WebApplication1.Controllers
 
         private void PopulateAppointmentDropdowns(Appointment? appointment = null)
         {
-            ViewData["DoctorId"] = new SelectList(_context.Doctors.OrderBy(d => d.DoctorName), "DoctorId", "DoctorName", appointment?.DoctorId);
-            ViewData["PatientId"] = new SelectList(_context.Patients.OrderBy(p => p.PatientName), "PatientId", "PatientName", appointment?.PatientId);
+            var currentClinicId = User.GetClinicId();
+            ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DoctorName), "DoctorId", "DoctorName", appointment?.DoctorId);
+            ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId).OrderBy(p => p.PatientName), "PatientId", "PatientName", appointment?.PatientId);
 
             var statusItems = new List<SelectListItem>
             {
@@ -574,6 +577,7 @@ namespace WebApplication1.Controllers
 
             if (ModelState.IsValid)
             {
+                appointment.ClinicId = User.GetClinicId();
                 appointment.Status = "Pending";
                 appointment.AppointmentDate = DateTime.SpecifyKind(appointment.AppointmentDate.Date, DateTimeKind.Utc);
                 _context.Add(appointment);
@@ -590,7 +594,8 @@ namespace WebApplication1.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateStatus(int id, string newStatus)
         {
-            var appointment = await _context.Appointments.FindAsync(id);
+            var currentClinicId = User.GetClinicId();
+            var appointment = await _context.Appointments.FirstOrDefaultAsync(a => a.AppointmentId == id && a.ClinicId == currentClinicId);
             if (appointment == null)
             {
                 return NotFound();
@@ -609,11 +614,12 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
+            var currentClinicId = User.GetClinicId();
 
             var appointment = await _context.Appointments
                 .Include(a => a.Doctor)
                 .Include(a => a.Patient)
-                .FirstOrDefaultAsync(m => m.AppointmentId == id);
+                .FirstOrDefaultAsync(m => m.AppointmentId == id && m.ClinicId == currentClinicId);
 
             if (appointment == null) return NotFound();
 
@@ -624,11 +630,12 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Complete(int? id)
         {
             if (id == null) return NotFound();
+            var currentClinicId = User.GetClinicId();
 
             var appointment = await _context.Appointments
                 .Include(a => a.Doctor)
                 .Include(a => a.Patient)
-                .FirstOrDefaultAsync(m => m.AppointmentId == id);
+                .FirstOrDefaultAsync(m => m.AppointmentId == id && m.ClinicId == currentClinicId);
 
             if (appointment == null) return NotFound();
 

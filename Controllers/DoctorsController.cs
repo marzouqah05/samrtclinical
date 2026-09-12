@@ -142,10 +142,11 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
+            var currentClinicId = User.GetClinicId();
 
             var doctor = await _context.Doctors
                 .Include(d => d.Department)
-                .FirstOrDefaultAsync(m => m.DoctorId == id);
+                .FirstOrDefaultAsync(m => m.DoctorId == id && m.ClinicId == currentClinicId);
 
             if (doctor == null) return NotFound();
 
@@ -189,11 +190,12 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
+            var currentClinicId = User.GetClinicId();
 
-            var doctor = await _context.Doctors.FindAsync(id);
+            var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.DoctorId == id && d.ClinicId == currentClinicId);
             if (doctor == null) return NotFound();
 
-            ViewData["DepartmentId"] = new SelectList(_context.Departments, "DepartmentId", "DepartmentName", doctor.DepartmentId);
+            ViewData["DepartmentId"] = new SelectList(_context.Departments.Where(d => d.ClinicId == currentClinicId), "DepartmentId", "DepartmentName", doctor.DepartmentId);
             return View(doctor);
         }
 
@@ -203,8 +205,9 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Edit(int id, [Bind("DoctorId,DoctorNumber,DoctorName,Specialization,ConsultationFee,DepartmentId")] Doctor doctor)
         {
             if (id != doctor.DoctorId) return NotFound();
+            var currentClinicId = User.GetClinicId();
 
-            var dbDoctor = await _context.Doctors.FindAsync(id);
+            var dbDoctor = await _context.Doctors.FirstOrDefaultAsync(d => d.DoctorId == id && d.ClinicId == currentClinicId);
             if (dbDoctor == null) return NotFound();
 
             // 🛠️ مسح الأخطاء لضمان نجاح التعديل (تجاوز مشكلة الـ ModelState)
@@ -237,10 +240,11 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
+            var currentClinicId = User.GetClinicId();
 
             var doctor = await _context.Doctors
                 .Include(d => d.Department)
-                .FirstOrDefaultAsync(m => m.DoctorId == id);
+                .FirstOrDefaultAsync(m => m.DoctorId == id && m.ClinicId == currentClinicId);
 
             if (doctor == null) return NotFound();
 
@@ -252,9 +256,10 @@ namespace WebApplication1.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            var currentClinicId = User.GetClinicId();
             var doctor = await _context.Doctors
                 .Include(d => d.Appointments)
-                .FirstOrDefaultAsync(d => d.DoctorId == id);
+                .FirstOrDefaultAsync(d => d.DoctorId == id && d.ClinicId == currentClinicId);
 
             if (doctor == null) return NotFound();
 

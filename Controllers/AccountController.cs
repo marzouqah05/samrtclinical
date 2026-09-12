@@ -16,8 +16,8 @@ namespace WebApplication1.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ISessionTrackingService _sessionTracking;
         private readonly ClinicDbContext _db;
@@ -26,8 +26,8 @@ namespace WebApplication1.Controllers
 
         // حقن خدمات الـ Identity والـ Email والـ MemoryCache
         public AccountController(
-            UserManager<IdentityUser> userManager,
-            SignInManager<IdentityUser> signInManager,
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
             RoleManager<IdentityRole> roleManager,
             ISessionTrackingService sessionTracking,
             ClinicDbContext db,
@@ -86,30 +86,36 @@ namespace WebApplication1.Controllers
             var existingClaims = await _userManager.GetClaimsAsync(inputUser);
             if (!existingClaims.Any(c => c.Type == "ClinicId"))
             {
-                var clinic = await _db.Clinics.FirstOrDefaultAsync(c => c.OwnerEmail == inputUser.Email);
-                if (clinic != null)
+                if (inputUser.ClinicId.HasValue && inputUser.ClinicId.Value != Guid.Empty)
                 {
-                    await _userManager.AddClaimAsync(inputUser, new System.Security.Claims.Claim("ClinicId", clinic.ClinicId.ToString()));
-                }
-                else if (string.Equals(inputUser.UserName, "admin", StringComparison.OrdinalIgnoreCase) ||
-                         string.Equals(inputUser.Email, "admin@medicare.com", StringComparison.OrdinalIgnoreCase))
-                {
-                    await _userManager.AddClaimAsync(inputUser, new System.Security.Claims.Claim("ClinicId", TenantExtensions.DefaultClinicId.ToString()));
+                    await _userManager.AddClaimAsync(inputUser, new System.Security.Claims.Claim("ClinicId", inputUser.ClinicId.Value.ToString()));
                 }
                 else
                 {
-                    // For any new non-superadmin user without a clinic, assign a brand-new clean isolated ClinicId
-                    var newClinicId = Guid.NewGuid();
-                    var newClinic = new Clinic
+                    var clinic = await _db.Clinics.FirstOrDefaultAsync(c => c.OwnerEmail == inputUser.Email);
+                    if (clinic != null)
                     {
-                        ClinicId = newClinicId,
-                        Name = $"{inputUser.UserName}'s Clinic",
-                        OwnerEmail = inputUser.Email,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    _db.Clinics.Add(newClinic);
-                    await _db.SaveChangesAsync();
-                    await _userManager.AddClaimAsync(inputUser, new System.Security.Claims.Claim("ClinicId", newClinicId.ToString()));
+                        inputUser.ClinicId = clinic.ClinicId;
+                        await _userManager.UpdateAsync(inputUser);
+                        await _userManager.AddClaimAsync(inputUser, new System.Security.Claims.Claim("ClinicId", clinic.ClinicId.ToString()));
+                    }
+                    else if (!await _userManager.IsInRoleAsync(inputUser, "SuperAdmin"))
+                    {
+                        var newClinicId = Guid.NewGuid();
+                        var newClinic = new Clinic
+                        {
+                            ClinicId = newClinicId,
+                            Name = $"{inputUser.UserName}'s Clinic",
+                            OwnerEmail = inputUser.Email,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        _db.Clinics.Add(newClinic);
+                        await _db.SaveChangesAsync();
+
+                        inputUser.ClinicId = newClinicId;
+                        await _userManager.UpdateAsync(inputUser);
+                        await _userManager.AddClaimAsync(inputUser, new System.Security.Claims.Claim("ClinicId", newClinicId.ToString()));
+                    }
                 }
             }
 
@@ -161,11 +167,13 @@ namespace WebApplication1.Controllers
                 return RedirectToAction(nameof(Login));
             }
 
-            var user = new IdentityUser
+            var newClinicId = Guid.NewGuid();
+            var user = new ApplicationUser
             {
                 UserName = email,
                 Email = email,
                 PhoneNumber = phone,
+                ClinicId = newClinicId,
                 EmailConfirmed = false
             };
 
@@ -179,7 +187,6 @@ namespace WebApplication1.Controllers
                 await _userManager.AddToRoleAsync(user, "Admin");
 
                 // ── Multi-Tenancy: Create a new isolated Clinic record ───────
-                var newClinicId = Guid.NewGuid();
                 var clinic = new Clinic
                 {
                     ClinicId = newClinicId,
@@ -193,8 +200,8 @@ namespace WebApplication1.Controllers
                 // Associate the new Admin user with this ClinicId claim
                 await _userManager.AddClaimAsync(user, new System.Security.Claims.Claim("ClinicId", newClinicId.ToString()));
 
-                // Generate 6-digit OTP code
-                var otpCode = Random.Shared.Next(100000, 999999).ToString();
+                // Generate cryptographically secure 6-digit numeric OTP code
+                var otpCode = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 1000000).ToString("D6");
 
                 // Store OTP in cache for 10 minutes
                 var cacheKey = $"clinic_reg_otp_{email}";
@@ -220,20 +227,14 @@ namespace WebApplication1.Controllers
                 }
                 await _db.SaveChangesAsync();
 
-                // Dispatch OTP email via email service safely without blocking registration
+                // Dispatch OTP email via Gmail SMTP
                 try
                 {
-                    var emailSent = await _emailSender.SendOtpEmailAsync(email, otpCode, adminName);
-                    if (!emailSent)
-                    {
-                        Console.WriteLine($"\n[REGISTRATION OTP]: {otpCode} for {email}\n");
-                        TempData["DevOtp"] = otpCode;
-                    }
+                    await _emailSender.SendOtpEmailAsync(email, otpCode, adminName);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    Console.WriteLine($"\n[REGISTRATION OTP]: {otpCode} for {email}\n");
-                    TempData["DevOtp"] = otpCode;
+                    Console.WriteLine($"[EmailService] Failed to send OTP: {ex.Message}");
                 }
 
                 // DO NOT automatically sign the user in. Redirect directly to OTP verification page
@@ -368,7 +369,7 @@ namespace WebApplication1.Controllers
             var user = await _userManager.FindByEmailAsync(email) ?? await _userManager.FindByNameAsync(email);
             if (user != null)
             {
-                var newOtp = Random.Shared.Next(100000, 999999).ToString();
+                var newOtp = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 1000000).ToString("D6");
                 var cacheKey = $"clinic_reg_otp_{email}";
                 _cache.Set(cacheKey, newOtp, TimeSpan.FromMinutes(10));
 
@@ -393,17 +394,11 @@ namespace WebApplication1.Controllers
 
                 try
                 {
-                    var emailSent = await _emailSender.SendOtpEmailAsync(email, newOtp);
-                    if (!emailSent)
-                    {
-                        Console.WriteLine($"\n[REGISTRATION OTP]: {newOtp} for {email}\n");
-                        TempData["DevOtp"] = newOtp;
-                    }
+                    await _emailSender.SendOtpEmailAsync(email, newOtp);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    Console.WriteLine($"\n[REGISTRATION OTP]: {newOtp} for {email}\n");
-                    TempData["DevOtp"] = newOtp;
+                    Console.WriteLine($"[EmailService] Failed to resend OTP: {ex.Message}");
                 }
 
                 TempData["OtpSent"] = T($"تمت إعادة إرسال رمز تحقق جديد إلى {email}.",
@@ -492,7 +487,8 @@ namespace WebApplication1.Controllers
             }
 
             // ── 1. Create the Identity user ───────────────────────────────────
-            var user = new IdentityUser { UserName = username, Email = email };
+            var adminClinicId = User.GetClinicId();
+            var user = new ApplicationUser { UserName = username, Email = email, ClinicId = adminClinicId };
             var result = await _userManager.CreateAsync(user, password);
 
             if (result.Succeeded)
@@ -513,7 +509,6 @@ namespace WebApplication1.Controllers
                 }
 
                 // 5. Inherit current admin's ClinicId for multi-tenancy isolation
-                var adminClinicId = User.GetClinicId();
                 await _userManager.AddClaimAsync(user,
                     new System.Security.Claims.Claim("ClinicId", adminClinicId.ToString()));
 
@@ -566,7 +561,7 @@ namespace WebApplication1.Controllers
             var currentClinicId = User.GetClinicId();
 
             var allUsers = await _userManager.Users.OrderBy(u => u.UserName).ToListAsync();
-            var staffList = new List<(IdentityUser User, string Role, string CreatedDate)>();
+            var staffList = new List<(ApplicationUser User, string Role, string CreatedDate)>();
 
             foreach (var u in allUsers)
             {

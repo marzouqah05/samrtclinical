@@ -1,13 +1,14 @@
 @using System.Globalization
 @using Microsoft.AspNetCore.Identity
+@using WebApplication1.Models
 
 @{
     var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
     string T(string ar, string en) => _isAr ? ar : en;
     ViewData["Title"] = T("إدارة الموظفين والصلاحيات", "Staff & Access Management");
 
-    var staffList = ViewBag.StaffList as IEnumerable<(IdentityUser User, string Role, string CreatedDate)>
-                   ?? Enumerable.Empty<(IdentityUser, string, string)>();
+    var staffList = ViewBag.StaffList as IEnumerable<(ApplicationUser User, string Role, string CreatedDate)>
+                   ?? Enumerable.Empty<(ApplicationUser, string, string)>();
     var staffArr = staffList.ToList();
     var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }

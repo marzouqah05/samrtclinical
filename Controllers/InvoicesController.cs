@@ -134,12 +134,13 @@ namespace WebApplication1.Controllers
         // 2. GET: Invoices/Print/5
         public async Task<IActionResult> Print(int id)
         {
+            var currentClinicId = User.GetClinicId();
             var invoice = await _context.Invoices
                 .Include(i => i.Patient)
                 .Include(i => i.Treatment)
                     .ThenInclude(t => t!.Appointment)
                         .ThenInclude(a => a!.Doctor)
-                .FirstOrDefaultAsync(i => i.InvoiceId == id);
+                .FirstOrDefaultAsync(i => i.InvoiceId == id && i.ClinicId == currentClinicId);
 
             if (invoice == null) return NotFound();
 
@@ -170,18 +171,19 @@ namespace WebApplication1.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("TreatmentId,Discount,Tax,Status")] Invoice invoice)
         {
+            var currentClinicId = User.GetClinicId();
             // Pull full relational chain to ensure dynamic cross-referencing and background price calculation
             var treatment = await _context.Treatments
                 .Include(t => t.Appointment)
-                    .ThenInclude(a => a.Patient)
+                    .ThenInclude(a => a!.Patient)
                 .Include(t => t.Appointment)
-                    .ThenInclude(a => a.Doctor)
-                .FirstOrDefaultAsync(t => t.TreatmentId == invoice.TreatmentId);
+                    .ThenInclude(a => a!.Doctor)
+                .FirstOrDefaultAsync(t => t.TreatmentId == invoice.TreatmentId && t.Appointment != null && t.Appointment.ClinicId == currentClinicId);
 
-            if (treatment != null)
+            if (treatment != null && treatment.Appointment != null)
             {
                 // Dynamic Linkage: Automatically assign PatientId and ClinicId from the associated appointment / tenant
-                invoice.ClinicId = User.GetClinicId();
+                invoice.ClinicId = currentClinicId;
                 invoice.PatientId = treatment.Appointment.PatientId;
                 invoice.InvoiceDate = DateTime.Now;
 
@@ -203,7 +205,6 @@ namespace WebApplication1.Controllers
             }
 
             // Repopulate dropdown list on validation failure
-            var currentClinicId = User.GetClinicId();
             var fallbackList = _context.Treatments
                 .Include(t => t.Appointment)
                     .ThenInclude(a => a.Patient)
@@ -221,8 +222,9 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
+            var currentClinicId = User.GetClinicId();
 
-            var invoice = await _context.Invoices.FindAsync(id);
+            var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceId == id && i.ClinicId == currentClinicId);
             if (invoice == null) return NotFound();
 
             return View(invoice);
@@ -234,15 +236,21 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Edit(int id, [Bind("InvoiceId,InvoiceNumber,InvoiceDate,Amount,Discount,Tax,NetAmount,Status,PatientId,TreatmentId")] Invoice invoice)
         {
             if (id != invoice.InvoiceId) return NotFound();
+            var currentClinicId = User.GetClinicId();
+
+            var existing = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceId == id && i.ClinicId == currentClinicId);
+            if (existing == null) return NotFound();
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    // Recalculate net amount in case discount or tax parameters were adjusted during collection
-                    invoice.NetAmount = invoice.Amount + invoice.Tax - invoice.Discount;
+                    existing.Discount = invoice.Discount;
+                    existing.Tax = invoice.Tax;
+                    existing.Status = invoice.Status;
+                    existing.NetAmount = existing.Amount + existing.Tax - existing.Discount;
 
-                    _context.Update(invoice);
+                    _context.Update(existing);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
@@ -259,10 +267,11 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
+            var currentClinicId = User.GetClinicId();
 
             var invoice = await _context.Invoices
                 .Include(i => i.Patient)
-                .FirstOrDefaultAsync(m => m.InvoiceId == id);
+                .FirstOrDefaultAsync(m => m.InvoiceId == id && m.ClinicId == currentClinicId);
 
             if (invoice == null) return NotFound();
 
@@ -274,7 +283,8 @@ namespace WebApplication1.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var invoice = await _context.Invoices.FindAsync(id);
+            var currentClinicId = User.GetClinicId();
+            var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceId == id && i.ClinicId == currentClinicId);
             if (invoice != null)
             {
                 _context.Invoices.Remove(invoice);

@@ -47,7 +47,7 @@ namespace WebApplication1.Services
                 var smtpUser = _config["SmtpSettings:SenderEmail"] ?? "hadihaitham777@gmail.com";
                 var smtpPass = _config["SmtpSettings:Password"] ?? "rzflzwnilhozdtwp";
                 var fromAddress = _config["SmtpSettings:SenderEmail"] ?? "hadihaitham777@gmail.com";
-                var fromName = _config["SmtpSettings:SenderName"] ?? "ClinicFlow Systems";
+                var fromName = _config["SmtpSettings:SenderName"] ?? "ClinicFlow";
                 var enableSsl = !bool.TryParse(_config["SmtpSettings:EnableSsl"], out var ssl) || ssl;
 
                 int.TryParse(smtpPortStr, out int smtpPort);
@@ -83,18 +83,61 @@ namespace WebApplication1.Services
 
         public async Task<bool> SendOtpEmailAsync(string toEmail, string otpCode, string recipientName = "")
         {
-            var subject = "رمز التحقق لتفعيل حساب العيادة - ClinicFlow";
+            var subject = "رمز التحقق لتفعيل عيادتك | ClinicFlow OTP Verification";
+
+            var greeting = string.IsNullOrWhiteSpace(recipientName) ? "مرحباً بك،" : $"مرحباً د. {recipientName}،";
 
             var body = $@"
-                <div style='direction: rtl; font-family: sans-serif; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;'>
-                    <h2 style='color: #059669;'>مرحباً بك في ClinicFlow</h2>
-                    <p>رمز التحقق لتفعيل حساب العيادة الخاص بك هو:</p>
-                    <div style='font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #059669; padding: 10px 0;'>{otpCode}</div>
-                    <p style='color: #6b7280; font-size: 13px;'>هذا الرمز صالح لمدة 10 دقائق فقط.</p>
-                </div>";
-
-            // Always log OTP to Console / Terminal as a safety fallback
-            Console.WriteLine($"\n[REGISTRATION OTP]: {otpCode} for {toEmail}\n");
+<!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>ClinicFlow OTP</title>
+</head>
+<body style='margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, ""Segoe UI"", Roboto, Helvetica, Arial, sans-serif; color: #0f172a;'>
+    <table width='100%' border='0' cellspacing='0' cellpadding='0' style='background-color: #f8fafc; padding: 40px 10px;'>
+        <tr>
+            <td align='center'>
+                <table width='100%' border='0' cellspacing='0' cellpadding='0' style='max-width: 520px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);'>
+                    <!-- Header -->
+                    <tr>
+                        <td style='background: linear-gradient(135deg, #064e3b 0%, #059669 100%); padding: 32px 24px; text-align: center;'>
+                            <h1 style='margin: 0; color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;'>ClinicFlow</h1>
+                            <p style='margin: 6px 0 0; color: #a7f3d0; font-size: 14px;'>النظام الطبي المتكامل لإدارة العيادات والمراكز</p>
+                        </td>
+                    </tr>
+                    <!-- Body -->
+                    <tr>
+                        <td style='padding: 36px 32px; direction: rtl; text-align: right;'>
+                            <h2 style='margin: 0 0 12px; font-size: 18px; color: #0f172a; font-weight: 700;'>{greeting}</h2>
+                            <p style='margin: 0 0 24px; font-size: 14.5px; color: #475569; line-height: 1.6;'>
+                                شكراً لانضمامك إلى ClinicFlow. استخدم رمز التحقق التالي لتأكيد بريدك الإلكتروني وتفعيل حساب العيادة الخاص بك:
+                            </p>
+                            <!-- OTP Box -->
+                            <div style='background-color: #f0fdf4; border: 2px dashed #10b981; border-radius: 12px; padding: 24px; text-align: center; margin: 24px 0;'>
+                                <span style='font-family: monospace, Courier; font-size: 38px; font-weight: 800; letter-spacing: 12px; color: #065f46; display: inline-block; padding-left: 12px;'>{otpCode}</span>
+                                <div style='margin-top: 10px; font-size: 13px; color: #059669; font-weight: 600;'>
+                                    ⏱ هذا الرمز صالح لمدة 10 دقائق فقط
+                                </div>
+                            </div>
+                            <p style='margin: 0 0 8px; font-size: 13.5px; color: #64748b; line-height: 1.5;'>
+                                إذا لم تقم بطلب تسجيل هذا الحساب، يرجى تجاهل هذا البريد الإلكتروني. لن يتم تفعيل الحساب بدون إدخال هذا الرمز.
+                            </p>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td style='background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8;'>
+                            &copy; {DateTime.UtcNow.Year} ClinicFlow Health Systems · جميع الحقوق محفوظة
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>";
 
             _logger.LogInformation("[EmailService] Sending live OTP email to {To}", toEmail);
             var sent = await SendEmailAsync(toEmail, subject, body);

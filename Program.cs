@@ -84,12 +84,15 @@ internal class Program
         builder.Services.AddSingleton<ITelegramSessionStore, TelegramSessionStore>();
         builder.Services.AddScoped<ITelegramBotService, TelegramBotService>();
 
+        // Add HttpContextAccessor for multi-tenancy context resolution
+        builder.Services.AddHttpContextAccessor();
+
         // 1. Database Connection
         builder.Services.AddDbContext<ClinicDbContext>(options =>
              options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
         // 2. ASP.NET Core Identity Configuration
-        builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+        builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         {
             // Requirement for unique email across all user accounts
             options.User.RequireUniqueEmail = true;
@@ -104,7 +107,7 @@ internal class Program
             // إعدادات القفل التلقائي للحساب عند الإدخال الخاطئ المتكرر
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
             options.Lockout.MaxFailedAccessAttempts = 5;
-            options.Lockout.AllowedForNewUsers = false; // Prevent lockout for seeded admin account
+            options.Lockout.AllowedForNewUsers = false;
         })
             .AddEntityFrameworkStores<ClinicDbContext>()
             .AddDefaultTokenProviders();
@@ -192,104 +195,8 @@ internal class Program
         app.MapControllers();
 
         // ==========================================
-        // 🔥 تلقيم قاعدة البيانات بالبيانات الأساسية (Data Seeding)
-        // ==========================================
-        using (var scope = app.Services.CreateScope())
-        {
-            var services = scope.ServiceProvider;
-            try
-            {
-                var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-                var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
-
-                // 1. إنشاء الأدوار الأساسية إذا لم تكن موجودة
-                string[] roleNames = { "SuperAdmin", "Admin", "Doctor", "Receptionist" };
-                foreach (var roleName in roleNames)
-                {
-                    if (!await roleManager.RoleExistsAsync(roleName))
-                    {
-                        await roleManager.CreateAsync(new IdentityRole(roleName));
-                    }
-                }
-
-                // Immediate cleanup of specified accounts if they exist in AspNetUsers
-                var cleanupEmails = new[] { "haithammarzouqa@gmail.com", "marzouqah05@outlook.com" };
-                var dbContext = services.GetRequiredService<ClinicDbContext>();
-                foreach (var targetEmail in cleanupEmails)
-                {
-                    var staleUser = await userManager.FindByEmailAsync(targetEmail) ?? await userManager.FindByNameAsync(targetEmail);
-                    if (staleUser != null)
-                    {
-                        var sessions = await dbContext.UserSessionLogs.Where(s => s.UserId == staleUser.Id).ToListAsync();
-                        if (sessions.Count > 0)
-                        {
-                            dbContext.UserSessionLogs.RemoveRange(sessions);
-                            await dbContext.SaveChangesAsync();
-                        }
-                        await userManager.DeleteAsync(staleUser);
-                    }
-                }
-
-                // 2. إنشاء حساب SuperAdmin الافتراضي للدخول الأول (admin@medicare.com)
-                string adminUsername = "admin";
-                string adminEmail = "admin@medicare.com";
-                string adminPassword = "Admin123!"; // Must match Identity password policy
-
-                var adminUser = await userManager.FindByNameAsync(adminUsername) ?? await userManager.FindByEmailAsync(adminEmail);
-                if (adminUser == null)
-                {
-                    // ── Create new SuperAdmin user ────────────────────────────────
-                    var newAdmin = new IdentityUser
-                    {
-                        UserName = adminUsername,
-                        Email = adminEmail,
-                        EmailConfirmed = true
-                    };
-
-                    var createResult = await userManager.CreateAsync(newAdmin, adminPassword);
-                    if (createResult.Succeeded)
-                    {
-                        await userManager.AddToRoleAsync(newAdmin, "SuperAdmin");
-                        await userManager.AddToRoleAsync(newAdmin, "Admin");
-                        await userManager.AddClaimAsync(newAdmin, new System.Security.Claims.Claim("ClinicId", WebApplication1.Services.TenantExtensions.DefaultClinicId.ToString()));
-                    }
-                }
-                else
-                {
-                    // ── Reset existing admin: unlock + force-set password ──── 
-                    await userManager.SetLockoutEndDateAsync(adminUser, null);
-                    await userManager.ResetAccessFailedCountAsync(adminUser);
-
-                    await userManager.RemovePasswordAsync(adminUser);
-                    await userManager.AddPasswordAsync(adminUser, adminPassword);
-
-                    if (!await userManager.IsInRoleAsync(adminUser, "SuperAdmin"))
-                    {
-                        await userManager.AddToRoleAsync(adminUser, "SuperAdmin");
-                    }
-                    if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
-                    {
-                        await userManager.AddToRoleAsync(adminUser, "Admin");
-                    }
-
-                    var adminClaims = await userManager.GetClaimsAsync(adminUser);
-                    if (!adminClaims.Any(c => c.Type == "ClinicId"))
-                    {
-                        await userManager.AddClaimAsync(adminUser, new System.Security.Claims.Claim("ClinicId", WebApplication1.Services.TenantExtensions.DefaultClinicId.ToString()));
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                var logger = services.GetRequiredService<ILogger<Program>>();
-                logger.LogError(ex, "حدث خطأ أثناء تلقيم الأدوار وحساب المدير الافتراضي.");
-            }
-        }
-        // ==========================================
-
-        // ==========================================
-        // Data Seeding: Runs ONLY ONCE on an empty database.
-        // STOP re-seeding demo users/records if they were deleted.
+        // Clean Slate Initialization: Schema verification, permanent database purge & default roles only
+        // Strictly ZERO demo accounts or demo clinics seeded.
         // ==========================================
         using (var scope = app.Services.CreateScope())
         {
@@ -297,38 +204,15 @@ internal class Program
             try
             {
                 var context = services.GetRequiredService<ClinicDbContext>();
+                var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
                 var logger = services.GetRequiredService<ILogger<Program>>();
 
-                // Only seed demo data if the database has NO departments and NO clinics yet
-                var hasClinics = await context.Clinics.AnyAsync();
-                var hasDepartments = await context.Departments.AnyAsync();
-
-                if (!hasClinics || !hasDepartments)
-                {
-                    logger.LogInformation("[Seed] Initializing base database schema & demo seed once...");
-                    await DbInitializer.SeedAsync(context, logger);
-                }
-                else
-                {
-                    logger.LogInformation("[Seed] Database already seeded. Skipping recurring demo data seeding.");
-                }
+                await DbInitializer.InitializeAsync(context, roleManager, logger);
             }
             catch (Exception ex)
             {
                 var logger = services.GetRequiredService<ILogger<Program>>();
-                logger.LogError(ex, "[Seed] Fatal error during clinic data seeding check.");
-            }
-
-            // Step 4: Seed default ClinicSettings key-value pairs (only if table is empty)
-            try
-            {
-                var settingsService = services.GetRequiredService<ISettingsService>();
-                await settingsService.SeedDefaultSettingsIfEmptyAsync();
-            }
-            catch (Exception ex)
-            {
-                var logger = services.GetRequiredService<ILogger<Program>>();
-                logger.LogError(ex, "[Seed] Error seeding default ClinicSettings.");
+                logger.LogError(ex, "[CleanSlate] Error during database clean slate initialization.");
             }
         }
         // ==========================================

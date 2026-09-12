@@ -153,8 +153,9 @@ namespace WebApplication1.Controllers
                 return NotFound();
             }
 
+            var currentClinicId = User.GetClinicId();
             var department = await _context.Departments
-                .FirstOrDefaultAsync(m => m.DepartmentId == id);
+                .FirstOrDefaultAsync(m => m.DepartmentId == id && m.ClinicId == currentClinicId);
 
             if (department == null)
             {
@@ -194,7 +195,8 @@ namespace WebApplication1.Controllers
                 return NotFound();
             }
 
-            var department = await _context.Departments.FindAsync(id);
+            var currentClinicId = User.GetClinicId();
+            var department = await _context.Departments.FirstOrDefaultAsync(d => d.DepartmentId == id && d.ClinicId == currentClinicId);
             if (department == null)
             {
                 return NotFound();
@@ -213,11 +215,20 @@ namespace WebApplication1.Controllers
                 return NotFound();
             }
 
+            var currentClinicId = User.GetClinicId();
+            var existing = await _context.Departments.FirstOrDefaultAsync(d => d.DepartmentId == id && d.ClinicId == currentClinicId);
+            if (existing == null)
+            {
+                return NotFound();
+            }
+
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Update(department);
+                    existing.DepartmentName = department.DepartmentName;
+                    existing.DepartmentAbbr = department.DepartmentAbbr;
+                    _context.Update(existing);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
@@ -246,9 +257,10 @@ namespace WebApplication1.Controllers
                 return NotFound();
             }
 
+            var currentClinicId = User.GetClinicId();
             var department = await _context.Departments
                 .Include(d => d.Doctors)
-                .FirstOrDefaultAsync(m => m.DepartmentId == id);
+                .FirstOrDefaultAsync(m => m.DepartmentId == id && m.ClinicId == currentClinicId);
 
             if (department == null)
             {
@@ -263,9 +275,10 @@ namespace WebApplication1.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            var currentClinicId = User.GetClinicId();
             var department = await _context.Departments
                 .Include(d => d.Doctors)
-                .FirstOrDefaultAsync(d => d.DepartmentId == id);
+                .FirstOrDefaultAsync(d => d.DepartmentId == id && d.ClinicId == currentClinicId);
 
             if (department == null)
             {
