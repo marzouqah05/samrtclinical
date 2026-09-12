@@ -34,19 +34,19 @@
         </div>
         <div class="flex items-center gap-2.5 flex-wrap">
             <!-- 📥 Import Doctors Button -->
-            <button type="button" class="bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#importDoctorsModal" title="@T("استيراد بيانات الأطباء من CSV", "Bulk import doctors from CSV")">
-                <i class="fa-solid fa-file-import text-[#49665A]"></i>
+            <button type="button" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700/80 font-medium px-4 py-2 rounded-lg text-sm transition inline-flex items-center gap-2 shadow-sm cursor-pointer" data-bs-toggle="modal" data-bs-target="#importDoctorsModal" title="@T("استيراد بيانات الأطباء من CSV", "Bulk import doctors from CSV")">
+                <i class="fa-solid fa-file-import text-slate-500 dark:text-slate-400"></i>
                 <span>@T("استيراد أطباء", "Import Doctors")</span>
             </button>
 
             <!-- 📤 Export Doctors Button -->
-            <a asp-action="Export" class="bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-2 shadow-sm" title="@T("تصدير جميع الأطباء إلى CSV", "Export all doctors to CSV")">
+            <a asp-action="Export" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700/80 font-medium px-4 py-2 rounded-lg text-sm transition inline-flex items-center gap-2 shadow-sm" title="@T("تصدير جميع الأطباء إلى CSV", "Export all doctors to CSV")">
                 <i class="fa-solid fa-file-excel text-emerald-500"></i>
                 <span>@T("تصدير CSV", "Export to CSV")</span>
             </a>
 
             <!-- ➕ Add Doctor Button -->
-            <a asp-action="Create" class="px-4 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl transition flex items-center gap-2 shadow-sm">
+            <a asp-action="Create" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-5 py-2.5 rounded-lg shadow-sm transition active:scale-95 inline-flex items-center gap-2 text-sm">
                 <i class="fa-solid fa-plus text-xs"></i>
                 <span>@T("إضافة طبيب جديد", "Add New Doctor")</span>
             </a>
@@ -181,26 +181,27 @@
 
                                 <!-- أزرار التحكم -->
                                 <td class="py-3.5 text-end">
-                                    <div class="flex items-center justify-end gap-1.5 pe-6">
+                                    <div class="inline-flex items-center gap-1.5 pe-6">
                                         <a asp-action="Edit" asp-route-id="@item.DoctorId"
-                                           class="px-2.5 py-1 rounded-lg text-xs bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] flex items-center gap-1.5 transition"
+                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:text-white"
                                            title="@T("تعديل", "Edit")">
-                                            <i class="fa-solid fa-pen text-[10px] text-[#49665A]"></i>
+                                            <i class="fa-solid fa-pen text-[10px]"></i>
                                             <span>@T("تعديل", "Edit")</span>
                                         </a>
                                         <a asp-action="Details" asp-route-id="@item.DoctorId"
-                                           class="px-2.5 py-1 rounded-lg text-xs bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] flex items-center gap-1.5 transition"
+                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm bg-white border border-slate-200 text-cyan-600 hover:bg-cyan-50 hover:text-cyan-700 dark:bg-slate-800 dark:border-slate-700 dark:text-cyan-400 dark:hover:bg-slate-700 dark:hover:text-cyan-300"
                                            title="@T("تفاصيل", "Details")">
-                                            <i class="fa-solid fa-circle-info text-[10px] text-[#49665A]"></i>
+                                            <i class="fa-solid fa-circle-info text-[10px]"></i>
                                             <span>@T("تفاصيل", "Details")</span>
                                         </a>
 
                                         <form asp-action="Delete" asp-route-id="@item.DoctorId" method="post" class="inline m-0">
                                             @Html.AntiForgeryToken()
                                             <button type="submit"
-                                                    class="w-7 h-7 flex items-center justify-center rounded-lg border border-rose-300 dark:border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs transition"
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:bg-rose-950/40 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-900/60 dark:hover:text-rose-200"
                                                     onclick="return confirm('@T("هل أنت متأكد من حذف الدكتور بشكل نهائي?", "Are you sure you want to permanently delete Dr. " + item.DoctorName + "?")');" title="@T("حذف", "Delete")">
                                                 <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                                <span>@T("حذف", "Delete")</span>
                                             </button>
                                         </form>
                                     </div>
@@ -224,93 +225,219 @@
 
 </div>
 
-@* ─── 📥 Import Doctors Modal ─── *@
+@* ─── 📥 Import Doctors Modal (Strict SaaS Medical UI) ─── *@
 <div class="modal fade" id="importDoctorsModal" tabindex="-1" aria-labelledby="importDoctorsModalLabel" aria-hidden="true" dir="@(_isAr ? "rtl" : "ltr")">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow rounded-4 p-4 bg-white">
+        <div class="modal-content rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-8 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 overflow-hidden text-start">
+            
             <!-- Header -->
-            <div class="d-flex justify-content-between align-items-start mb-4">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="bg-success bg-opacity-10 text-success rounded-3 p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
-                        <i class="bi bi-cloud-arrow-up-fill fs-4"></i>
+            <div class="flex items-start justify-between gap-4 mb-6">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
                     </div>
                     <div>
-                        <h5 class="fw-bold mb-0 text-dark" id="importDoctorsModalLabel">
-                            @T("استيراد الأطباء (Bulk Import)", "Bulk Import Doctors")
+                        <h5 class="text-slate-900 dark:text-white font-bold text-lg m-0" id="importDoctorsModalLabel">
+                            @T("استيراد بيانات الأطباء دفعة واحدة", "Bulk Import Doctors")
                         </h5>
-                        <p class="text-muted small mb-0">
-                            @T("رفع ملف CSV أو Excel لتسجيل البيانات دفعة واحدة", "Upload CSV or Excel file to record multiple records at once")
+                        <p class="text-slate-500 dark:text-slate-400 font-normal text-xs sm:text-sm m-0 mt-0.5">
+                            @T("رفع ملف CSV أو Excel لإضافة وتحديث بيانات الأطباء سريعاً", "Upload CSV or Excel file to quickly import or update doctor records")
                         </p>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-0 bg-transparent cursor-pointer" data-bs-dismiss="modal" aria-label="Close">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
 
-            <form method="post" enctype="multipart/form-data" asp-action="Import">
+            <form method="post" enctype="multipart/form-data" asp-action="Import" id="importDoctorsForm">
                 @Html.AntiForgeryToken()
 
-                <!-- Template Download Box -->
-                <div class="border rounded-3 p-3 mb-4 bg-white" style="border-color: #e2e8f0 !important;">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3" style="width: 100%;">
-                        <!-- Right side: Green File Icon + Title -->
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="bg-success bg-opacity-10 text-success rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 42px; height: 42px;">
-                                <i class="bi bi-file-earmark-spreadsheet-fill fs-4"></i>
+                <!-- Template Download Banner -->
+                <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0 font-bold font-mono text-xs">
+                            CSV
+                        </div>
+                        <div>
+                            <div class="text-slate-900 dark:text-slate-100 font-semibold text-sm">
+                                @T("قالب بيانات الأطباء القياسي", "Standard Doctors Data Template")
                             </div>
-                            <div>
-                                <div class="fw-bold text-dark fs-6 mb-0">@T("قالب الأطباء الجاهز", "Doctors Ready Template")</div>
-                                <div class="text-muted small">@T("تحميل ملف CSV بالأعمدة المطلوبة", "Download CSV template with required columns")</div>
+                            <div class="text-slate-500 dark:text-slate-400 font-normal text-xs mt-0.5">
+                                @T("حمّل القالب المعتمد للتعرف على صيغة الأعمدة والبيانات المطلوبة", "Download the verified template to match required column headers and formatting")
                             </div>
                         </div>
+                    </div>
+                    <a href="@Url.Action("DownloadTemplate")" class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-medium text-xs transition-colors shrink-0">
+                        <i class="fa-solid fa-download text-xs text-emerald-600 dark:text-emerald-400"></i>
+                        <span>@T("تحميل قالب CSV", "Download CSV Template")</span>
+                    </a>
+                </div>
 
-                        <!-- Left side: Download Button -->
-                        <div class="flex-shrink-0">
-                            <a href="@Url.Action("DownloadTemplate")" class="btn btn-sm btn-outline-secondary px-3 py-2 rounded-pill fw-semibold border bg-white text-dark shadow-sm">
-                                <i class="bi bi-download me-1 text-success"></i> @T("تحميل القالب", "Download Template")
-                            </a>
+                <!-- Dropzone Component -->
+                <div class="mb-6">
+                    <div id="doctorDropzone"
+                         class="relative border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-2xl p-8 text-center cursor-pointer transition bg-slate-50/50 dark:bg-slate-800/30 group">
+                        
+                        <input type="file" id="doctorFileInput" name="file" class="hidden" accept=".csv, .xlsx, .xls" required onchange="handleDoctorFileSelected(this)" />
+                        
+                        <!-- Empty / Prompt State -->
+                        <div id="doctorDropzonePrompt" class="py-2">
+                            <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-950/50 text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 flex items-center justify-center transition">
+                                <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+                            </div>
+                            <p class="text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+                                <span class="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline">@T("اضغط لتصفح الملف", "Click to browse")</span>
+                                @T("أو اسحب وأفلت الملف هنا", "or drag and drop your file here")
+                            </p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 m-0">
+                                @T("الصيغ المدعومة: .csv, .xlsx (الحد الأقصى 10MB)", "Supported formats: .csv, .xlsx (Max 10MB)")
+                            </p>
+                        </div>
+
+                        <!-- Selected File State -->
+                        <div id="doctorDropzoneFileSelected" class="hidden flex items-center justify-between p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-start shadow-sm">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                    <i class="fa-solid fa-file-csv text-lg"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <p id="doctorSelectedFileName" class="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate m-0"></p>
+                                    <p id="doctorSelectedFileSize" class="text-xs text-slate-500 dark:text-slate-400 m-0 mt-0.5"></p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <button type="button" onclick="event.stopPropagation(); document.getElementById('doctorFileInput').click();" class="px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border-0 bg-transparent cursor-pointer">
+                                    @T("تغيير", "Change")
+                                </button>
+                                <button type="button" onclick="event.stopPropagation(); removeDoctorSelectedFile();" class="p-1.5 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border-0 bg-transparent cursor-pointer" title="@T("إزالة الملف", "Remove file")">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- File Input -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold text-dark small mb-1">* @T("اختر ملف CSV أو Excel:", "Select CSV or Excel file:")</label>
-                    <input type="file" name="file" class="form-control form-control-lg fs-6 rounded-3" accept=".csv, .xlsx, .xls" required />
+                <!-- Required Specifications as Pill Badges -->
+                <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/50 p-4 mb-6">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                            @T("الأعمدة المطلوبة في الملف ومواصفاتها:", "Required Columns Specifications:")
+                        </span>
+                    </div>
+                    <div class="flex flex-wrap gap-2.5">
+                        <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 gap-1.5">
+                            <span class="font-bold text-emerald-600 dark:text-emerald-400">FullName</span>
+                            <span class="text-[11px] opacity-75">(@T("مطلوب", "Required"))</span>
+                        </div>
+                        <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 gap-1.5">
+                            <span class="font-bold text-emerald-600 dark:text-emerald-400">Specialization</span>
+                            <span class="text-[11px] opacity-75">(@T("مطلوب", "Required"))</span>
+                        </div>
+                        <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 gap-1.5">
+                            <span class="font-bold text-emerald-600 dark:text-emerald-400">Phone</span>
+                            <span class="text-[11px] opacity-75">(@T("مطلوب", "Required"))</span>
+                        </div>
+                        <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 gap-1.5">
+                            <span class="font-bold text-slate-600 dark:text-slate-400">DepartmentName</span>
+                            <span class="text-[11px] opacity-75">(@T("اختياري / ينشأ تلقائياً", "Optional / Auto-created"))</span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Required Columns Guide -->
-                <div class="rounded-3 p-3 mb-4" style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
-                    <div class="d-flex align-items-center gap-2 mb-2 text-dark fw-bold small">
-                        <i class="bi bi-info-circle-fill text-secondary"></i>
-                        <span>@T("الأعمدة المطلوبة في الملف:", "Required Columns in File:")</span>
-                    </div>
-                    <div class="row g-2 text-secondary small">
-                        <div class="col-md-6">
-                            <span class="fw-bold text-dark">FullName:</span> @T("اسم الطبيب بالكامل (3 - 150 حرفاً)", "Doctor Full Name (3 - 150 characters)")
-                        </div>
-                        <div class="col-md-6">
-                            <span class="fw-bold text-dark">Specialization:</span> @T("التخصص الطبي للطبيب", "Medical Specialization")
-                        </div>
-                        <div class="col-md-6">
-                            <span class="fw-bold text-dark">Phone:</span> @T("رقم هاتف الطبيب للتواصل", "Doctor Phone / Mobile")
-                        </div>
-                        <div class="col-md-6">
-                            <span class="fw-bold text-dark">DepartmentName:</span> @T("اسم القسم التابع له (تلقائي إن لم يتوفر)", "Department Name (auto-created if not found)")
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action Buttons Footer -->
-                <div class="d-flex justify-content-start align-items-center gap-2 pt-2 border-top">
-                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm d-inline-flex align-items-center gap-2">
-                        <i class="bi bi-cloud-arrow-up"></i>
-                        <span>@T("بدء الاستيراد", "Start Import")</span>
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary px-4 py-2 rounded-pill fw-semibold" data-bs-dismiss="modal">
+                <!-- Modal Actions Footer -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <button type="button" class="border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-4 py-2.5 rounded-lg text-sm transition cursor-pointer" data-bs-dismiss="modal">
                         @T("إلغاء", "Cancel")
+                    </button>
+                    <button type="submit" id="btnSubmitDoctorImport"
+                            class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-5 py-2.5 rounded-lg shadow-sm inline-flex items-center gap-2 border-0 cursor-pointer text-sm transition active:scale-95">
+                        <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
+                        <span>@T("بدء الاستيراد", "Start Import")</span>
                     </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const dropzone = document.getElementById('doctorDropzone');
+            const fileInput = document.getElementById('doctorFileInput');
+
+            if (dropzone && fileInput) {
+                dropzone.addEventListener('click', function (e) {
+                    if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                        fileInput.click();
+                    }
+                });
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropzone.addEventListener(eventName, function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropzone.classList.add('border-emerald-500', 'bg-emerald-50/20');
+                    });
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropzone.addEventListener(eventName, function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropzone.classList.remove('border-emerald-500', 'bg-emerald-50/20');
+                    });
+                });
+
+                dropzone.addEventListener('drop', function (e) {
+                    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        fileInput.files = e.dataTransfer.files;
+                        handleDoctorFileSelected(fileInput);
+                    }
+                });
+            }
+        });
+
+        function handleDoctorFileSelected(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const nameEl = document.getElementById('doctorSelectedFileName');
+                const sizeEl = document.getElementById('doctorSelectedFileSize');
+                const promptEl = document.getElementById('doctorDropzonePrompt');
+                const selectedEl = document.getElementById('doctorDropzoneFileSelected');
+
+                if (nameEl) nameEl.textContent = file.name;
+                if (sizeEl) {
+                    const sizeKb = (file.size / 1024).toFixed(1);
+                    const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+                    sizeEl.textContent = file.size > 1024 * 1024 ? `${sizeMb} MB` : `${sizeKb} KB`;
+                }
+
+                if (promptEl) promptEl.classList.add('hidden');
+                if (selectedEl) {
+                    selectedEl.classList.remove('hidden');
+                    selectedEl.classList.add('flex');
+                }
+            }
+        }
+
+        function removeDoctorSelectedFile() {
+            const fileInput = document.getElementById('doctorFileInput');
+            const promptEl = document.getElementById('doctorDropzonePrompt');
+            const selectedEl = document.getElementById('doctorDropzoneFileSelected');
+
+            if (fileInput) fileInput.value = '';
+            if (promptEl) promptEl.classList.remove('hidden');
+            if (selectedEl) {
+                selectedEl.classList.add('hidden');
+                selectedEl.classList.remove('flex');
+            }
+        }
+    </script>
+}
