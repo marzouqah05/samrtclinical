@@ -50,12 +50,11 @@
             </a>
 
             <!-- ➕ Add New Patient Button -->
-            <button type="button"
-               class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer border-0"
-               data-bs-toggle="modal" data-bs-target="#addPatientModal">
+            <a asp-action="Create"
+               class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg shadow-sm hover:shadow transition-colors">
                 <i class="fa-solid fa-user-plus text-sm"></i>
                 <span>@T("إضافة مريض جديد", "Add New Patient")</span>
-            </button>
+            </a>
         </div>
     </div>
 
@@ -215,29 +214,29 @@
     </div>
 </div>
 
-@* ─── 📥 Import Patients Modal (Strict SaaS Medical UI) ─── *@
+@* ─── 📥 Import Patients Modal (Strict SaaS Medical UI - High Contrast) ─── *@
 <div class="modal fade" id="importPatientsModal" tabindex="-1" aria-labelledby="importPatientsModalLabel" aria-hidden="true" dir="@(_isAr ? "rtl" : "ltr")">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 bg-white overflow-hidden">
+        <div class="modal-content rounded-2xl border border-slate-700 shadow-2xl p-6 sm:p-8 bg-slate-900 text-slate-100 overflow-hidden">
             
             <!-- Header -->
             <div class="flex items-start justify-between gap-4 mb-6">
                 <div class="flex items-center gap-3.5">
-                    <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                    <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
                         <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
                     </div>
                     <div>
-                        <h5 class="font-semibold text-slate-900 text-lg m-0" id="importPatientsModalLabel">
+                        <h5 class="text-white font-bold text-lg m-0" id="importPatientsModalLabel">
                             @T("استيراد بيانات المرضى دفعة واحدة", "Bulk Import Patients")
                         </h5>
-                        <p class="text-sm text-slate-500 m-0 mt-0.5">
+                        <p class="text-slate-300 font-normal text-xs sm:text-sm m-0 mt-0.5">
                             @T("رفع ملف CSV أو Excel لإضافة وتحديث سجلات المرضى سريعاً", "Upload CSV or Excel file to quickly import or update patient records")
                         </p>
                     </div>
                 </div>
-                <button type="button" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors" data-bs-dismiss="modal" aria-label="Close">
+                <button type="button" class="text-slate-400 hover:text-slate-200 p-2 rounded-lg hover:bg-slate-800 transition-colors" data-bs-dismiss="modal" aria-label="Close">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -248,22 +247,22 @@
                 @Html.AntiForgeryToken()
 
                 <!-- Template Download Banner -->
-                <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                <div class="rounded-xl border border-slate-700 bg-slate-800/60 p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shrink-0 font-bold font-mono text-xs">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0 font-bold font-mono text-xs">
                             CSV
                         </div>
                         <div>
-                            <div class="text-sm font-semibold text-slate-900">
+                            <div class="text-slate-100 font-semibold text-sm">
                                 @T("قالب بيانات المرضى القياسي", "Standard Patient Data Template")
                             </div>
-                            <div class="text-xs text-slate-500 mt-0.5">
+                            <div class="text-slate-300 font-normal text-xs mt-0.5">
                                 @T("حمّل القالب المعتمد للتعرف على صيغة الأعمدة وترتيبها المطلوب", "Download the verified template to match required column headers and formatting")
                             </div>
                         </div>
                     </div>
-                    <a href="@Url.Action("DownloadTemplate")" class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl border border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold transition-colors shrink-0">
-                        <svg class="w-4 h-4 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <a href="@Url.Action("DownloadTemplate")" class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 font-medium text-xs transition-colors shrink-0">
+                        <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                         <span>@T("تحميل قالب CSV", "Download CSV Template")</span>
@@ -273,19 +272,19 @@
                 <!-- Dropzone / File Upload -->
                 <div class="mb-6">
                     <div id="patientDropzone"
-                         class="relative border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-6 text-center cursor-pointer transition-colors bg-slate-50/30 hover:bg-blue-50/20 group">
+                         class="relative border-2 border-dashed border-slate-700 hover:border-cyan-500 rounded-xl p-6 text-center cursor-pointer transition-colors bg-slate-800/40 hover:bg-slate-800/70 group">
                         
                         <input type="file" id="patientFileInput" name="file" class="hidden" accept=".csv, .xlsx, .xls" required onchange="handlePatientFileSelected(this)" />
                         
                         <!-- Empty / Prompt State -->
                         <div id="dropzonePrompt" class="py-2">
-                            <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-slate-100 group-hover:bg-blue-100 text-slate-400 group-hover:text-blue-600 flex items-center justify-center transition-colors">
+                            <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-slate-800 group-hover:bg-cyan-950/50 text-slate-400 group-hover:text-cyan-400 flex items-center justify-center transition-colors">
                                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                 </svg>
                             </div>
-                            <p class="text-sm font-medium text-slate-800 mb-1">
-                                <span class="text-blue-600 hover:underline">@T("اضغط لتصفح الملف", "Click to browse")</span>
+                            <p class="text-sm font-medium text-slate-200 mb-1">
+                                <span class="text-cyan-400 font-medium hover:underline">@T("اضغط لتصفح الملف", "Click to browse")</span>
                                 @T("أو اسحب وأفلت الملف هنا", "or drag and drop your file here")
                             </p>
                             <p class="text-xs text-slate-400 m-0">
@@ -294,21 +293,21 @@
                         </div>
 
                         <!-- Selected File State -->
-                        <div id="dropzoneFileSelected" class="hidden flex items-center justify-between p-3.5 bg-white border border-blue-200 rounded-xl text-start shadow-xs">
+                        <div id="dropzoneFileSelected" class="hidden flex items-center justify-between p-3.5 bg-slate-800 border border-slate-700 rounded-xl text-start shadow-sm">
                             <div class="flex items-center gap-3 min-w-0">
-                                <div class="w-10 h-10 rounded-lg bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                                <div class="w-10 h-10 rounded-lg bg-emerald-950/50 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
                                     <i class="fa-solid fa-file-csv text-lg"></i>
                                 </div>
                                 <div class="min-w-0">
-                                    <p id="patientSelectedFileName" class="text-sm font-semibold text-slate-900 truncate m-0"></p>
-                                    <p id="patientSelectedFileSize" class="text-xs text-slate-500 m-0 mt-0.5"></p>
+                                    <p id="patientSelectedFileName" class="text-sm font-semibold text-slate-100 truncate m-0"></p>
+                                    <p id="patientSelectedFileSize" class="text-xs text-slate-400 m-0 mt-0.5"></p>
                                 </div>
                             </div>
                             <div class="flex items-center gap-1.5 shrink-0">
-                                <button type="button" onclick="event.stopPropagation(); document.getElementById('patientFileInput').click();" class="px-2.5 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors">
+                                <button type="button" onclick="event.stopPropagation(); document.getElementById('patientFileInput').click();" class="px-2.5 py-1 text-xs font-medium text-cyan-400 hover:text-cyan-300 hover:bg-slate-700 rounded-lg transition-colors">
                                     @T("تغيير", "Change")
                                 </button>
-                                <button type="button" onclick="event.stopPropagation(); removePatientSelectedFile();" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors" title="@T("إزالة الملف", "Remove file")">
+                                <button type="button" onclick="event.stopPropagation(); removePatientSelectedFile();" class="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-700 transition-colors" title="@T("إزالة الملف", "Remove file")">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
@@ -319,229 +318,48 @@
                 </div>
 
                 <!-- Required Columns Specs -->
-                <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-4 mb-6">
+                <div class="rounded-xl border border-slate-700 bg-slate-800/50 p-4 mb-6">
                     <div class="flex items-center gap-2 mb-3">
-                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                        <span class="text-xs font-bold text-slate-200 uppercase tracking-wider">
                             @T("الأعمدة المطلوبة في الملف ومواصفاتها:", "Required Columns Specifications:")
                         </span>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                        <div class="p-2.5 rounded-lg bg-white border border-slate-200 flex items-start gap-2">
-                            <span class="bg-slate-100 text-slate-700 font-mono text-xs px-2 py-1 rounded shrink-0 font-semibold">NationalID</span>
-                            <span class="text-xs text-slate-600 self-center">@T("10 خانات فريدة", "10 digits, Unique")</span>
+                        <div class="p-2.5 rounded-lg text-slate-200 bg-slate-800 border border-slate-700 flex items-start gap-2">
+                            <span class="bg-slate-900 text-cyan-400 font-mono text-xs px-2 py-1 rounded shrink-0 font-semibold border border-slate-700">NationalID</span>
+                            <span class="text-xs text-slate-300 self-center">@T("10 خانات فريدة", "10 digits, Unique")</span>
                         </div>
-                        <div class="p-2.5 rounded-lg bg-white border border-slate-200 flex items-start gap-2">
-                            <span class="bg-slate-100 text-slate-700 font-mono text-xs px-2 py-1 rounded shrink-0 font-semibold">FullName</span>
-                            <span class="text-xs text-slate-600 self-center">@T("مطلوب (3 - 150 حرفاً)", "Required (3-150 chars)")</span>
+                        <div class="p-2.5 rounded-lg text-slate-200 bg-slate-800 border border-slate-700 flex items-start gap-2">
+                            <span class="bg-slate-900 text-cyan-400 font-mono text-xs px-2 py-1 rounded shrink-0 font-semibold border border-slate-700">FullName</span>
+                            <span class="text-xs text-slate-300 self-center">@T("مطلوب (3 - 150 حرفاً)", "Required (3-150 chars)")</span>
                         </div>
-                        <div class="p-2.5 rounded-lg bg-white border border-slate-200 flex items-start gap-2">
-                            <span class="bg-slate-100 text-slate-700 font-mono text-xs px-2 py-1 rounded shrink-0 font-semibold">Phone</span>
-                            <span class="text-xs text-slate-600 self-center">@T("مطلوب للتواصل", "Required")</span>
+                        <div class="p-2.5 rounded-lg text-slate-200 bg-slate-800 border border-slate-700 flex items-start gap-2">
+                            <span class="bg-slate-900 text-cyan-400 font-mono text-xs px-2 py-1 rounded shrink-0 font-semibold border border-slate-700">Phone</span>
+                            <span class="text-xs text-slate-300 self-center">@T("مطلوب للتواصل", "Required")</span>
                         </div>
-                        <div class="p-2.5 rounded-lg bg-white border border-slate-200 flex items-start gap-2">
-                            <span class="bg-slate-100 text-slate-700 font-mono text-xs px-2 py-1 rounded shrink-0 font-semibold">DateOfBirth</span>
-                            <span class="text-xs text-slate-600 self-center">YYYY-MM-DD</span>
+                        <div class="p-2.5 rounded-lg text-slate-200 bg-slate-800 border border-slate-700 flex items-start gap-2">
+                            <span class="bg-slate-900 text-cyan-400 font-mono text-xs px-2 py-1 rounded shrink-0 font-semibold border border-slate-700">DateOfBirth</span>
+                            <span class="text-xs text-slate-300 self-center">YYYY-MM-DD</span>
                         </div>
-                        <div class="p-2.5 rounded-lg bg-white border border-slate-200 flex items-start gap-2 sm:col-span-2 lg:col-span-2">
-                            <span class="bg-slate-100 text-slate-700 font-mono text-xs px-2 py-1 rounded shrink-0 font-semibold">Gender</span>
-                            <span class="text-xs text-slate-600 self-center">Male / Female (@T("ذكر أو أنثى", "Male or Female"))</span>
+                        <div class="p-2.5 rounded-lg text-slate-200 bg-slate-800 border border-slate-700 flex items-start gap-2 sm:col-span-2 lg:col-span-2">
+                            <span class="bg-slate-900 text-cyan-400 font-mono text-xs px-2 py-1 rounded shrink-0 font-semibold border border-slate-700">Gender</span>
+                            <span class="text-xs text-slate-300 self-center">Male / Female (@T("ذكر أو أنثى", "Male or Female"))</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Actions Footer -->
-                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
-                    <button type="button" class="h-11 px-5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition" data-bs-dismiss="modal">
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-700">
+                    <button type="button" class="h-11 px-5 rounded-xl border border-slate-600 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition" data-bs-dismiss="modal">
                         @T("إلغاء", "Cancel")
                     </button>
-                    <button type="submit" id="btnSubmitPatientImport" class="h-11 px-6 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-2">
+                    <button type="submit" id="btnSubmitPatientImport" class="h-11 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-900/30 transition flex items-center gap-2 border-0 cursor-pointer">
                         <svg id="importIcon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
                         <span id="importSpinner" class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                         <span id="importText">@T("بدء الاستيراد", "Start Import")</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-@* ─── ➕ Add New Patient Modal (Strict SaaS Medical UI) ─── *@
-<div class="modal fade" id="addPatientModal" tabindex="-1" aria-labelledby="addPatientModalLabel" aria-hidden="true" dir="@(_isAr ? "rtl" : "ltr")">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl p-6 sm:p-8 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 overflow-hidden">
-            <!-- Header -->
-            <div class="flex items-center justify-between pb-5 border-b border-slate-200 dark:border-slate-800 mb-6">
-                <div class="flex items-center gap-3.5">
-                    <div class="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg shrink-0">
-                        <i class="fa-solid fa-user-plus"></i>
-                    </div>
-                    <div>
-                        <h5 class="font-bold text-slate-900 dark:text-slate-100 text-base sm:text-lg m-0" id="addPatientModalLabel">
-                            @T("إضافة مريض جديد", "Add New Patient")
-                        </h5>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 m-0 mt-0.5">
-                            @T("تسجيل مريض جديد وإنشاء الملف الطبي الإلكتروني الموحد.", "Register new patient and initialize electronic health record.")
-                        </p>
-                    </div>
-                </div>
-                <button type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" data-bs-dismiss="modal" aria-label="Close">
-                    <i class="fa-solid fa-xmark text-sm"></i>
-                </button>
-            </div>
-
-            <form asp-action="Create" method="post" id="modalPatientForm" novalidate>
-                @Html.AntiForgeryToken()
-
-                <!-- SECTION 1: Personal & Contact Information -->
-                <div class="mb-6">
-                    <div class="flex items-center gap-2 mb-3.5">
-                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs">
-                            <i class="fa-solid fa-id-card-clip"></i>
-                        </span>
-                        <h6 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 m-0">
-                            @T("البيانات الشخصية ومعلومات الاتصال", "Personal & Contact Information")
-                        </h6>
-                        <div class="flex-1 border-t border-slate-200 dark:border-slate-800 ms-2"></div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Row 1: Full Name & National ID -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                                @T("الاسم الكامل", "Full Name") <span class="text-rose-500">*</span>
-                            </label>
-                            <input name="PatientName" 
-                                   required
-                                   autocomplete="off"
-                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/75 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all" 
-                                   placeholder="@T("مثال: أحمد محمد علي", "e.g. Ahmed Ali")" />
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                                @T("الرقم الوطني / الهوية", "National ID / Iqama") <span class="text-rose-500">*</span>
-                            </label>
-                            <input name="NationalId" 
-                                   required
-                                   autocomplete="off"
-                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/75 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all" 
-                                   placeholder="@T("أدخل رقم الهوية أو الرقم الوطني", "Enter National ID number")" 
-                                   maxlength="50" />
-                        </div>
-
-                        <!-- Row 2: Date of Birth & Phone Number -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                                @T("تاريخ الميلاد", "Date of Birth") <span class="text-rose-500">*</span>
-                            </label>
-                            <input name="DOB" 
-                                   type="date" 
-                                   required
-                                   max="@todayStr" 
-                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/75 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 text-xs focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all" />
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                                @T("رقم الهاتف", "Phone Number") <span class="text-rose-500">*</span>
-                            </label>
-                            <input name="PhoneNumber" 
-                                   required
-                                   autocomplete="off"
-                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/75 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all" 
-                                   placeholder="079xxxxxxx / +962xxxxxxx" />
-                        </div>
-                    </div>
-                </div>
-
-                <!-- SECTION 2: Clinical & Medical Background -->
-                <div>
-                    <div class="flex items-center gap-2 mb-3.5">
-                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs">
-                            <i class="fa-solid fa-heart-pulse"></i>
-                        </span>
-                        <h6 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 m-0">
-                            @T("الخلفية الطبية والسريرية", "Clinical & Medical Background")
-                        </h6>
-                        <div class="flex-1 border-t border-slate-200 dark:border-slate-800 ms-2"></div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Row 3: Gender & Blood Type -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                                @T("الجنس", "Gender")
-                            </label>
-                            <select name="Gender" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/75 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 text-xs focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all">
-                                <option value="">@T("-- اختر الجنس --", "-- Select Gender --")</option>
-                                <option value="Male">@T("ذكر", "Male")</option>
-                                <option value="Female">@T("أنثى", "Female")</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                                @T("فصيلة الدم", "Blood Type")
-                            </label>
-                            <select name="BloodType" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/75 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 text-xs focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all">
-                                <option value="">@T("-- اختر فصيلة الدم --", "-- Select Blood Type --")</option>
-                                <option value="A+">A+</option>
-                                <option value="A-">A-</option>
-                                <option value="B+">B+</option>
-                                <option value="B-">B-</option>
-                                <option value="AB+">AB+</option>
-                                <option value="AB-">AB-</option>
-                                <option value="O+">O+</option>
-                                <option value="O-">O-</option>
-                            </select>
-                        </div>
-
-                        <!-- Row 4: Allergies & Chronic Diseases -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                                @T("الحساسية الدوائية / الغذائية", "Allergies")
-                            </label>
-                            <input name="Allergies" 
-                                   autocomplete="off"
-                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/75 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all" 
-                                   placeholder="@T("مثال: حساسية البنسلين، أسبيرين، لا يوجد", "e.g. Penicillin, Aspirin, None")" />
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                                @T("الأمراض المزمنة", "Chronic Diseases")
-                            </label>
-                            <input name="ChronicDiseases" 
-                                   autocomplete="off"
-                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/75 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all" 
-                                   placeholder="@T("مثال: السكري، ضغط الدم، الربو", "e.g. Diabetes, Hypertension, Asthma")" />
-                        </div>
-
-                        <!-- Row 5: Clinical Notes (Full width textarea) -->
-                        <div class="col-span-1 md:col-span-2">
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                                @T("ملاحظات سريرية وإدارية", "Clinical & Administrative Notes")
-                            </label>
-                            <textarea name="Notes" 
-                                      rows="3" 
-                                      class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/75 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all resize-y" 
-                                      placeholder="@T("أضف أي ملاحظات طبية خاصة، سوابق جراحية، أو توجيهات للطاقم الطبي...", "Add any clinical remarks, surgical history, or staff instructions...")"></textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action Buttons: Pinned Bottom Right -->
-                <div class="flex items-center justify-end gap-3 pt-5 border-t border-slate-200 dark:border-slate-800 mt-6">
-                    <button type="button" class="h-10 px-4 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer" data-bs-dismiss="modal">
-                        <i class="fa-solid fa-xmark text-xs me-1"></i>
-                        @T("إلغاء", "Cancel")
-                    </button>
-                    <button type="submit" class="h-10 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold shadow-sm hover:shadow transition-all flex items-center gap-2 border-0 cursor-pointer">
-                        <i class="fa-solid fa-user-check text-xs"></i>
-                        @T("حفظ بيانات المريض", "Save Patient")
                     </button>
                 </div>
             </form>
