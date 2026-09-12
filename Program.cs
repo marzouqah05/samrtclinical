@@ -215,39 +215,13 @@ internal class Program
                 // 2. Ensure ClinicId column exists on AspNetUsers
                 try { await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""ClinicId"" uuid NULL;"); } catch { }
 
-                // 3. Provider-specific raw SQL purge
-                var provider = context.Database.ProviderName ?? string.Empty;
-                try
-                {
-                    if (provider.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) || provider.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase))
-                    {
-                        context.Database.ExecuteSqlRaw(@"TRUNCATE TABLE ""AspNetUserRoles"", ""AspNetUserClaims"", ""AspNetUserLogins"", ""AspNetUserTokens"", ""AspNetUsers"", ""Clinics"" RESTART IDENTITY CASCADE;");
-                    }
-                    else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
-                    {
-                        context.Database.ExecuteSqlRaw("PRAGMA foreign_keys = OFF;");
-                        context.Database.ExecuteSqlRaw("DELETE FROM AspNetUserRoles; DELETE FROM AspNetUsers; DELETE FROM Clinics;");
-                        context.Database.ExecuteSqlRaw("PRAGMA foreign_keys = ON;");
-                    }
-                    else if (provider.Contains("SqlServer", StringComparison.OrdinalIgnoreCase))
-                    {
-                        context.Database.ExecuteSqlRaw("EXEC sp_MSforeachtable \"ALTER TABLE ? NOCHECK CONSTRAINT all\"; DELETE FROM AspNetUserRoles; DELETE FROM AspNetUsers; DELETE FROM Clinics; EXEC sp_MSforeachtable \"ALTER TABLE ? WITH CHECK CHECK CONSTRAINT all\";");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "[StartupPurge] Truncate notice, falling back to individual deletes.");
-                }
-
-                // 4. Also call DbInitializer for any additional cleanup & re-seeding the 4 default roles
+                // 3. Initialize default roles & necessary system seed data (preserves registered users & clinics)
                 await DbInitializer.InitializeAsync(context, userManager, roleManager, logger);
-
-                Console.WriteLine("--> [PROD RESET] AspNetUsers completely wiped. Ready for clean registration.");
             }
             catch (Exception ex)
             {
                 var logger = services.GetRequiredService<ILogger<Program>>();
-                logger.LogError(ex, "[CleanSlate] Error during database clean slate initialization.");
+                logger.LogError(ex, "[StartupInit] Error during database initialization.");
             }
         }
         // ==========================================

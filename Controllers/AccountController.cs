@@ -68,47 +68,36 @@ namespace WebApplication1.Controllers
             // Fix session leakage: ensure any stale session or cookies are cleared before verifying new credentials
             await _signInManager.SignOutAsync();
 
-            var inputIdentifier = model?.EmailOrUsername ?? model?.Username ?? username;
-            var inputPassword = model?.Password ?? password;
+            var identifier = model?.EmailOrUsername ?? model?.Username ?? username ?? string.Empty;
+            var inputPassword = model?.Password ?? password ?? string.Empty;
             var isRememberMe = model?.RememberMe ?? rememberMe;
 
-            if (string.IsNullOrWhiteSpace(inputIdentifier) || string.IsNullOrEmpty(inputPassword))
+            if (string.IsNullOrWhiteSpace(identifier) || string.IsNullOrEmpty(inputPassword))
             {
                 ViewBag.Error = T("الرجاء إدخال اسم المستخدم وكلمة المرور.", "Please enter your username and password.");
                 ModelState.AddModelError(string.Empty, "Invalid username or password.");
                 return View(model);
             }
 
-            var cleanIdentifier = inputIdentifier.Trim();
-            var cleanEmail = cleanIdentifier.ToLowerInvariant();
+            var cleanIdentifier = identifier.Trim();
 
-            // 1. Support Email as Login Identifier:
-            var user = await _userManager.FindByEmailAsync(cleanEmail)
-                       ?? await _userManager.FindByEmailAsync(cleanIdentifier)
-                       ?? await _userManager.FindByNameAsync(cleanIdentifier)
-                       ?? await _userManager.FindByNameAsync(cleanEmail);
+            // 1. Find user by email first:
+            var user = await _userManager.FindByEmailAsync(cleanIdentifier) 
+                       ?? await _userManager.FindByNameAsync(cleanIdentifier);
 
             if (user == null)
             {
-                Console.WriteLine($"--> [LOGIN FAILED] No user found for input: '{cleanIdentifier}'");
+                Console.WriteLine($"[LOGIN ATTEMPT] User: {cleanIdentifier} | Succeeded: False | Reason: UserNotFound");
                 ViewBag.Error = T("اسم المستخدم أو كلمة المرور غير صحيحة.", "Invalid username or password.");
                 ModelState.AddModelError(string.Empty, "Invalid username or password.");
                 return View(model);
             }
 
-            // 2. Bypass/Auto-Confirm Email Requirement for Development:
-            if (!user.EmailConfirmed)
+            // 2. If user exists but EmailConfirmed is false, force set it to true:
+            if (user != null && !user.EmailConfirmed)
             {
                 user.EmailConfirmed = true;
-                try
-                {
-                    await _userManager.UpdateAsync(user);
-                    Console.WriteLine($"--> [LOGIN] Auto-confirmed email for user: {user.UserName}");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"--> [LOGIN] Auto-confirm email notice: {ex.Message}");
-                }
+                await _userManager.UpdateAsync(user);
             }
 
             // Ensure tenant claim exists
@@ -155,7 +144,7 @@ namespace WebApplication1.Controllers
                 Console.WriteLine($"--> [LOGIN CLAIMS NOTICE] {ex.Message}");
             }
 
-            // Perform password check directly on the found user object
+            // 3. Authenticate using the resolved user.UserName:
             var result = await _signInManager.PasswordSignInAsync(
                 user.UserName!, 
                 inputPassword, 
@@ -163,15 +152,13 @@ namespace WebApplication1.Controllers
                 lockoutOnFailure: false
             );
 
-            // 3. Detailed Console Logging for Debugging & Direct Password Fallback:
+            // 4. If failed, print exact reason to console:
             if (!result.Succeeded)
             {
-                Console.WriteLine($"--> [LOGIN FAILED] User found: {user.UserName}, IsLockedOut: {await _userManager.IsLockedOutAsync(user)}, EmailConfirmed: {user.EmailConfirmed}, Result: {result}");
+                Console.WriteLine($"[LOGIN ATTEMPT] User: {user?.Email} | Succeeded: {result.Succeeded} | IsLocked: {result.IsLockedOut} | NotAllowed: {result.IsNotAllowed}");
 
-                // Direct check via UserManager to bypass any normalization or sign-in policy discrepancies
+                // Direct check via UserManager as fallback in case of sign-in policy discrepancies
                 var isPasswordCorrect = await _userManager.CheckPasswordAsync(user, inputPassword);
-                Console.WriteLine($"--> [LOGIN FALLBACK] Direct CheckPasswordAsync result: {isPasswordCorrect}");
-
                 if (isPasswordCorrect)
                 {
                     await _signInManager.SignInAsync(user, isPersistent: isRememberMe);
