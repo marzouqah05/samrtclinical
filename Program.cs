@@ -212,8 +212,9 @@ internal class Program
                 // 1. Apply migrations
                 try { await context.Database.MigrateAsync(); } catch (Exception ex) { logger.LogWarning(ex, "MigrateAsync notice"); }
 
-                // 2. Ensure ClinicId column exists on AspNetUsers
+                // 2. Ensure ClinicId column exists on AspNetUsers & Gender column on Patients
                 try { await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""ClinicId"" uuid NULL;"); } catch { }
+                try { await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""Patients"" ADD COLUMN IF NOT EXISTS ""Gender"" varchar(20) NULL;"); } catch { }
 
                 // 3. Initialize default roles & necessary system seed data (preserves registered users & clinics)
                 await DbInitializer.InitializeAsync(context, userManager, roleManager, logger);

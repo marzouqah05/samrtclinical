@@ -45,6 +45,13 @@ namespace WebApplication1.Data
                     logger.LogWarning(ex, "[DbInitializer] Notice checking/adding ClinicId to AspNetUsers.");
                 }
 
+                // Ensure Gender column exists on Patients
+                try
+                {
+                    await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""Patients"" ADD COLUMN IF NOT EXISTS ""Gender"" varchar(20) NULL;");
+                }
+                catch { }
+
                 // 3. Ensure default Identity Roles exist
                 string[] roleNames = { "SuperAdmin", "Admin", "Doctor", "Receptionist" };
                 foreach (var roleName in roleNames)

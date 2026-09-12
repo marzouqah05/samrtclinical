@@ -46,6 +46,11 @@ namespace WebApplication1.Models
         [Display(Name = "Date of Birth")]
         public DateTime DOB { get; set; }
 
+        [Display(Name = "Gender")]
+        [StringLength(20)]
+        [Column(TypeName = "varchar(20)")]
+        public string? Gender { get; set; }
+
         // --- الحقول الطبية الجديدة ---
 
         [Display(Name = "Blood Type")]

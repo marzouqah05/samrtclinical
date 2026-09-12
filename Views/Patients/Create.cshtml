@@ -8,57 +8,67 @@
 }
 
 <style>
-    .patient-form-card .form-control, 
-    .patient-form-card .form-select {
-        padding: 0.65rem 0.9rem;
+    .patient-form-card .patient-input {
+        background-color: rgba(248, 250, 252, 0.85);
+        border: 1px solid #e2e8f0;
+        color: #0f172a;
         border-radius: 0.75rem;
-        border: 1px solid #DDE3DF;
-        background-color: #F6F7F5;
-        color: #202725;
-        font-size: 0.8rem;
-        width: 100% !important;
-        transition: all 0.15s ease-in-out;
+        padding: 0.65rem 0.85rem;
+        font-size: 0.825rem;
+        width: 100%;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
     }
-
-    .patient-form-card .form-control:focus, 
-    .patient-form-card .form-select:focus {
-        background-color: #ffffff;
-        border-color: #49665A;
-        box-shadow: 0 0 0 1px #49665A;
+    .patient-form-card .patient-input::placeholder {
+        color: #94a3b8;
+    }
+    .dark .patient-form-card .patient-input {
+        background-color: rgba(30, 41, 59, 0.5);
+        border: 1px solid #334155;
+        color: #f1f5f9;
+    }
+    .dark .patient-form-card .patient-input::placeholder {
+        color: #64748b;
+    }
+    .patient-form-card .patient-input:focus {
         outline: none;
-        color: #202725;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        background-color: #ffffff;
     }
-
+    .dark .patient-form-card .patient-input:focus {
+        background-color: rgba(30, 41, 59, 0.75);
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+        color: #f8fafc;
+    }
     .patient-form-card .field-validation-error,
     .patient-form-card span.field-validation-error {
         display: block !important;
-        margin-top: 0.25rem !important;
+        margin-top: 0.35rem !important;
         font-size: 0.75rem !important;
         color: #f43f5e !important;
         width: 100% !important;
-        clear: both !important;
     }
-
     .patient-form-card .field-validation-valid {
         display: none !important;
     }
 </style>
 
-<div dir="@(_isAr ? "rtl" : "ltr")" class="py-4">
-    <!-- Main Card Container matching Appointments/Create -->
-    <div class="patient-form-card bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl p-6 sm:p-8 shadow-sm max-w-4xl mx-auto">
+<div dir="@(_isAr ? "rtl" : "ltr")" class="py-6 px-4">
+    <!-- Main Card Container -->
+    <div class="patient-form-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm max-w-4xl mx-auto">
         
         <!-- Header -->
-        <div class="flex items-center gap-3 pb-6 border-b border-[#DDE3DF] dark:border-[#2B3833] mb-6">
-            <div class="w-10 h-10 rounded-xl bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-lg shrink-0">
+        <div class="flex items-center gap-3.5 pb-6 border-b border-slate-200 dark:border-slate-800 mb-6">
+            <div class="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg shrink-0">
                 <i class="fa-solid fa-user-plus"></i>
             </div>
             <div>
-                <h2 class="text-base sm:text-lg font-bold text-[#202725] dark:text-[#EAEFEA] m-0">
+                <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 m-0">
                     @T("إضافة مريض جديد", "Add New Patient")
                 </h2>
-                <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0 mt-0.5">
-                    @T("إنشاء ملف طبي شامل وسجل أساسي للمريض في النظام.", "Create a comprehensive medical record and baseline profile for a new patient.")
+                <p class="text-xs text-slate-500 dark:text-slate-400 m-0 mt-0.5">
+                    @T("تسجيل مريض جديد وإنشاء الملف الطبي الإلكتروني في النظام.", "Register a new patient and initialize their unified electronic medical record.")
                 </p>
             </div>
         </div>
@@ -68,101 +78,168 @@
 
             @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
             {
-                <div asp-validation-summary="ModelOnly" class="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs mb-4"></div>
+                <div asp-validation-summary="ModelOnly" class="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs mb-5"></div>
             }
 
-            <!-- 2-Column Responsive Grid -->
-            <div class="row g-3">
-                <!-- Row 1: Full Name & National ID -->
-                <div class="col-md-6">
-                    <label asp-for="PatientName" class="form-label fw-semibold block text-xs text-[#202725] dark:text-[#EAEFEA] mb-1.5">
-                        <i class="fa-solid fa-user text-[#49665A] @(_isAr ? "ms-1.5" : "me-1.5")"></i>@T("الاسم الكامل", "Full Name") <span class="text-danger">*</span>
-                    </label>
-                    <input asp-for="PatientName" class="form-control w-100" placeholder="@T("مثال: أحمد علي", "e.g. Ahmed Ali")" />
-                    <span asp-validation-for="PatientName" class="text-rose-500 text-danger text-[11px] mt-1 block"></span>
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <!-- SECTION 1: Personal & Contact Information -->
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <div class="mb-7">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs">
+                        <i class="fa-solid fa-id-card-clip"></i>
+                    </span>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 m-0">
+                        @T("البيانات الشخصية ومعلومات الاتصال", "Personal & Contact Information")
+                    </h3>
+                    <div class="flex-1 border-t border-slate-200 dark:border-slate-800 ms-2"></div>
                 </div>
 
-                <div class="col-md-6">
-                    <label asp-for="NationalId" class="form-label fw-semibold block text-xs text-[#202725] dark:text-[#EAEFEA] mb-1.5">
-                        <i class="fa-solid fa-id-card text-[#49665A] @(_isAr ? "ms-1.5" : "me-1.5")"></i>@T("الرقم الوطني", "National ID") <span class="text-danger">*</span>
-                    </label>
-                    <input asp-for="NationalId" class="form-control w-100" placeholder="@T("أدخل الرقم الوطني", "Enter National ID")" maxlength="50" />
-                    <span asp-validation-for="NationalId" class="text-rose-500 text-danger text-[11px] mt-1 block"></span>
-                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Row 1: Full Name & National ID -->
+                    <div>
+                        <label asp-for="PatientName" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            @T("الاسم الكامل", "Full Name") <span class="text-rose-500">*</span>
+                        </label>
+                        <input asp-for="PatientName" 
+                               autocomplete="off"
+                               class="patient-input" 
+                               placeholder="@T("مثال: أحمد محمد علي", "e.g. Ahmed Ali")" />
+                        <span asp-validation-for="PatientName" class="text-rose-500 text-[11px] mt-1 block"></span>
+                    </div>
 
-                <!-- Row 2: Date of Birth & Phone Number -->
-                <div class="col-md-6">
-                    <label asp-for="DOB" class="form-label fw-semibold block text-xs text-[#202725] dark:text-[#EAEFEA] mb-1.5">
-                        <i class="fa-solid fa-calendar-days text-[#49665A] @(_isAr ? "ms-1.5" : "me-1.5")"></i>@T("تاريخ الميلاد", "Date of Birth") <span class="text-danger">*</span>
-                    </label>
-                    <input asp-for="DOB" type="date" max="@todayStr" class="form-control w-100" />
-                    <span asp-validation-for="DOB" class="text-rose-500 text-danger text-[11px] mt-1 block"></span>
-                </div>
+                    <div>
+                        <label asp-for="NationalId" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            @T("الرقم الوطني / الهوية", "National ID / Iqama") <span class="text-rose-500">*</span>
+                        </label>
+                        <input asp-for="NationalId" 
+                               autocomplete="off"
+                               class="patient-input" 
+                               placeholder="@T("أدخل رقم الهوية أو الرقم الوطني", "Enter National ID number")" 
+                               maxlength="50" />
+                        <span asp-validation-for="NationalId" class="text-rose-500 text-[11px] mt-1 block"></span>
+                    </div>
 
-                <div class="col-md-6">
-                    <label asp-for="PhoneNumber" class="form-label fw-semibold block text-xs text-[#202725] dark:text-[#EAEFEA] mb-1.5">
-                        <i class="fa-solid fa-phone text-[#49665A] @(_isAr ? "ms-1.5" : "me-1.5")"></i>@T("رقم الهاتف", "Phone Number") <span class="text-danger">*</span>
-                    </label>
-                    <input asp-for="PhoneNumber" class="form-control w-100" placeholder="079xxxxxxx" />
-                    <span asp-validation-for="PhoneNumber" class="text-rose-500 text-danger text-[11px] mt-1 block"></span>
-                </div>
+                    <!-- Row 2: Date of Birth & Phone Number -->
+                    <div>
+                        <label asp-for="DOB" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            @T("تاريخ الميلاد", "Date of Birth") <span class="text-rose-500">*</span>
+                        </label>
+                        <input asp-for="DOB" 
+                               type="date" 
+                               max="@todayStr" 
+                               class="patient-input" />
+                        <span asp-validation-for="DOB" class="text-rose-500 text-[11px] mt-1 block"></span>
+                    </div>
 
-                <!-- Row 3: Blood Type & Allergies -->
-                <div class="col-md-6">
-                    <label asp-for="BloodType" class="form-label fw-semibold block text-xs text-[#202725] dark:text-[#EAEFEA] mb-1.5">
-                        <i class="fa-solid fa-droplet text-[#49665A] @(_isAr ? "ms-1.5" : "me-1.5")"></i>@T("فصيلة الدم", "Blood Type")
-                    </label>
-                    <select asp-for="BloodType" class="form-select form-control w-100">
-                        <option value="">@T("-- اختر فصيلة الدم --", "-- Select Blood Type --")</option>
-                        <option value="A+">A+</option>
-                        <option value="A-">A-</option>
-                        <option value="B+">B+</option>
-                        <option value="B-">B-</option>
-                        <option value="AB+">AB+</option>
-                        <option value="AB-">AB-</option>
-                        <option value="O+">O+</option>
-                        <option value="O-">O-</option>
-                    </select>
-                    <span asp-validation-for="BloodType" class="text-rose-500 text-danger text-[11px] mt-1 block"></span>
-                </div>
-
-                <div class="col-md-6">
-                    <label asp-for="Allergies" class="form-label fw-semibold block text-xs text-[#202725] dark:text-[#EAEFEA] mb-1.5">
-                        <i class="fa-solid fa-hand-dots text-[#49665A] @(_isAr ? "ms-1.5" : "me-1.5")"></i>@T("الحساسية", "Allergies")
-                    </label>
-                    <input asp-for="Allergies" class="form-control w-100" placeholder="@T("مثال: البنسلين، أسبيرين", "e.g. Penicillin, Aspirin")" />
-                    <span asp-validation-for="Allergies" class="text-rose-500 text-danger text-[11px] mt-1 block"></span>
-                </div>
-
-                <!-- Row 4: Chronic Diseases -->
-                <div class="col-12">
-                    <label asp-for="ChronicDiseases" class="form-label fw-semibold block text-xs text-[#202725] dark:text-[#EAEFEA] mb-1.5">
-                        <i class="fa-solid fa-heart-pulse text-[#49665A] @(_isAr ? "ms-1.5" : "me-1.5")"></i>@T("الأمراض المزمنة", "Chronic Diseases")
-                    </label>
-                    <input asp-for="ChronicDiseases" class="form-control w-100" placeholder="@T("مثال: السكري، ارتفاع ضغط الدم", "e.g. Diabetes, Hypertension")" />
-                    <span asp-validation-for="ChronicDiseases" class="text-rose-500 text-danger text-[11px] mt-1 block"></span>
-                </div>
-
-                <!-- Row 5: Clinical Notes -->
-                <div class="col-12">
-                    <label asp-for="Notes" class="form-label fw-semibold block text-xs text-[#202725] dark:text-[#EAEFEA] mb-1.5">
-                        <i class="fa-solid fa-notes-medical text-[#49665A] @(_isAr ? "ms-1.5" : "me-1.5")"></i>@T("ملاحظات سريرية", "Clinical Notes")
-                    </label>
-                    <textarea asp-for="Notes" rows="3" class="form-control w-100" placeholder="@T("أضف أي ملاحظات طبية أو إدارية خاصة بملف المريض...", "Add any clinical or administrative notes regarding patient...")"></textarea>
-                    <span asp-validation-for="Notes" class="text-rose-500 text-danger text-[11px] mt-1 block"></span>
+                    <div>
+                        <label asp-for="PhoneNumber" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            @T("رقم الهاتف", "Phone Number") <span class="text-rose-500">*</span>
+                        </label>
+                        <input asp-for="PhoneNumber" 
+                               autocomplete="off"
+                               class="patient-input" 
+                               placeholder="079xxxxxxx / +962xxxxxxx" />
+                        <span asp-validation-for="PhoneNumber" class="text-rose-500 text-[11px] mt-1 block"></span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Action Buttons matching Appointments/Create -->
-            <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-[#E5E9E7] dark:border-[#2B3833] mt-6">
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <!-- SECTION 2: Clinical & Medical Background -->
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <div>
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs">
+                        <i class="fa-solid fa-heart-pulse"></i>
+                    </span>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 m-0">
+                        @T("الخلفية الطبية والسريرية", "Clinical & Medical Background")
+                    </h3>
+                    <div class="flex-1 border-t border-slate-200 dark:border-slate-800 ms-2"></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Row 3: Gender & Blood Type -->
+                    <div>
+                        <label asp-for="Gender" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            @T("الجنس", "Gender")
+                        </label>
+                        <select asp-for="Gender" class="patient-input">
+                            <option value="">@T("-- اختر الجنس --", "-- Select Gender --")</option>
+                            <option value="Male">@T("ذكر", "Male")</option>
+                            <option value="Female">@T("أنثى", "Female")</option>
+                        </select>
+                        <span asp-validation-for="Gender" class="text-rose-500 text-[11px] mt-1 block"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="BloodType" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            @T("فصيلة الدم", "Blood Type")
+                        </label>
+                        <select asp-for="BloodType" class="patient-input">
+                            <option value="">@T("-- اختر فصيلة الدم --", "-- Select Blood Type --")</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                        </select>
+                        <span asp-validation-for="BloodType" class="text-rose-500 text-[11px] mt-1 block"></span>
+                    </div>
+
+                    <!-- Row 4: Allergies & Chronic Diseases -->
+                    <div>
+                        <label asp-for="Allergies" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            @T("الحساسية الدوائية / الغذائية", "Allergies")
+                        </label>
+                        <input asp-for="Allergies" 
+                               autocomplete="off"
+                               class="patient-input" 
+                               placeholder="@T("مثال: حساسية البنسلين، أسبيرين، لا يوجد", "e.g. Penicillin, Aspirin, None")" />
+                        <span asp-validation-for="Allergies" class="text-rose-500 text-[11px] mt-1 block"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="ChronicDiseases" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            @T("الأمراض المزمنة", "Chronic Diseases")
+                        </label>
+                        <input asp-for="ChronicDiseases" 
+                               autocomplete="off"
+                               class="patient-input" 
+                               placeholder="@T("مثال: السكري، ضغط الدم، الربو", "e.g. Diabetes, Hypertension, Asthma")" />
+                        <span asp-validation-for="ChronicDiseases" class="text-rose-500 text-[11px] mt-1 block"></span>
+                    </div>
+
+                    <!-- Row 5: Clinical Notes (Full width textarea) -->
+                    <div class="col-span-1 md:col-span-2">
+                        <label asp-for="Notes" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            @T("ملاحظات سريرية وإدارية", "Clinical & Administrative Notes")
+                        </label>
+                        <textarea asp-for="Notes" 
+                                  rows="3" 
+                                  class="patient-input resize-y" 
+                                  placeholder="@T("أضف أي ملاحظات طبية خاصة، سوابق جراحية، أو توجيهات للطاقم الطبي...", "Add any clinical remarks, surgical history, or staff instructions...")"></textarea>
+                        <span asp-validation-for="Notes" class="text-rose-500 text-[11px] mt-1 block"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <!-- ACTION BUTTONS: Pinned Bottom Right -->
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <div class="flex items-center justify-end gap-3 pt-5 border-t border-slate-200 dark:border-slate-800 mt-6">
                 <a asp-action="Index"
-                   class="px-4 py-2 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/20 text-[#6B7D75] hover:text-rose-600 dark:text-[#9CA8A3] dark:hover:text-rose-400 text-xs font-semibold transition flex items-center gap-1.5 text-decoration-none">
+                   class="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold transition-colors flex items-center gap-1.5 text-decoration-none">
                     <i class="fa-solid fa-xmark text-xs"></i>
                     <span>@T("إلغاء", "Cancel")</span>
                 </a>
                 <button type="submit"
-                        class="px-5 py-2 rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5 border-0">
-                    <i class="fa-solid fa-floppy-disk text-xs"></i>
+                        class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold shadow-sm hover:shadow transition-all flex items-center gap-2 border-0 cursor-pointer">
+                    <i class="fa-solid fa-user-check text-xs"></i>
                     <span>@T("حفظ بيانات المريض", "Save Patient")</span>
                 </button>
             </div>
@@ -180,9 +257,9 @@
             const form = document.getElementById('patientForm');
             if (!form) return;
 
-            const fieldNames = ['PatientName', 'NationalId', 'DOB', 'PhoneNumber', 'BloodType', 'Allergies', 'ChronicDiseases', 'Notes'];
+            const fieldNames = ['PatientName', 'NationalId', 'DOB', 'PhoneNumber', 'Gender', 'BloodType', 'Allergies', 'ChronicDiseases', 'Notes'];
 
-            // Auto-restore draft from sessionStorage on language switch
+            // Auto-restore draft from sessionStorage on language switch or reload
             try {
                 const saved = sessionStorage.getItem(draftKey);
                 if (saved) {
@@ -217,12 +294,12 @@
             form.addEventListener('input', saveDraft);
             form.addEventListener('change', saveDraft);
 
-            // Clear draft when successfully submitting
+            // Clear draft on successful submission
             form.addEventListener('submit', function () {
                 sessionStorage.removeItem(draftKey);
             });
 
-            // Clear draft when clicking cancel
+            // Clear draft on clicking cancel
             const cancelBtn = form.querySelector('a[href*="Index"]');
             if (cancelBtn) {
                 cancelBtn.addEventListener('click', function () {
