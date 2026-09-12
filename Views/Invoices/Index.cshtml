@@ -34,7 +34,7 @@
         <div class="flex items-center gap-2.5 flex-wrap">
             <!-- 📥 Import Invoices Button -->
             <button type="button" class="inline-flex items-center gap-2 px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition shadow-sm cursor-pointer"
-                    data-bs-toggle="modal" data-bs-target="#importInvoicesModal"
+                    onclick="openImportInvoicesModal()"
                     title="@T("استيراد فواتير من CSV", "Bulk import invoices from CSV")">
                 <i class="fa-solid fa-file-import text-emerald-600 dark:text-emerald-400 text-xs"></i>
                 <span>@T("استيراد فواتير", "Import Invoices")</span>
@@ -50,7 +50,7 @@
 
             <!-- ➕ Create New Invoice Button (Modal Trigger) -->
             <button type="button"
-                    data-bs-toggle="modal" data-bs-target="#createInvoiceModal"
+                    onclick="openCreateInvoiceModal()"
                     class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition shadow-sm cursor-pointer border-0">
                 <i class="fa-solid fa-plus text-xs"></i>
                 <span>@T("إنشاء فاتورة جديدة", "Create New Invoice")</span>
@@ -233,265 +233,318 @@
     </div>
 </div>
 
-@* ─── 🧾 Create New Invoice Modal (Matching Add New Expense Pattern) ─── *@
-<div class="modal fade" id="createInvoiceModal" tabindex="-1" aria-labelledby="createInvoiceModalLabel" aria-hidden="true" dir="@(_isAr ? "rtl" : "ltr")">
-    <div class="modal-dialog modal-dialog-centered max-w-xl sm:max-w-2xl w-full">
-        <div class="modal-content bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 shadow-2xl rounded-2xl p-6 overflow-hidden text-start">
-            
-            <!-- Modal Header -->
-            <div class="flex items-start justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800 mb-5">
-                <div class="flex items-center gap-3.5">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-file-invoice-dollar text-lg"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 m-0" id="createInvoiceModalLabel">
-                            @T("إنشاء فاتورة جديدة", "Create New Invoice")
-                        </h2>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 m-0 mt-0.5">
-                            @T("اختر الزيارة الطبية وحدّد الخصومات أو الضرائب لإصدار الفاتورة", "Select medical visit and set billing parameters to issue invoice")
-                        </p>
-                    </div>
+@* ─── 🧾 Create New Invoice Modal (Matching Add New Expense Pattern - Standalone Popup Modal) ─── *@
+<div id="createInvoiceModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto hidden" dir="@(_isAr ? "rtl" : "ltr")">
+    <div class="max-w-xl sm:max-w-2xl w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 shadow-2xl rounded-2xl p-6 overflow-hidden text-start my-auto relative" onclick="event.stopPropagation()">
+        
+        <!-- Modal Header -->
+        <div class="flex items-start justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800 mb-5">
+            <div class="flex items-center gap-3.5">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-file-invoice-dollar text-lg"></i>
                 </div>
-                <button type="button" class="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-sm transition-colors border-0 bg-transparent cursor-pointer" data-bs-dismiss="modal" aria-label="Close">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Modal Form -->
-            <form asp-action="Create" method="post" class="space-y-4">
-                @Html.AntiForgeryToken()
-
-                <!-- Full Width: Medical Visit / Patient Selector dropdown -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
-                        @T("الزيارة الطبية / المريض", "Medical Visit / Patient") <span class="text-rose-500">*</span>
-                    </label>
-                    <div class="relative">
-                        <span class="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                            <i class="fa-solid fa-hospital-user text-sm"></i>
-                        </span>
-                        <select name="TreatmentId" asp-items="ViewBag.TreatmentId" required
-                                class="w-full ps-10 pe-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition">
-                            <option value="" disabled selected>@T("اختر زيارة علاج المريض...", "Select patient treatment visit...")</option>
-                        </select>
-                    </div>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 m-0">
-                        @T("يتم جلب رسوم الطبيب وتكاليف العلاج وحساب الصافي تلقائياً.", "Consultation fees and treatment costs are calculated automatically.")
+                    <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 m-0" id="createInvoiceModalLabel">
+                        @T("إنشاء فاتورة جديدة", "Create New Invoice")
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 m-0 mt-0.5">
+                        @T("اختر الزيارة الطبية وحدّد الخصومات أو الضرائب لإصدار الفاتورة", "Select medical visit and set billing parameters to issue invoice")
                     </p>
                 </div>
+            </div>
+            <button type="button" onclick="closeCreateInvoiceModal()" class="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-sm transition-colors border-0 bg-transparent cursor-pointer" aria-label="Close">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
 
-                <!-- Row 1 (2-Column Grid): Discount Amount (JD) | Tax Amount (JD) -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
-                            @T("مبلغ الخصم (د.أ)", "Discount Amount (JD)")
-                        </label>
-                        <div class="relative">
-                            <span class="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                                <i class="fa-solid fa-tag text-xs"></i>
-                            </span>
-                            <input type="number" name="Discount" step="0.01" value="0.00" min="0" required
-                                   class="w-full ps-9 pe-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition" />
-                        </div>
-                    </div>
+        <!-- Modal Form -->
+        <form asp-action="Create" method="post" class="space-y-4">
+            @Html.AntiForgeryToken()
 
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
-                            @T("مبلغ الضريبة (د.أ)", "Tax Amount (JD)")
-                        </label>
-                        <div class="relative">
-                            <span class="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                                <i class="fa-solid fa-percent text-xs"></i>
-                            </span>
-                            <input type="number" name="Tax" step="0.01" value="0.00" min="0" required
-                                   class="w-full ps-9 pe-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition" />
-                        </div>
-                    </div>
+            <!-- Full Width: Medical Visit / Patient Selector dropdown -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
+                    @T("الزيارة الطبية / المريض", "Medical Visit / Patient") <span class="text-rose-500">*</span>
+                </label>
+                <div class="relative">
+                    <span class="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                        <i class="fa-solid fa-hospital-user text-sm"></i>
+                    </span>
+                    <select name="TreatmentId" asp-items="ViewBag.TreatmentId" required
+                            class="w-full ps-10 pe-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition">
+                        <option value="" disabled selected>@T("اختر زيارة علاج المريض...", "Select patient treatment visit...")</option>
+                    </select>
                 </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 m-0">
+                    @T("يتم جلب رسوم الطبيب وتكاليف العلاج وحساب الصافي تلقائياً.", "Consultation fees and treatment costs are calculated automatically.")
+                </p>
+            </div>
 
-                <!-- Row 2: Payment Status dropdown (Paid, Unpaid / Pending) -->
+            <!-- Row 1 (2-Column Grid): Discount Amount (JD) | Tax Amount (JD) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
-                        @T("حالة الدفع", "Payment Status") <span class="text-rose-500">*</span>
+                        @T("مبلغ الخصم (د.أ)", "Discount Amount (JD)")
                     </label>
                     <div class="relative">
                         <span class="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                            <i class="fa-solid fa-wallet text-xs"></i>
+                            <i class="fa-solid fa-tag text-xs"></i>
                         </span>
-                        <select name="Status" required
-                                class="w-full ps-9 pe-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition">
-                            <option value="Unpaid" selected>@T("غير مدفوع (معلّق)", "Unpaid / Pending")</option>
-                            <option value="Paid">@T("مدفوع", "Paid")</option>
-                        </select>
+                        <input type="number" name="Discount" step="0.01" value="0.00" min="0" required
+                               class="w-full ps-9 pe-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition" />
                     </div>
                 </div>
 
-                <!-- Footer Actions -->
-                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800 mt-5">
-                    <button type="button" class="border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-4 py-2.5 rounded-lg text-sm font-medium transition cursor-pointer" data-bs-dismiss="modal">
-                        @T("إلغاء", "Cancel")
-                    </button>
-                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-5 py-2.5 rounded-lg text-sm shadow-sm inline-flex items-center gap-2 transition active:scale-95 cursor-pointer border-0">
-                        <i class="fa-solid fa-receipt text-xs"></i>
-                        <span>@T("إصدار الفاتورة", "Issue Invoice")</span>
-                    </button>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
+                        @T("مبلغ الضريبة (د.أ)", "Tax Amount (JD)")
+                    </label>
+                    <div class="relative">
+                        <span class="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                            <i class="fa-solid fa-percent text-xs"></i>
+                        </span>
+                        <input type="number" name="Tax" step="0.01" value="0.00" min="0" required
+                               class="w-full ps-9 pe-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition" />
+                    </div>
                 </div>
-            </form>
-        </div>
+            </div>
+
+            <!-- Row 2: Payment Status dropdown (Paid, Unpaid / Pending) -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
+                    @T("حالة الدفع", "Payment Status") <span class="text-rose-500">*</span>
+                </label>
+                <div class="relative">
+                    <span class="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                        <i class="fa-solid fa-wallet text-xs"></i>
+                    </span>
+                    <select name="Status" required
+                            class="w-full ps-9 pe-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition">
+                        <option value="Unpaid" selected>@T("غير مدفوع (معلّق)", "Unpaid / Pending")</option>
+                        <option value="Paid">@T("مدفوع", "Paid")</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800 mt-5">
+                <button type="button" onclick="closeCreateInvoiceModal()" class="border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-4 py-2.5 rounded-lg text-sm font-medium transition cursor-pointer">
+                    @T("إلغاء", "Cancel")
+                </button>
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-5 py-2.5 rounded-lg text-sm shadow-sm inline-flex items-center gap-2 transition active:scale-95 cursor-pointer border-0">
+                    <i class="fa-solid fa-receipt text-xs"></i>
+                    <span>@T("إصدار الفاتورة", "Issue Invoice")</span>
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
-@* ─── 📥 Import Invoices Modal (Pure English Modern SaaS) ─── *@
-<div class="modal fade" id="importInvoicesModal" tabindex="-1" aria-labelledby="importInvoicesModalLabel" aria-hidden="true" dir="ltr">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-7 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 overflow-hidden text-start">
-            
-            <!-- Header -->
-            <div class="flex items-start justify-between gap-4 mb-6">
-                <div class="flex items-center gap-3.5">
-                    <div class="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-file-invoice-dollar text-lg"></i>
+@* ─── 📥 Import Invoices Modal (Pure English Modern SaaS - Standalone Popup Modal) ─── *@
+<div id="importInvoicesModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto hidden" dir="ltr">
+    <div class="max-w-2xl sm:max-w-3xl w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl p-6 sm:p-7 text-slate-900 dark:text-slate-100 overflow-hidden text-start my-auto relative" onclick="event.stopPropagation()">
+        
+        <!-- Header -->
+        <div class="flex items-start justify-between gap-4 mb-6">
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-cloud-arrow-up text-lg"></i>
+                </div>
+                <div>
+                    <h5 class="text-slate-900 dark:text-white font-bold text-lg m-0" id="importInvoicesModalLabel">
+                        Bulk Import Invoices
+                    </h5>
+                    <p class="text-slate-500 dark:text-slate-400 font-normal text-xs sm:text-sm m-0 mt-0.5">
+                        Upload CSV or Excel file to record multiple billing entries at once
+                    </p>
+                </div>
+            </div>
+            <button type="button" onclick="closeImportInvoicesModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-0 bg-transparent cursor-pointer" aria-label="Close">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" asp-controller="Invoices" asp-action="Import">
+            @Html.AntiForgeryToken()
+
+            <!-- Template Card -->
+            <div class="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 rounded-xl p-3.5 flex items-center justify-between gap-3 mb-5">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 font-bold font-mono text-xs">
+                        CSV
                     </div>
-                    <div>
-                        <h5 class="text-slate-900 dark:text-white font-bold text-lg m-0" id="importInvoicesModalLabel">
-                            Bulk Import Invoices
-                        </h5>
-                        <p class="text-slate-500 dark:text-slate-400 font-normal text-xs sm:text-sm m-0 mt-0.5">
-                            Upload CSV or Excel file to record multiple billing entries at once
-                        </p>
+                    <div class="min-w-0">
+                        <div class="text-slate-900 dark:text-slate-100 font-semibold text-xs sm:text-sm truncate">
+                            Invoices Ready Template
+                        </div>
+                        <div class="text-slate-500 dark:text-slate-400 font-normal text-xs mt-0.5 truncate">
+                            Download blank template with formatted columns
+                        </div>
                     </div>
                 </div>
-                <button type="button" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-0 bg-transparent cursor-pointer" data-bs-dismiss="modal" aria-label="Close">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+                <a href="@Url.Action("DownloadTemplate", "Invoices")" class="bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 transition shrink-0">
+                    <i class="fa-solid fa-download text-xs"></i>
+                    <span>Download Template</span>
+                </a>
             </div>
 
-            <form method="post" enctype="multipart/form-data" asp-action="Import" id="importInvoicesForm">
-                @Html.AntiForgeryToken()
-
-                <!-- Template Download Card -->
-                <div class="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 rounded-xl p-3.5 flex items-center justify-between gap-3 mb-5">
-                    <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 font-bold font-mono text-xs">
-                            CSV
+            <!-- Modern Dropzone Component -->
+            <div class="mb-5">
+                <div id="invoiceDropzone"
+                     class="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-xl p-7 text-center cursor-pointer transition bg-slate-50/60 dark:bg-slate-800/30 group">
+                    
+                    <input type="file" id="invoiceFileInput" name="file" class="hidden" accept=".csv, .xlsx, .xls" required onchange="handleInvoiceFileSelected(this)" />
+                    
+                    <!-- Empty / Prompt State -->
+                    <div id="invoiceDropzonePrompt" class="py-2">
+                        <div class="w-10 h-10 mx-auto mb-2.5 rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-950/50 text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 flex items-center justify-center transition">
+                            <i class="fa-solid fa-cloud-arrow-up text-lg"></i>
                         </div>
-                        <div class="min-w-0">
-                            <div class="text-slate-900 dark:text-slate-100 font-semibold text-xs sm:text-sm truncate">
-                                Invoices Ready Template
-                            </div>
-                            <div class="text-slate-500 dark:text-slate-400 font-normal text-xs mt-0.5 truncate">
-                                Download CSV template with required columns
-                            </div>
-                        </div>
+                        <p class="text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+                            <span class="text-emerald-600 dark:text-emerald-400 font-medium hover:underline">Click to browse</span>
+                            or drag and drop your file here
+                        </p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 m-0">
+                            Supported formats: .csv, .xlsx
+                        </p>
                     </div>
-                    <a href="@Url.Action("DownloadTemplate")" class="bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 transition shrink-0">
-                        <i class="fa-solid fa-download text-xs"></i>
-                        <span>Download Template</span>
-                    </a>
-                </div>
 
-                <!-- Modern Dropzone Component -->
-                <div class="mb-5">
-                    <div id="invoiceDropzone"
-                         class="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-xl p-7 text-center cursor-pointer transition bg-slate-50/60 dark:bg-slate-800/30 group">
-                        
-                        <input type="file" id="invoiceFileInput" name="file" class="hidden" accept=".csv, .xlsx, .xls" required onchange="handleInvoiceFileSelected(this)" />
-                        
-                        <!-- Empty / Prompt State -->
-                        <div id="invoiceDropzonePrompt" class="py-2">
-                            <div class="w-10 h-10 mx-auto mb-2.5 rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-950/50 text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 flex items-center justify-center transition">
-                                <i class="fa-solid fa-cloud-arrow-up text-lg"></i>
+                    <!-- Selected File State -->
+                    <div id="invoiceDropzoneFileSelected" class="hidden flex items-center justify-between p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-start shadow-sm">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-file-csv text-base"></i>
                             </div>
-                            <p class="text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
-                                <span class="text-emerald-600 dark:text-emerald-400 font-medium hover:underline">Click to browse</span>
-                                or drag and drop your file here
-                            </p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400 m-0">
-                                Supported formats: .csv, .xlsx
-                            </p>
+                            <div class="min-w-0">
+                                <p id="invoiceSelectedFileName" class="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 truncate m-0"></p>
+                                <p id="invoiceSelectedFileSize" class="text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5"></p>
+                            </div>
                         </div>
-
-                        <!-- Selected File State -->
-                        <div id="invoiceDropzoneFileSelected" class="hidden flex items-center justify-between p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-start shadow-sm">
-                            <div class="flex items-center gap-3 min-w-0">
-                                <div class="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                                    <i class="fa-solid fa-file-csv text-base"></i>
-                                </div>
-                                <div class="min-w-0">
-                                    <p id="invoiceSelectedFileName" class="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 truncate m-0"></p>
-                                    <p id="invoiceSelectedFileSize" class="text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5"></p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-1.5 shrink-0">
-                                <button type="button" onclick="event.stopPropagation(); document.getElementById('invoiceFileInput').click();" class="px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors border-0 bg-transparent cursor-pointer">
-                                    Change
-                                </button>
-                                <button type="button" onclick="event.stopPropagation(); removeInvoiceSelectedFile();" class="p-1.5 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border-0 bg-transparent cursor-pointer" title="Remove file">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button type="button" onclick="event.stopPropagation(); document.getElementById('invoiceFileInput').click();" class="px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors border-0 bg-transparent cursor-pointer">
+                                Change
+                            </button>
+                            <button type="button" onclick="event.stopPropagation(); removeInvoiceSelectedFile();" class="p-1.5 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border-0 bg-transparent cursor-pointer" title="Remove file">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Required Specifications as Modern Badges -->
-                <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/50 p-4 mb-6">
-                    <div class="flex items-center gap-2 mb-2.5">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <span class="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
-                            Required Columns Specifications:
-                        </span>
+            <!-- Required Specifications as Modern Badges -->
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/50 p-4 mb-6">
+                <div class="flex items-center gap-2 mb-2.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span class="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                        Required Columns Specifications:
+                    </span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 gap-1.5">
+                        <span class="font-bold text-emerald-600 dark:text-emerald-400">InvoiceNumber:</span>
+                        <span class="text-[11px] opacity-75">(Optional/Auto-generated)</span>
                     </div>
-                    <div class="flex flex-wrap gap-2">
-                        <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 gap-1.5">
-                            <span class="font-bold text-emerald-600 dark:text-emerald-400">InvoiceNumber:</span>
-                            <span class="text-[11px] opacity-75">(Optional/Auto-generated)</span>
-                        </div>
-                        <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 gap-1.5">
-                            <span class="font-bold text-emerald-600 dark:text-emerald-400">PatientNationalID:</span>
-                            <span class="text-[11px] opacity-75">Required (10 digits)</span>
-                        </div>
-                        <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 gap-1.5">
-                            <span class="font-bold text-emerald-600 dark:text-emerald-400">InvoiceDate:</span>
-                            <span class="text-[11px] opacity-75">YYYY-MM-DD</span>
-                        </div>
-                        <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 gap-1.5">
-                            <span class="font-bold text-emerald-600 dark:text-emerald-400">Amount / NetAmount:</span>
-                            <span class="text-[11px] opacity-75">Numeric (JD)</span>
-                        </div>
-                        <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 gap-1.5">
-                            <span class="font-bold text-slate-600 dark:text-slate-400">Status:</span>
-                            <span class="text-[11px] opacity-75">Paid or Unpaid</span>
-                        </div>
+                    <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 gap-1.5">
+                        <span class="font-bold text-emerald-600 dark:text-emerald-400">PatientNationalID:</span>
+                        <span class="text-[11px] opacity-75">Required (10 digits)</span>
+                    </div>
+                    <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 gap-1.5">
+                        <span class="font-bold text-emerald-600 dark:text-emerald-400">InvoiceDate:</span>
+                        <span class="text-[11px] opacity-75">YYYY-MM-DD</span>
+                    </div>
+                    <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 gap-1.5">
+                        <span class="font-bold text-emerald-600 dark:text-emerald-400">Amount / NetAmount:</span>
+                        <span class="text-[11px] opacity-75">Numeric (JD)</span>
+                    </div>
+                    <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 gap-1.5">
+                        <span class="font-bold text-slate-600 dark:text-slate-400">Status:</span>
+                        <span class="text-[11px] opacity-75">Paid or Unpaid</span>
                     </div>
                 </div>
+            </div>
 
-                <!-- Modal Actions Footer -->
-                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <button type="button" class="border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-4 py-2.5 rounded-lg text-sm transition cursor-pointer" data-bs-dismiss="modal">
-                        Cancel
-                    </button>
-                    <button type="submit"
-                            class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-5 py-2.5 rounded-lg text-sm shadow-sm inline-flex items-center gap-2 transition active:scale-95 border-0 cursor-pointer">
-                        <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
-                        <span>Start Import</span>
-                    </button>
-                </div>
-            </form>
-        </div>
+            <!-- Modal Actions Footer -->
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button type="button" onclick="closeImportInvoicesModal()" class="border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-4 py-2.5 rounded-lg text-sm transition cursor-pointer">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-5 py-2.5 rounded-lg text-sm shadow-sm inline-flex items-center gap-2 transition active:scale-95 border-0 cursor-pointer">
+                    <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
+                    <span>Start Import</span>
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
 @section Scripts {
     <script>
+        function openCreateInvoiceModal() {
+            const modal = document.getElementById('createInvoiceModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+            }
+        }
+
+        function closeCreateInvoiceModal() {
+            const modal = document.getElementById('createInvoiceModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            }
+        }
+
+        function openImportInvoicesModal() {
+            const modal = document.getElementById('importInvoicesModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+            }
+        }
+
+        function closeImportInvoicesModal() {
+            const modal = document.getElementById('importInvoicesModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
+            const invoiceModal = document.getElementById('createInvoiceModal');
+            if (invoiceModal) {
+                invoiceModal.addEventListener('click', function (e) {
+                    if (e.target === this) {
+                        closeCreateInvoiceModal();
+                    }
+                });
+            }
+
+            const importModal = document.getElementById('importInvoicesModal');
+            if (importModal) {
+                importModal.addEventListener('click', function (e) {
+                    if (e.target === this) {
+                        closeImportInvoicesModal();
+                    }
+                });
+            }
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    closeCreateInvoiceModal();
+                    closeImportInvoicesModal();
+                }
+            });
+
             const dropzone = document.getElementById('invoiceDropzone');
             const fileInput = document.getElementById('invoiceFileInput');
 
