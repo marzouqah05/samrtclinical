@@ -162,9 +162,9 @@ internal class Program
         app.UseForwardedHeaders(forwardedOptions);
 
         // Error Handling
+        app.UseDeveloperExceptionPage();
         if (!app.Environment.IsDevelopment())
         {
-            app.UseExceptionHandler("/Home/Error");
             app.UseHsts();
         }
 

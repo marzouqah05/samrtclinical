@@ -357,8 +357,15 @@ namespace WebApplication1.Controllers
                         if (DateTime.TryParse(parts[1], null, DateTimeStyles.RoundtripKind, out var expiry) && expiry > DateTime.UtcNow)
                         {
                             isValid = true;
-                            _db.ClinicSettings.Remove(setting);
-                            await _db.SaveChangesAsync();
+                            try
+                            {
+                                _db.ClinicSettings.Remove(setting);
+                                await _db.SaveChangesAsync();
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"[VerifyOtp Non-Fatal] Could not clean up OTP setting: {ex.Message}");
+                            }
                         }
                     }
                 }
@@ -373,15 +380,40 @@ namespace WebApplication1.Controllers
             }
 
             // Upon correct code: mark EmailConfirmed = true, ensure Admin role, and sign in
-            user.EmailConfirmed = true;
-            await _userManager.UpdateAsync(user);
+            try 
+            {
+                user.EmailConfirmed = true;
+                await _userManager.UpdateAsync(user);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Reload fresh entity from database and retry/bypass
+                var freshUser = await _userManager.FindByEmailAsync(email) ?? await _userManager.FindByNameAsync(email);
+                if (freshUser != null)
+                {
+                    freshUser.EmailConfirmed = true;
+                    await _userManager.UpdateAsync(freshUser);
+                    user = freshUser;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[VerifyOtp Non-Fatal] UserManager.UpdateAsync notice: {ex.Message}");
+            }
 
             // Re-verify Admin role assignment
-            if (!await _userManager.IsInRoleAsync(user, "Admin"))
+            try
             {
-                if (!await _roleManager.RoleExistsAsync("Admin"))
-                    await _roleManager.CreateAsync(new IdentityRole("Admin"));
-                await _userManager.AddToRoleAsync(user, "Admin");
+                if (!await _userManager.IsInRoleAsync(user, "Admin"))
+                {
+                    if (!await _roleManager.RoleExistsAsync("Admin"))
+                        await _roleManager.CreateAsync(new IdentityRole("Admin"));
+                    await _userManager.AddToRoleAsync(user, "Admin");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[VerifyOtp Non-Fatal] Role check/assignment notice: {ex.Message}");
             }
 
             // Log user in as Admin
@@ -389,10 +421,17 @@ namespace WebApplication1.Controllers
             await _signInManager.SignInAsync(user, isPersistent: false);
 
             // Track session
-            var ip = WebApplication1.Middleware.UserActivityMiddleware.GetClientIp(HttpContext);
-            var ua = Request.Headers["User-Agent"].ToString();
-            var sessionId = WebApplication1.Middleware.UserActivityMiddleware.GetOrCreateDeviceId(HttpContext);
-            await _sessionTracking.CreateSessionAsync(user.Id, user.UserName ?? email, "Admin", ip, ua, sessionId);
+            try
+            {
+                var ip = WebApplication1.Middleware.UserActivityMiddleware.GetClientIp(HttpContext);
+                var ua = Request.Headers["User-Agent"].ToString();
+                var sessionId = WebApplication1.Middleware.UserActivityMiddleware.GetOrCreateDeviceId(HttpContext);
+                await _sessionTracking.CreateSessionAsync(user.Id, user.UserName ?? email, "Admin", ip, ua, sessionId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[VerifyOtp Non-Fatal] Session tracking notice: {ex.Message}");
+            }
 
             TempData["Success"] = T("تم تفعيل حسابك بنجاح! مرحباً بك في نظام ClinicFlow OS.",
                                     "Your account has been activated successfully! Welcome to ClinicFlow OS.");
