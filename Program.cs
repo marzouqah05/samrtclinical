@@ -56,6 +56,7 @@ internal class Program
         builder.Services.AddScoped<ISystemMigrationService, SystemMigrationService>();
 
         // ── Email Notification & OTP Dispatch Service ───────────────────────────────
+        builder.Services.AddHttpClient();
         builder.Services.AddScoped<EmailService>();
         builder.Services.AddScoped<IEmailSenderService>(sp => sp.GetRequiredService<EmailService>());
         builder.Services.AddScoped<IEmailSender>(sp => sp.GetRequiredService<EmailService>());

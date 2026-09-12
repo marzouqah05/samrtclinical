@@ -1,6 +1,10 @@
 using System;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.Mail;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -23,11 +27,14 @@ namespace WebApplication1.Services
     {
         private readonly IConfiguration _config;
         private readonly ILogger<EmailService> _logger;
+        private readonly IHttpClientFactory? _httpClientFactory;
+        private static readonly HttpClient _defaultHttpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
 
-        public EmailService(IConfiguration config, ILogger<EmailService> logger)
+        public EmailService(IConfiguration config, ILogger<EmailService> logger, IHttpClientFactory? httpClientFactory = null)
         {
             _config = config;
             _logger = logger;
+            _httpClientFactory = httpClientFactory;
         }
 
         async Task IEmailSender.SendEmailAsync(string email, string subject, string htmlMessage)
@@ -40,6 +47,55 @@ namespace WebApplication1.Services
             if (string.IsNullOrWhiteSpace(toEmail))
                 return false;
 
+            var resendApiKey = Environment.GetEnvironmentVariable("RESEND_API_KEY") ?? _config["RESEND_API_KEY"];
+
+            // ── 1. Resend REST API Delivery (Port 443 HTTPS) ───────────────
+            if (!string.IsNullOrWhiteSpace(resendApiKey))
+            {
+                try
+                {
+                    _logger.LogInformation("[EmailService] Sending email to {To} via Resend REST API...", toEmail);
+                    var client = _httpClientFactory?.CreateClient() ?? _defaultHttpClient;
+
+                    using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails");
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", resendApiKey.Trim());
+
+                    var fromEmail = _config["Resend:FromEmail"] ?? "ClinicFlow <onboarding@resend.dev>";
+                    var payload = new
+                    {
+                        from = fromEmail,
+                        to = new[] { toEmail.Trim() },
+                        subject = subject,
+                        html = htmlBody
+                    };
+
+                    var json = JsonSerializer.Serialize(payload);
+                    request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(10));
+                    var response = await client.SendAsync(request, cts.Token);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var responseBody = await response.Content.ReadAsStringAsync();
+                        _logger.LogInformation("[EmailService] Resend email dispatched successfully to {To}. Response: {Response}", toEmail, responseBody);
+                        return true;
+                    }
+                    else
+                    {
+                        var errorBody = await response.Content.ReadAsStringAsync();
+                        _logger.LogWarning("[EmailService] Resend API error ({StatusCode}) for {To}: {Error}", response.StatusCode, toEmail, errorBody);
+                        return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[EmailService] Exception during Resend API call for {To}: {Message}. Proceeding gracefully.", toEmail, ex.Message);
+                    return false;
+                }
+            }
+
+            // ── 2. Fallback to SMTP if RESEND_API_KEY is not configured ───
             try
             {
                 var smtpHost = _config["SmtpSettings:Server"] ?? "smtp.gmail.com";
