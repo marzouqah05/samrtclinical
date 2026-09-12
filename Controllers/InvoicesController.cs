@@ -128,6 +128,17 @@ namespace WebApplication1.Controllers
                     .ThenInclude(t => t!.Appointment)
                         .ThenInclude(a => a!.Doctor);
 
+            var treatmentsList = await _context.Treatments
+                .Include(t => t.Appointment)
+                    .ThenInclude(a => a!.Patient)
+                .Where(t => t.Appointment != null && t.Appointment.ClinicId == currentClinicId)
+                .Select(t => new {
+                    TreatmentId = t.TreatmentId,
+                    DisplayText = $"Patient: {t.Appointment.Patient.PatientName} | Date: {t.Appointment.AppointmentDate.ToString("yyyy/MM/dd")} | Treatment: {t.TreatmentDesc}"
+                }).ToListAsync();
+
+            ViewData["TreatmentId"] = new SelectList(treatmentsList, "TreatmentId", "DisplayText");
+
             return View(await invoices.ToListAsync());
         }
 
@@ -201,21 +212,12 @@ namespace WebApplication1.Controllers
 
                 _context.Add(invoice);
                 await _context.SaveChangesAsync();
+                TempData["Success"] = "Invoice created and issued successfully.";
                 return RedirectToAction(nameof(Index));
             }
 
-            // Repopulate dropdown list on validation failure
-            var fallbackList = _context.Treatments
-                .Include(t => t.Appointment)
-                    .ThenInclude(a => a.Patient)
-                .Where(t => t.Appointment != null && t.Appointment.ClinicId == currentClinicId)
-                .Select(t => new {
-                    TreatmentId = t.TreatmentId,
-                    DisplayText = $"Patient: {t.Appointment.Patient.PatientName} | Date: {t.Appointment.AppointmentDate.ToString("yyyy/MM/dd")}"
-                }).ToList();
-
-            ViewData["TreatmentId"] = new SelectList(fallbackList, "TreatmentId", "DisplayText", invoice.TreatmentId);
-            return View(invoice);
+            TempData["Error"] = "Please select a valid medical visit / patient.";
+            return RedirectToAction(nameof(Index));
         }
 
         // 5. GET: Invoices/Edit/5
