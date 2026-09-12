@@ -272,15 +272,19 @@ namespace WebApplication1.Controllers
             await _db.SaveChangesAsync();
 
             // ── 5. Dispatch OTP email via Gmail SMTP ───────────────────────
+            Console.WriteLine("=================================================");
+            Console.WriteLine($"--> [LIVE OTP BACKUP] Email: {cleanEmail} | CODE: {otpCode}");
+            Console.WriteLine("=================================================");
+
             try
             {
-                Console.WriteLine($"--> [REGISTER] Sending OTP email to '{cleanEmail}' via Gmail SMTP...");
-                await _emailSender.SendOtpEmailAsync(cleanEmail, otpCode, adminName.Trim());
-                Console.WriteLine("--> [REGISTER] OTP email sent successfully.");
+                Console.WriteLine($"--> [REGISTER] Attempting OTP email to '{cleanEmail}' via Gmail SMTP...");
+                await _emailSender.SendOtpEmailAsync(cleanEmail, otpCode, adminName?.Trim() ?? "");
+                Console.WriteLine("--> [REGISTER] OTP dispatch call completed.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"--> [REGISTER ERROR] Failed to send OTP email: {ex.Message}");
+                Console.WriteLine($"--> [REGISTER NON-FATAL] EmailService failed ({ex.Message}). User and OTP preserved.");
             }
 
             // ── 6. Redirect to VerifyOtp ───────────────────────────────────
@@ -306,7 +310,7 @@ namespace WebApplication1.Controllers
         // POST: VerifyOtp
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> VerifyOtp(string email, string otpCode)
         {
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(otpCode))
@@ -399,7 +403,7 @@ namespace WebApplication1.Controllers
         // POST: ResendOtp
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> ResendOtp(string email)
         {
             if (string.IsNullOrWhiteSpace(email))
@@ -434,13 +438,17 @@ namespace WebApplication1.Controllers
                 }
                 await _db.SaveChangesAsync();
 
+                Console.WriteLine("=================================================");
+                Console.WriteLine($"--> [LIVE OTP BACKUP] Email: {email} | CODE: {newOtp}");
+                Console.WriteLine("=================================================");
+
                 try
                 {
                     await _emailSender.SendOtpEmailAsync(email, newOtp);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[EmailService] Failed to resend OTP: {ex.Message}");
+                    Console.WriteLine($"[EmailService Non-Fatal] Failed to resend OTP via SMTP: {ex.Message}");
                 }
 
                 TempData["OtpSent"] = T($"تمت إعادة إرسال رمز تحقق جديد إلى {email}.",

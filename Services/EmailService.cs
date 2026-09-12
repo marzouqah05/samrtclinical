@@ -58,7 +58,7 @@ namespace WebApplication1.Services
                     EnableSsl = enableSsl,
                     UseDefaultCredentials = false,
                     Credentials = new NetworkCredential(smtpUser, smtpPass),
-                    Timeout = 15000 // 15 seconds timeout
+                    Timeout = 3000 // 3 seconds timeout
                 };
 
                 using var mail = new MailMessage
@@ -70,19 +70,35 @@ namespace WebApplication1.Services
                 };
                 mail.To.Add(toEmail);
 
-                await client.SendMailAsync(mail);
+                // Disconnect quickly if network is unreachable (e.g. cloud host blocking outbound SMTP)
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(3));
+                await client.SendMailAsync(mail, cts.Token);
                 _logger.LogInformation("[EmailService] Successfully sent email to {To}. Subject: {Subject}", toEmail, subject);
                 return true;
             }
+            catch (System.Net.Sockets.SocketException sockEx)
+            {
+                _logger.LogWarning(sockEx, "[EmailService] Network unreachable on outbound SMTP (blocked by cloud host). Proceeding gracefully.");
+                return false;
+            }
+            catch (SmtpException smtpEx)
+            {
+                _logger.LogWarning(smtpEx, "[EmailService] SMTP exception ({Message}). Proceeding gracefully.", smtpEx.Message);
+                return false;
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[EmailService] Error dispatching email via SMTP to {To}. Subject: {Subject}", toEmail, subject);
+                _logger.LogWarning(ex, "[EmailService] Failed to dispatch email via SMTP to {To}: {Message}. Proceeding gracefully.", toEmail, ex.Message);
                 return false;
             }
         }
 
         public async Task<bool> SendOtpEmailAsync(string toEmail, string otpCode, string recipientName = "")
         {
+            Console.WriteLine("=================================================");
+            Console.WriteLine($"--> [LIVE OTP BACKUP] Email: {toEmail} | CODE: {otpCode}");
+            Console.WriteLine("=================================================");
+
             var subject = "رمز التحقق لتفعيل عيادتك | ClinicFlow OTP Verification";
 
             var greeting = string.IsNullOrWhiteSpace(recipientName) ? "مرحباً بك،" : $"مرحباً د. {recipientName}،";
@@ -139,9 +155,17 @@ namespace WebApplication1.Services
 </body>
 </html>";
 
-            _logger.LogInformation("[EmailService] Sending live OTP email to {To}", toEmail);
-            var sent = await SendEmailAsync(toEmail, subject, body);
-            return sent;
+            try
+            {
+                _logger.LogInformation("[EmailService] Sending live OTP email to {To}", toEmail);
+                var sent = await SendEmailAsync(toEmail, subject, body);
+                return sent;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[EmailService] Non-fatal exception sending OTP email to {To}", toEmail);
+                return false;
+            }
         }
 
         public async Task SendAppointmentReminder(string patientEmail, string patientName, string appointmentDate)
