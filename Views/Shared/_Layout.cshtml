@@ -13,7 +13,6 @@
     var clinicName = !string.IsNullOrWhiteSpace(clinicSettings.ClinicName) ? clinicSettings.ClinicName : T("المركز الطبي", "ClinicFlow OS");
     var clinicLogo = clinicSettings.LogoUrl;
     var hasClinicLogo = !string.IsNullOrWhiteSpace(clinicLogo) && clinicLogo != "/images/logo.png";
-    var clinicInitial = !string.IsNullOrWhiteSpace(clinicName) ? clinicName.Trim().Substring(0, 1).ToUpper() : "M";
 }
 <!DOCTYPE html>
 <html lang="@_lang" dir="@(_isRtl ? "rtl" : "ltr")" id="app-root">
@@ -363,16 +362,20 @@
             <div class="flex flex-col gap-4">
                 <!-- Brand / Logo Header -->
                 <div class="flex items-center gap-3 px-2 py-2 mb-1">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 border border-slate-200 dark:border-slate-700/60 flex items-center justify-center overflow-hidden shrink-0">
-                        @if (hasClinicLogo)
-                        {
-                            <img src="@clinicLogo" class="w-full h-full object-contain p-1" alt="@clinicName" onerror="this.parentElement.innerHTML='<span class=\'font-bold text-emerald-600 dark:text-emerald-400 text-lg\'>@clinicInitial</span>'" />
-                        }
-                        else
-                        {
-                            <span class="font-bold text-emerald-600 dark:text-emerald-400 text-lg">@clinicInitial</span>
-                        }
-                    </div>
+                    @if (hasClinicLogo)
+                    {
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                            <img src="@clinicLogo" alt="Clinic Logo" class="max-w-full max-h-full object-contain p-1" onerror="this.parentElement.innerHTML='<svg class=\'w-5 h-5\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4\' /></svg>'" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        </div>
+                    }
                     <div class="min-w-0">
                         <h1 class="text-[13px] font-bold text-[#202725] dark:text-[#EAEFEA] leading-tight truncate" title="@clinicName">@clinicName</h1>
                         <span class="text-[11px] font-medium text-[#727A76] dark:text-[#9CA8A3] block truncate">@T("فئة ممتازة • سحابي", "Premium Tier • Cloud")</span>
@@ -513,16 +516,20 @@
                     </button>
 
                     <div class="flex items-center gap-2 md:hidden shrink-0">
-                        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 border border-slate-200 dark:border-slate-700/60 flex items-center justify-center overflow-hidden shrink-0">
-                            @if (hasClinicLogo)
-                            {
-                                <img src="@clinicLogo" class="w-full h-full object-contain p-0.5" alt="@clinicName" onerror="this.parentElement.innerHTML='<span class=\'font-bold text-emerald-600 text-sm\'>@clinicInitial</span>'" />
-                            }
-                            else
-                            {
-                                <span class="font-bold text-emerald-600 text-sm">@clinicInitial</span>
-                            }
-                        </div>
+                        @if (hasClinicLogo)
+                        {
+                            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                                <img src="@clinicLogo" alt="Clinic Logo" class="max-w-full max-h-full object-contain p-0.5" onerror="this.parentElement.innerHTML='<svg class=\'w-4 h-4\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4\' /></svg>'" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                            </div>
+                        }
                     </div>
 
                     <div class="min-w-0">
