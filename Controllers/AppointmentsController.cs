@@ -357,6 +357,7 @@ namespace WebApplication1.Controllers
                         status      = a.Status,
                         doctorName  = docTitle,
                         patientName = a.Patient?.PatientName ?? "",
+                        patientId   = a.PatientId,
                         notes       = a.Notes ?? "",
                         isException = isExc
                     }
@@ -946,8 +947,8 @@ namespace WebApplication1.Controllers
                     return Forbid();
                 }
 
-                // Only Receptionist or Admin can update status to Confirmed
-                if (newStatus == AppointmentStatus.Confirmed)
+                // Only Receptionist or Admin can update status to Confirmed or Cancelled
+                if (newStatus == AppointmentStatus.Confirmed || newStatus == AppointmentStatus.Cancelled || newStatus == "Cancelled" || newStatus == "Confirmed")
                 {
                     return Forbid();
                 }
@@ -1014,10 +1015,18 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Appointments/Complete/5
+        // GET: Appointments/CompleteAndBill/5
+        [HttpGet]
+        [Authorize(Roles = "Owner,Admin,Receptionist")]
         public async Task<IActionResult> Complete(int? id)
         {
             if (id == null) return NotFound();
             var currentClinicId = User.GetClinicId();
+
+            if (User.IsInRole("Doctor"))
+            {
+                return Forbid();
+            }
 
             var appointment = await _context.Appointments
                 .Include(a => a.Doctor)
@@ -1026,41 +1035,35 @@ namespace WebApplication1.Controllers
 
             if (appointment == null) return NotFound();
 
-            if (User.IsDoctor())
-            {
-                var currentDoctorId = await User.GetDoctorIdAsync(_context);
-                if (!currentDoctorId.HasValue || appointment.DoctorId != currentDoctorId.Value)
-                {
-                    return Forbid();
-                }
-            }
-
             // تمرير قيمة كشفية الدكتور لعرضها في الفاتورة
             ViewBag.ConsultationFee = appointment.Doctor != null ? appointment.Doctor.ConsultationFee : 0;
 
             return View(appointment);
         }
 
+        // GET: Appointments/CompleteAndBill/5
+        [HttpGet]
+        [Authorize(Roles = "Owner,Admin,Receptionist")]
+        public async Task<IActionResult> CompleteAndBill(int? id) => await Complete(id);
+
         // POST: Appointments/Complete/5
+        // POST: Appointments/CompleteAndBill/5
         // 🛠️ تم تعديل الباراميترز وربطها لتطابق خصائص موديل الـ Treatment الجديد تماماً
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Owner,Admin,Receptionist")]
         public async Task<IActionResult> Complete(int id, string treatmentDesc, decimal treatmentCost, string? diagnosis, string? prescriptionNotes)
         {
+            if (User.IsInRole("Doctor"))
+            {
+                return Forbid();
+            }
+
             var appointment = await _context.Appointments
                 .Include(a => a.Doctor)
                 .FirstOrDefaultAsync(m => m.AppointmentId == id);
 
             if (appointment == null) return NotFound();
-
-            if (User.IsDoctor())
-            {
-                var currentDoctorId = await User.GetDoctorIdAsync(_context);
-                if (!currentDoctorId.HasValue || appointment.DoctorId != currentDoctorId.Value)
-                {
-                    return Forbid();
-                }
-            }
 
             // 1. تحديث حالة الموعد إلى مكتمل
             appointment.Status = "Completed";
@@ -1092,5 +1095,12 @@ namespace WebApplication1.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+
+        // POST: Appointments/CompleteAndBill/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Owner,Admin,Receptionist")]
+        public async Task<IActionResult> CompleteAndBill(int id, string treatmentDesc, decimal treatmentCost, string? diagnosis, string? prescriptionNotes)
+            => await Complete(id, treatmentDesc, treatmentCost, diagnosis, prescriptionNotes);
     }
 }

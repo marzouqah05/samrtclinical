@@ -1128,13 +1128,24 @@
                                                 </a>
                                             }
 
-                                            @* ── Complete & Bill (non-terminal statuses) ────── *@
-                                            @if (item.Status != "Completed" && item.Status != "Cancelled")
+                                            @* ── Complete & Bill (non-terminal statuses, non-Doctor) ────── *@
+                                            @if (item.Status != "Completed" && item.Status != "Cancelled" && !User.IsInRole("Doctor"))
                                             {
                                                 <a asp-action="Complete" asp-route-id="@item.AppointmentId"
                                                    class="px-2.5 py-1 rounded-lg text-xs font-medium bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] inline-flex items-center gap-1.5 transition"
                                                    title="Complete &amp; Bill">
                                                     <i class="fa-solid fa-file-invoice-dollar text-[#49665A]"></i>Complete &amp; Bill
+                                                </a>
+                                            }
+
+                                            @* ── Doctor Clinical Action: Open Medical Record / ابدأ الكشف ── *@
+                                            @if (User.IsInRole("Doctor") && item.Status != "Completed" && item.Status != "Cancelled")
+                                            {
+                                                <a asp-controller="Patients" asp-action="Details" asp-route-id="@item.PatientId"
+                                                   class="px-2.5 py-1 rounded-lg text-xs font-medium bg-[#49665A] hover:bg-[#3D574D] text-white transition inline-flex items-center gap-1.5"
+                                                   title="@T("ابدأ الكشف / فتح الملف الطبي", "Open Medical Record / ابدأ الكشف")">
+                                                    <i class="fa-solid fa-notes-medical"></i>
+                                                    @T("ابدأ الكشف", "Medical Record")
                                                 </a>
                                             }
 
@@ -1153,8 +1164,8 @@
                                                 </form>
                                             }
 
-                                            @* ── Cancel button ─────────────────────────────── *@
-                                            @if (item.Status != "Cancelled" && item.Status != "Completed")
+                                            @* ── Cancel button (non-Doctor) ─────────────────────────────── *@
+                                            @if (item.Status != "Cancelled" && item.Status != "Completed" && !User.IsInRole("Doctor"))
                                             {
                                                 <form asp-action="UpdateStatus" method="post" class="d-inline m-0">
                                                     @Html.AntiForgeryToken()
@@ -1390,7 +1401,7 @@
 @* ══════════════════════════════════════════════════════
    APPOINTMENT DETAILS DRAWER / OFFCANVAS (slide-over panel)
 ══════════════════════════════════════════════════════ *@
-<partial name="_AppointmentDetailsPartial" />
+<partial name="_AppointmentDetailsDrawer" />
 @await Html.PartialAsync("_ScheduleExceptionModal")
 
 @* ─── Tooltip element ─── *@
@@ -1641,37 +1652,58 @@
             actionsDiv.className = 'd-grid gap-2 mt-4';
             actionsDiv.innerHTML = '';
 
-            const completeText = isAr ? 'إكمال وإصدار الفاتورة' : 'Complete & Bill';
-            const confirmText  = isAr ? 'تأكيد الموعد' : 'Confirm Appointment';
-            const cancelText   = isAr ? 'إلغاء الموعد' : 'Cancel Appointment';
+            const isDoctor = @(User.IsInRole("Doctor") ? "true" : "false");
 
-            if (p.status !== 'Completed' && p.status !== 'Cancelled') {
+            if (isDoctor) {
+                // Doctor actions: strictly NO "Complete & Bill" and NO "Cancel Appointment"
+                const isActive = p.status !== 'Completed' && p.status !== 'Cancelled';
+                if (isActive) {
+                    const emrUrl = p.patientId ? `/Patients/Details/${p.patientId}` : `/Appointments/Details/${id}`;
+                    const emrText = isAr ? 'ابدأ الكشف / Open Medical Record' : 'Open Medical Record / ابدأ الكشف';
+                    actionsDiv.innerHTML += `
+                        <a href="${emrUrl}" class="btn btn-primary fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center text-decoration-none">
+                            <i class="fa-solid fa-notes-medical me-1"></i> ${emrText}
+                        </a>`;
+                }
+                const closeText = isAr ? 'إغلاق' : 'Close';
                 actionsDiv.innerHTML += `
-                    <a href="/Appointments/Complete/${id}" class="btn btn-success fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center text-decoration-none">
-                        <i class="bi bi-receipt me-1"></i> ${completeText}
-                    </a>`;
-            }
-            if (p.status !== 'Confirmed' && p.status !== 'Completed' && p.status !== 'Cancelled') {
-                actionsDiv.innerHTML += `
-                    <form action="/Appointments/UpdateStatus" method="post" class="w-100 m-0 p-0">
-                        <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
-                        <input type="hidden" name="id" value="${id}" />
-                        <input type="hidden" name="newStatus" value="Confirmed" />
-                        <button type="submit" class="btn btn-primary fw-bold py-2 shadow-sm w-100 d-inline-flex align-items-center justify-content-center">
-                            <i class="bi bi-check-circle me-1"></i> ${confirmText}
-                        </button>
-                    </form>`;
-            }
-            if (p.status !== 'Cancelled' && p.status !== 'Completed') {
-                actionsDiv.innerHTML += `
-                    <form action="/Appointments/UpdateStatus" method="post" class="w-100 m-0 p-0">
-                        <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
-                        <input type="hidden" name="id" value="${id}" />
-                        <input type="hidden" name="newStatus" value="Cancelled" />
-                        <button type="submit" class="btn btn-outline-danger fw-bold py-2 w-100 d-inline-flex align-items-center justify-content-center">
-                            <i class="bi bi-x-circle me-1"></i> ${cancelText}
-                        </button>
-                    </form>`;
+                    <button type="button" class="btn btn-secondary fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center" onclick="closeEventPanel()">
+                        <i class="fa-solid fa-xmark me-1"></i> ${closeText}
+                    </button>`;
+            } else {
+                // Receptionist, Admin, Owner actions
+                const completeText = isAr ? 'إكمال وإصدار الفاتورة' : 'Complete & Bill';
+                const confirmText  = isAr ? 'تأكيد الموعد' : 'Confirm Appointment';
+                const cancelText   = isAr ? 'إلغاء الموعد' : 'Cancel Appointment';
+
+                if (p.status !== 'Completed' && p.status !== 'Cancelled') {
+                    actionsDiv.innerHTML += `
+                        <a href="/Appointments/Complete/${id}" class="btn btn-success fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center text-decoration-none">
+                            <i class="bi bi-receipt me-1"></i> ${completeText}
+                        </a>`;
+                }
+                if (p.status !== 'Confirmed' && p.status !== 'Completed' && p.status !== 'Cancelled') {
+                    actionsDiv.innerHTML += `
+                        <form action="/Appointments/UpdateStatus" method="post" class="w-100 m-0 p-0">
+                            <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
+                            <input type="hidden" name="id" value="${id}" />
+                            <input type="hidden" name="newStatus" value="Confirmed" />
+                            <button type="submit" class="btn btn-primary fw-bold py-2 shadow-sm w-100 d-inline-flex align-items-center justify-content-center">
+                                <i class="bi bi-check-circle me-1"></i> ${confirmText}
+                            </button>
+                        </form>`;
+                }
+                if (p.status !== 'Cancelled' && p.status !== 'Completed') {
+                    actionsDiv.innerHTML += `
+                        <form action="/Appointments/UpdateStatus" method="post" class="w-100 m-0 p-0">
+                            <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
+                            <input type="hidden" name="id" value="${id}" />
+                            <input type="hidden" name="newStatus" value="Cancelled" />
+                            <button type="submit" class="btn btn-outline-danger fw-bold py-2 w-100 d-inline-flex align-items-center justify-content-center">
+                                <i class="bi bi-x-circle me-1"></i> ${cancelText}
+                            </button>
+                        </form>`;
+                }
             }
 
 

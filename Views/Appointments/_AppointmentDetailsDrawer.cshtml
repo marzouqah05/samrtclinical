@@ -1,0 +1,68 @@
+@using System.Globalization
+@{
+    var _isAr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar";
+    Func<string, string, string> T = (ar, en) => _isAr ? ar : en;
+    var isDoctor = User.IsInRole("Doctor");
+}
+
+@* ══════════════════════════════════════════════════════
+   APPOINTMENT DETAILS DRAWER / OFFCANVAS (slide-over panel)
+══════════════════════════════════════════════════════ *@
+<div id="panelOverlay" onclick="closeEventPanel()"></div>
+<div id="eventPanel" dir="@(_isAr ? "rtl" : "ltr")">
+    <div class="ep-header">
+        <h5><i class="fa-regular fa-calendar-check me-2 text-primary"></i>@T("تفاصيل الموعد", "Appointment Details")</h5>
+        <button onclick="closeEventPanel()" style="background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;" aria-label="@T("إغلاق", "Close")">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+    <div class="ep-body">
+        <div class="ep-field">
+            <div class="ep-field-label">@T("المريض", "PATIENT")</div>
+            <div class="ep-field-value" id="ep-patient">—</div>
+        </div>
+        <div class="ep-field">
+            <div class="ep-field-label">@T("الطبيب", "DOCTOR")</div>
+            <div class="ep-field-value" id="ep-doctor">—</div>
+        </div>
+        <div class="ep-field">
+            <div class="ep-field-label">@T("التاريخ والوقت", "DATE & TIME")</div>
+            <div class="ep-field-value" id="ep-datetime">
+                <span dir="ltr" class="d-inline-block text-secondary fw-semibold">—</span>
+            </div>
+        </div>
+        <div class="ep-field">
+            <div class="ep-field-label">@T("الحالة", "STATUS")</div>
+            <div id="ep-status">—</div>
+        </div>
+        <div class="ep-field" id="ep-notes-section" style="display:none;">
+            <div class="ep-field-label">@T("الملاحظات", "NOTES")</div>
+            <div class="ep-field-value" id="ep-notes" style="font-size:13px;color:#64748b;"></div>
+        </div>
+    </div>
+    <div class="px-4 pb-4">
+        <div class="d-grid gap-2 mt-4" id="ep-actions">
+            @if (isDoctor)
+            {
+                <a id="ep-doctor-emr" href="#" class="btn btn-primary fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center text-decoration-none">
+                    <i class="fa-solid fa-notes-medical me-1"></i> @T("ابدأ الكشف / فتح الملف الطبي", "Open Medical Record / ابدأ الكشف")
+                </a>
+                <button type="button" class="btn btn-secondary fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center" onclick="closeEventPanel()">
+                    <i class="fa-solid fa-xmark me-1"></i> @T("إغلاق", "Close")
+                </button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-success fw-bold py-2 shadow-sm">
+                    <i class="bi bi-receipt me-1"></i> @T("إكمال وإصدار الفاتورة", "Complete & Bill")
+                </button>
+                <button type="button" class="btn btn-primary fw-bold py-2 shadow-sm">
+                    <i class="bi bi-check-circle me-1"></i> @T("تأكيد الموعد", "Confirm Appointment")
+                </button>
+                <button type="button" class="btn btn-outline-danger fw-bold py-2">
+                    <i class="bi bi-x-circle me-1"></i> @T("إلغاء الموعد", "Cancel Appointment")
+                </button>
+            }
+        </div>
+    </div>
+</div>
