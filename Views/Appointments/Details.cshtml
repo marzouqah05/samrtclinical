@@ -39,6 +39,9 @@
         status = T("قيد الانتظار", "Pending");
         badgeClass = "bg-[#FDF6EC] text-[#B47318] border border-amber-500/20";
     }
+
+    var isDoctor = User.IsInRole("Doctor") || User.IsDoctor();
+    var isReceptionistOrAdmin = User.IsInRole("Receptionist") || User.IsInRole("Admin") || User.IsOwner() || User.IsSuperAdmin();
 }
 
 @if (TempData["Warning"] != null)
@@ -200,101 +203,100 @@
                 </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="flex flex-wrap gap-3">
-                <a asp-action="PrintSlip" asp-route-id="@Model.AppointmentId" target="_blank"
-                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
-                    <i class="fa-solid fa-print text-xs"></i>
-                    @T("طباعة بطاقة الموعد", "Print Slip")
-                </a>
-
-                <a asp-action="Edit" asp-route-id="@Model.AppointmentId"
-                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
-                    <i class="fa-solid fa-pen text-xs"></i>
-                    @T("تعديل الموعد", "Edit Appointment")
-                </a>
-
-                <!-- Send WhatsApp Reminder -->
-                <form asp-action="SendQuickWhatsApp" method="post" style="display:inline;">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id"   value="@Model.AppointmentId" />
-                    <input type="hidden" name="type" value="reminder" />
-                    <button type="submit"
-                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#EAF5F0] hover:bg-[#2E7D5B]/20 text-[#2E7D5B] border border-[#2E7D5B]/20 text-sm font-medium rounded-lg transition-colors">
-                        <i class="fa-brands fa-whatsapp"></i>
-                        @T("إرسال تذكير واتسآب", "Send WhatsApp Reminder")
-                    </button>
-                </form>
-
-                <!-- Send Follow-up & Doctor Link -->
-                <form asp-action="SendQuickWhatsApp" method="post" style="display:inline;">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id"   value="@Model.AppointmentId" />
-                    <input type="hidden" name="type" value="followup" />
-                    <button type="submit"
-                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-[#DDE3DF] hover:bg-[#F6F7F5] text-[#727A76] text-sm font-medium rounded-lg transition-colors">
-                        <i class="fa-solid fa-link text-xs"></i>
-                        @T("متابعة ورابط الطبيب", "Send Follow-up & Doctor Link")
-                    </button>
-                </form>
-
-                @if ((User.IsInRole("Doctor") || User.IsDoctor() || User.IsInRole("Admin") || User.IsOwner()) && Model.Status == "Confirmed")
-                {
-                    <a asp-controller="Treatments" 
-                       asp-action="Consultation" 
-                       asp-route-appointmentId="@Model.AppointmentId" 
-                       asp-route-patientId="@Model.PatientId"
-                       class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-sm transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px;">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <span>@T("ابدأ المعاينة / Start Consultation", "Start Consultation / ابدأ المعاينة")</span>
-                    </a>
-
-                    @if (Model.PatientId > 0)
+            <!-- Action Buttons Bar -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <div class="flex flex-wrap items-center gap-2.5">
+                    @* 1. Doctor / Clinical Actions (Start Consultation / EMR) *@
+                    @if ((isDoctor || isReceptionistOrAdmin) && Model.Status == "Confirmed")
                     {
-                        <a asp-controller="Patients" 
-                           asp-action="Details" 
-                           asp-route-id="@Model.PatientId"
-                           class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-xl transition text-sm">
-                            <i class="fa-solid fa-folder-open text-xs"></i>
-                            <span>@T("الملف الطبي / View Medical Record", "View Medical Record / الملف الطبي")</span>
+                        <a asp-controller="Treatments" 
+                           asp-action="Consultation" 
+                           asp-route-appointmentId="@Model.AppointmentId" 
+                           asp-route-patientId="@Model.PatientId"
+                           class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-sm transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span>@T("ابدأ المعاينة / Start Consultation", "Start Consultation / ابدأ المعاينة")</span>
                         </a>
+
+                        @if (Model.PatientId > 0)
+                        {
+                            <a asp-controller="Patients" 
+                               asp-action="Details" 
+                               asp-route-id="@Model.PatientId"
+                               class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-xl transition text-sm">
+                                <i class="fa-solid fa-folder-open text-xs"></i>
+                                <span>@T("الملف الطبي / View Medical Record", "View Medical Record / الملف الطبي")</span>
+                            </a>
+                        }
                     }
-                }
 
-                @if (Model.Status == "Pending" || Model.Status == "Confirmed")
-                {
-                    <a asp-action="Edit" asp-route-id="@Model.AppointmentId"
-                       class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-sm font-medium rounded-lg transition-colors">
-                        <i class="bi bi-pencil text-xs"></i>
-                        @T("تعديل الموعد", "Edit Appointment")
+                    @* 2. Receptionist / Admin Actions: Single Edit & WhatsApp *@
+                    @if (isReceptionistOrAdmin)
+                    {
+                        @if (Model.Status == "Cancelled")
+                        {
+                            <a asp-action="Create"
+                               class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-sm font-medium rounded-xl transition-colors shadow-sm">
+                                <i class="fa-solid fa-calendar-plus text-xs"></i>
+                                <span>@T("حجز موعد جديد", "Book New Appointment")</span>
+                            </a>
+                        }
+                        else
+                        {
+                            <a asp-action="Edit" asp-route-id="@Model.AppointmentId"
+                               class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-sm font-medium rounded-xl transition-colors shadow-sm">
+                                <i class="fa-solid fa-pen text-xs"></i>
+                                <span>@T("تعديل الموعد", "Edit Appointment")</span>
+                            </a>
+                        }
+
+                        <!-- Send WhatsApp Reminder -->
+                        <form asp-action="SendQuickWhatsApp" method="post" class="inline m-0">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id"   value="@Model.AppointmentId" />
+                            <input type="hidden" name="type" value="reminder" />
+                            <button type="submit"
+                                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#EAF5F0] hover:bg-[#2E7D5B]/20 text-[#2E7D5B] border border-[#2E7D5B]/20 text-sm font-medium rounded-xl transition-colors cursor-pointer">
+                                <i class="fa-brands fa-whatsapp"></i>
+                                <span>@T("إرسال تذكير واتسآب", "Send WhatsApp Reminder")</span>
+                            </button>
+                        </form>
+
+                        <!-- Send Follow-up & Doctor Link -->
+                        <form asp-action="SendQuickWhatsApp" method="post" class="inline m-0">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id"   value="@Model.AppointmentId" />
+                            <input type="hidden" name="type" value="followup" />
+                            <button type="submit"
+                                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-[#DDE3DF] hover:bg-[#F6F7F5] dark:bg-transparent dark:border-[#2B3833] dark:hover:bg-[#151E1B] text-[#727A76] dark:text-[#9CA8A3] text-sm font-medium rounded-xl transition-colors cursor-pointer">
+                                <i class="fa-solid fa-link text-xs"></i>
+                                <span>@T("متابعة ورابط الطبيب", "Send Follow-up & Doctor Link")</span>
+                            </button>
+                        </form>
+                    }
+
+                    @* 3. Clinical Referral Action (Doctor and Receptionist/Admin) *@
+                    @if (Model.Patient != null)
+                    {
+                        <button type="button" onclick="openReferralModal(@Model.PatientId, '@Model.Patient.PatientName')"
+                                class="inline-flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-xl transition cursor-pointer shadow-sm"
+                                title="@T("تحويل المريض لعيادة أخرى", "Refer to Another Department")">
+                            <i class="fa-solid fa-share-from-square text-xs"></i>
+                            <span>@T("إحالة لعيادة أخرى", "Refer to Another Department")</span>
+                        </button>
+                    }
+                </div>
+
+                @* 4. Back Button aligned to end *@
+                <div>
+                    <a asp-action="Index"
+                       class="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] text-[#727A76] dark:text-[#9CA8A3] text-sm font-medium rounded-xl transition-colors shadow-xs">
+                        <i class="fa-solid fa-arrow-left text-xs"></i>
+                        <span>@T("رجوع", "Back")</span>
                     </a>
-                }
-                else if (Model.Status == "Cancelled")
-                {
-                    <a asp-action="Create"
-                       class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-sm font-medium rounded-lg transition-colors">
-                        <i class="fa-solid fa-calendar-plus text-xs"></i>
-                        @T("حجز موعد جديد", "Book New Appointment")
-                    </a>
-                }
-
-                @if (Model.Patient != null)
-                {
-                    <button type="button" onclick="openReferralModal(@Model.PatientId, '@Model.Patient.PatientName')"
-                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
-                            title="@T("تحويل المريض لعيادة أخرى", "Refer to Another Department")">
-                        <i class="fa-solid fa-share-from-square text-xs"></i>
-                        <span>@T("إحالة لعيادة أخرى", "Refer to Another Department")</span>
-                    </button>
-                }
-
-                <a asp-action="Index"
-                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-[#DDE3DF] hover:bg-[#F6F7F5] text-[#727A76] text-sm font-medium rounded-lg transition-colors">
-                    <i class="fa-solid fa-arrow-left text-xs"></i>
-                    @T("رجوع", "Back")
-                </a>
+                </div>
             </div>
         </div>
 
