@@ -157,6 +157,9 @@ namespace WebApplication1.Controllers
 
             var currentClinicId = User.GetClinicId();
             var department = await _context.Departments
+                .Include(d => d.Specialties)
+                .Include(d => d.Doctors)
+                    .ThenInclude(doc => doc.Specialty)
                 .FirstOrDefaultAsync(m => m.DepartmentId == id && m.ClinicId == currentClinicId);
 
             if (department == null)
@@ -165,6 +168,54 @@ namespace WebApplication1.Controllers
             }
 
             return View(department);
+        }
+
+        // POST: Departments/AddSpecialty
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
+        public async Task<IActionResult> AddSpecialty(int departmentId, string name, string? description)
+        {
+            var currentClinicId = User.GetClinicId();
+            var department = await _context.Departments.FirstOrDefaultAsync(d => d.DepartmentId == departmentId && d.ClinicId == currentClinicId);
+            if (department == null)
+            {
+                return NotFound();
+            }
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                TempData["Error"] = "Specialty name is required.";
+                return RedirectToAction(nameof(Details), new { id = departmentId });
+            }
+
+            var specialty = new Specialty
+            {
+                ClinicId = currentClinicId,
+                DepartmentId = departmentId,
+                Name = name.Trim(),
+                Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim()
+            };
+
+            _context.Specialties.Add(specialty);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = $"Sub-specialty '{specialty.Name}' added successfully.";
+            return RedirectToAction(nameof(Details), new { id = departmentId });
+        }
+
+        // GET: Departments/GetSpecialtiesByDepartment?departmentId=5
+        [HttpGet]
+        public async Task<IActionResult> GetSpecialtiesByDepartment(int departmentId)
+        {
+            var currentClinicId = User.GetClinicId();
+            var specialties = await _context.Specialties
+                .Where(s => s.DepartmentId == departmentId && s.ClinicId == currentClinicId)
+                .OrderBy(s => s.Name)
+                .Select(s => new { id = s.Id, name = s.Name })
+                .ToListAsync();
+
+            return Json(specialties);
         }
 
         // GET: Departments/Create

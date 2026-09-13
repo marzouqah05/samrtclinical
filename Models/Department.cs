@@ -20,6 +20,7 @@ namespace WebApplication1.Models
 
         public Guid? ClinicId { get; set; }
 
+        public ICollection<Specialty> Specialties { get; set; } = new List<Specialty>();
         public List<Doctor> Doctors { get; set; } = new List<Doctor>();
     }
 }

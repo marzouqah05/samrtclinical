@@ -103,15 +103,27 @@
                     </div>
 
                     <!-- Department Assignment -->
-                    <div class="sm:col-span-2">
+                    <div>
                         <label asp-for="DepartmentId" class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1.5">
-                            @T("تعيين القسم", "Department Assignment")
+                            @T("تعيين القسم", "Department Assignment") *
                         </label>
-                        <select asp-for="DepartmentId" asp-items="ViewBag.DepartmentId"
+                        <select asp-for="DepartmentId" id="doctorDepartmentSelect" asp-items="ViewBag.DepartmentId"
                                 class="w-full px-3.5 py-2.5 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-[#F6F7F5] dark:bg-[#151E1B] text-[#202725] dark:text-[#EAEFEA] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] transition">
                             <option value="">@T("-- اختر القسم --", "-- Select Department --")</option>
                         </select>
                         <span asp-validation-for="DepartmentId" class="text-rose-400 text-[11px] mt-1 block"></span>
+                    </div>
+
+                    <!-- Specialty Assignment (Cascading from Department) -->
+                    <div>
+                        <label asp-for="SpecialtyId" class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1.5">
+                            @T("التخصص الفرعي / الدقيق", "Sub-Specialty")
+                        </label>
+                        <select asp-for="SpecialtyId" id="doctorSpecialtySelect" asp-items="ViewBag.SpecialtyId"
+                                class="w-full px-3.5 py-2.5 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-[#F6F7F5] dark:bg-[#151E1B] text-[#202725] dark:text-[#EAEFEA] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] transition">
+                            <option value="">@T("-- اختر التخصص الفرعي (اختياري) --", "-- Select Sub-Specialty (Optional) --")</option>
+                        </select>
+                        <span asp-validation-for="SpecialtyId" class="text-rose-400 text-[11px] mt-1 block"></span>
                     </div>
                 </div>
             </div>
@@ -138,4 +150,49 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const deptSelect = document.getElementById('doctorDepartmentSelect');
+            const specSelect = document.getElementById('doctorSpecialtySelect');
+
+            if (!deptSelect || !specSelect) return;
+
+            function loadSpecialties(deptId, selectedSpecId) {
+                specSelect.innerHTML = '<option value="">@T("-- جاري التحميل... --", "-- Loading... --")</option>';
+                if (!deptId) {
+                    specSelect.innerHTML = '<option value="">@T("-- اختر التخصص الفرعي (اختياري) --", "-- Select Sub-Specialty (Optional) --")</option>';
+                    return;
+                }
+
+                fetch('/Departments/GetSpecialtiesByDepartment?departmentId=' + encodeURIComponent(deptId))
+                    .then(res => res.json())
+                    .then(data => {
+                        specSelect.innerHTML = '<option value="">@T("-- اختر التخصص الفرعي (اختياري) --", "-- Select Sub-Specialty (Optional) --")</option>';
+                        if (data && data.length > 0) {
+                            data.forEach(item => {
+                                const opt = document.createElement('option');
+                                opt.value = item.id;
+                                opt.textContent = item.name;
+                                if (selectedSpecId && item.id == selectedSpecId) {
+                                    opt.selected = true;
+                                }
+                                specSelect.appendChild(opt);
+                            });
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error fetching specialties:', err);
+                        specSelect.innerHTML = '<option value="">@T("-- اختر التخصص الفرعي (اختياري) --", "-- Select Sub-Specialty (Optional) --")</option>';
+                    });
+            }
+
+            deptSelect.addEventListener('change', function () {
+                loadSpecialties(this.value, null);
+            });
+
+            if (deptSelect.value && (!specSelect.options || specSelect.options.length <= 1)) {
+                loadSpecialties(deptSelect.value, '@(Model?.SpecialtyId?.ToString() ?? "")');
+            }
+        });
+    </script>
 }

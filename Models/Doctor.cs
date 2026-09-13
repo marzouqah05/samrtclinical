@@ -31,6 +31,10 @@ namespace WebApplication1.Models
 
         public Department? Department { get; set; }
 
+        public int? SpecialtyId { get; set; }
+
+        public Specialty? Specialty { get; set; }
+
         /// <summary>Email address used for sending the weekly schedule digest.</summary>
         [Column(TypeName = "varchar(150)")]
         [MaxLength(150)]

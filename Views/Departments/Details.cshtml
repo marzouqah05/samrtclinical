@@ -3,97 +3,372 @@
 @{
     var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
     string T(string ar, string en) => _isAr ? ar : en;
-    ViewData["Title"] = T("تفاصيل القسم", "Department Details");
+    ViewData["Title"] = T("تفاصيل القسم - الهيكل والتخصصات", "Department Details & Hierarchy");
+
+    var isAdminOrOwner = User.IsAdminOrOwner();
+    var isDoctor = User.IsDoctor();
 }
 
-<div class="max-w-3xl mx-auto px-4 py-8" dir="@(_isAr ? "rtl" : "ltr")">
+<div class="max-w-5xl mx-auto px-4 sm:px-6 py-8" dir="@(_isAr ? "rtl" : "ltr")">
 
     @* ── Back Navigation Link ── *@
-    <div class="mb-5">
+    <div class="mb-5 flex items-center justify-between">
         <a asp-action="Index" class="inline-flex items-center gap-2 text-xs font-medium text-[#727A76] dark:text-[#9CA8A3] hover:text-[#202725] dark:hover:text-[#EAEFEA] transition-colors">
             <i class="fa-solid @(_isAr ? "fa-arrow-right" : "fa-arrow-left")"></i>
             <span>@T("العودة إلى قائمة الأقسام", "Back to Departments List")</span>
         </a>
+
+        @if (isAdminOrOwner)
+        {
+            <a asp-action="Edit" asp-route-id="@Model.DepartmentId"
+               class="px-4 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-2">
+                <i class="fa-solid fa-pen text-xs"></i>
+                <span>@T("تعديل بيانات القسم", "Edit Department")</span>
+            </a>
+        }
     </div>
 
-    @* ── Unified Dark Olive Card ── *@
-    <div class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl shadow-sm max-w-3xl mx-auto overflow-hidden">
-
-        @* ── Profile Header ── *@
-        <div class="p-6 bg-[#F6F7F5] dark:bg-[#151E1B] border-b border-[#DDE3DF] dark:border-[#2B3833] flex items-center gap-4">
-            <div class="w-16 h-16 rounded-2xl bg-[#49665A]/15 border border-[#49665A]/30 text-[#49665A] font-bold text-xl flex items-center justify-center shrink-0">
-                @(!string.IsNullOrEmpty(Model.DepartmentName) ? Model.DepartmentName.Substring(0, 1).ToUpper() : "D")
+    @* ── Alerts ── *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-2xl shadow-sm border-0 d-flex align-items-center mb-6 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20" role="alert">
+            <i class="fa-solid fa-circle-check fs-5 @(_isAr ? "ms-3" : "me-3") text-emerald-600 dark:text-emerald-400"></i>
+            <div class="text-xs">
+                <strong>@T("تم بنجاح!", "Success!")</strong> @TempData["Success"]
             </div>
-            <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2 flex-wrap">
-                    <h1 class="text-base sm:text-lg font-bold text-[#202725] dark:text-[#EAEFEA] m-0">
-                        @Model.DepartmentName
-                    </h1>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#49665A]/10 text-[#49665A] border border-[#49665A]/20">
-                        @Model.DepartmentAbbr
-                    </span>
+            <button type="button" class="btn-close dark:invert @(_isAr ? "me-auto ms-0" : "ms-auto me-0")" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-2xl shadow-sm border-0 d-flex align-items-center mb-6 bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20" role="alert">
+            <i class="fa-solid fa-circle-exclamation fs-5 @(_isAr ? "ms-3" : "me-3") text-rose-600 dark:text-rose-400"></i>
+            <div class="text-xs">
+                <strong>@T("خطأ:", "Error:")</strong> @TempData["Error"]
+            </div>
+            <button type="button" class="btn-close dark:invert @(_isAr ? "me-auto ms-0" : "ms-auto me-0")" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @* ── 1. Department Header Card ── *@
+    <div class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl shadow-sm overflow-hidden mb-8">
+        <div class="p-6 bg-[#F6F7F5] dark:bg-[#151E1B] border-b border-[#DDE3DF] dark:border-[#2B3833] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-[#49665A]/15 border border-[#49665A]/30 text-[#49665A] font-black text-2xl flex items-center justify-center shrink-0 shadow-inner">
+                    @(!string.IsNullOrEmpty(Model.DepartmentName) ? Model.DepartmentName.Substring(0, 1).ToUpper() : "D")
                 </div>
-                <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0 mt-1">
-                    @T("قسم طبي منظم في العيادة", "Registered Clinic Medical Department")
-                </p>
+                <div>
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <h1 class="text-lg sm:text-xl font-black text-[#202725] dark:text-[#EAEFEA] m-0">
+                            @Model.DepartmentName
+                        </h1>
+                        @if (!string.IsNullOrEmpty(Model.DepartmentAbbr))
+                        {
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#49665A]/15 text-[#49665A] dark:text-[#83a89a] border border-[#49665A]/30 font-mono">
+                                @Model.DepartmentAbbr
+                            </span>
+                        }
+                        <!-- Care Unit Badge -->
+                        <span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            <i class="fa-solid fa-shield-heart text-[10px]"></i>
+                            <span>@T("وحدة رعاية سريرية معتمدة", "Certified Clinical Care Unit")</span>
+                        </span>
+                    </div>
+                    <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0 mt-1.5">
+                        @T("قسم طبي تخصصي يضم تخصصات فرعية وكادراً طبياً مخصصاً لمتابعة المرضى وعمليات الكشف.", "Specialized medical division hosting sub-specialties and affiliated physicians.")
+                    </p>
+                </div>
+            </div>
+
+            <!-- Quick Stats Pills -->
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <div class="px-3.5 py-2 rounded-xl bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] text-center shadow-xs">
+                    <span class="text-[10px] text-[#727A76] dark:text-[#9CA8A3] block">@T("التخصصات الفرعية", "Sub-Specialties")</span>
+                    <span class="text-sm font-black text-[#202725] dark:text-[#EAEFEA]">@(Model.Specialties?.Count ?? 0)</span>
+                </div>
+                <div class="px-3.5 py-2 rounded-xl bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] text-center shadow-xs">
+                    <span class="text-[10px] text-[#727A76] dark:text-[#9CA8A3] block">@T("أطباء القسم", "Physicians")</span>
+                    <span class="text-sm font-black text-[#202725] dark:text-[#EAEFEA]">@(Model.Doctors?.Count ?? 0)</span>
+                </div>
             </div>
         </div>
+    </div>
 
-        @* ── Details Grid ── *@
+    @* ── 2. Sub-Specialties Section (Hierarchical Child View) ── *@
+    <div class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl shadow-sm overflow-hidden mb-8">
+        <div class="px-6 py-4 border-b border-[#DDE3DF] dark:border-[#2B3833] bg-[#F8FAF9] dark:bg-[#161F1C] flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-sitemap"></i>
+                </div>
+                <div>
+                    <h2 class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA] m-0">
+                        @T("التخصصات الفرعية للقسم", "Department Sub-Specialties")
+                    </h2>
+                    <p class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] m-0">
+                        @T("فروع التخصص الدقيقة التابعة لهذا القسم الطبي", "Specific clinical domains and branches nested under this department")
+                    </p>
+                </div>
+            </div>
+
+            @if (isAdminOrOwner)
+            {
+                <button type="button" data-bs-toggle="modal" data-bs-target="#addSpecialtyModal"
+                        class="px-3.5 py-1.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl transition inline-flex items-center gap-1.5 shadow-xs cursor-pointer">
+                    <i class="fa-solid fa-plus text-[10px]"></i>
+                    <span>@T("إضافة تخصص فرعي", "Add Sub-Specialty")</span>
+                </button>
+            }
+            else if (isDoctor)
+            {
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[11px] font-medium">
+                    <i class="fa-solid fa-eye text-[10px]"></i>
+                    <span>@T("عرض للقراءة فقط", "Read-Only View")</span>
+                </span>
+            }
+        </div>
+
         <div class="p-6">
-            <span class="text-xs font-bold uppercase tracking-wider text-[#49665A] dark:text-[#9CA8A3] mb-4 block">
-                @T("معلومات القسم المعتمدة", "Department Information Overview")
-            </span>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <!-- Department Name -->
-                <div class="p-3.5 rounded-xl bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833]">
-                    <div class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase">
-                        @T("اسم القسم", "Department Name")
-                    </div>
-                    <div class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA] mt-1 flex items-center gap-2">
-                        <i class="fa-solid fa-building-columns text-[#49665A]"></i>
-                        <span>@Model.DepartmentName</span>
-                    </div>
+            @if (Model.Specialties != null && Model.Specialties.Any())
+            {
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                    @foreach (var spec in Model.Specialties)
+                    {
+                        <div class="p-4 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-[#F8FAF9] dark:bg-[#151E1B] hover:border-[#49665A]/40 transition shadow-2xs flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between gap-2 mb-1.5">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-6 h-6 rounded-lg bg-[#49665A]/15 text-[#49665A] flex items-center justify-center text-[10px]">
+                                            <i class="fa-solid fa-notes-medical"></i>
+                                        </span>
+                                        <span class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA]">
+                                            @spec.Name
+                                        </span>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#49665A]/10 text-[#49665A] dark:text-[#9CA8A3]">
+                                        @T("تخصص فرعي", "Sub-Specialty")
+                                    </span>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(spec.Description))
+                                {
+                                    <p class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] line-clamp-2 mt-1 mb-0">
+                                        @spec.Description
+                                    </p>
+                                }
+                            </div>
+                            <div class="mt-3 pt-2.5 border-t border-[#DDE3DF]/60 dark:border-[#2B3833]/60 flex items-center justify-between text-[10px] text-[#727A76] dark:text-[#9CA8A3]">
+                                <span><i class="fa-solid fa-user-doctor me-1"></i> @(spec.Doctors?.Count ?? 0) @T("أطباء", "Doctors")</span>
+                                <span class="text-emerald-600 dark:text-emerald-400 font-medium">@T("معتمد", "Active")</span>
+                            </div>
+                        </div>
+                    }
                 </div>
-
-                <!-- Department Abbreviation -->
-                <div class="p-3.5 rounded-xl bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833]">
-                    <div class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase">
-                        @T("رمز الاختصار الطبي", "Department Abbreviation")
+            }
+            else
+            {
+                <div class="text-center py-8 px-4 rounded-xl border border-dashed border-[#DDE3DF] dark:border-[#2B3833]">
+                    <div class="w-12 h-12 mx-auto rounded-full bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-lg mb-2">
+                        <i class="fa-solid fa-folder-open"></i>
                     </div>
-                    <div class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA] mt-1 flex items-center gap-2">
-                        <i class="fa-solid fa-code text-[#49665A]"></i>
-                        <span>@Model.DepartmentAbbr</span>
-                    </div>
+                    <p class="text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                        @T("لا توجد تخصصات فرعية مسجلة في هذا القسم بعد", "No sub-specialties added to this department yet")
+                    </p>
+                    <p class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] max-w-sm mx-auto mb-3">
+                        @T("يمكنك إضافة التخصصات الفرعية (مثل: تقويم الأسنان، زراعة الأسنان) لتوزيع الأطباء بشكل أدق.", "Add specific sub-domains to organize physician rosters and appointment slots accurately.")
+                    </p>
+                    @if (isAdminOrOwner)
+                    {
+                        <button type="button" data-bs-toggle="modal" data-bs-target="#addSpecialtyModal"
+                                class="px-4 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl transition inline-flex items-center gap-1.5 shadow-xs cursor-pointer">
+                            <i class="fa-solid fa-plus text-xs"></i>
+                            <span>@T("إضافة التخصص الفرعي الأول", "Add First Sub-Specialty")</span>
+                        </button>
+                    }
                 </div>
+            }
+        </div>
+    </div>
 
-                <!-- Status / Role -->
-                <div class="sm:col-span-2 p-3.5 rounded-xl bg-[#F6F7F5] dark:bg-[#151E1B] border border-[#DDE3DF] dark:border-[#2B3833]">
-                    <div class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] uppercase">
-                        @T("حالة القسم وسير العمل", "Department Status & Clinical Workflow")
-                    </div>
-                    <div class="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
-                        <i class="fa-solid fa-circle-check"></i>
-                        <span>@T("قسم نشط ومعتمد في نظام حجز المواعيد وإدارة الأطباء", "Active department in scheduling and physician assignment system")</span>
-                    </div>
+    @* ── 3. Department Physicians Section (Scoped Grid) ── *@
+    <div class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl shadow-sm overflow-hidden mb-8">
+        <div class="px-6 py-4 border-b border-[#DDE3DF] dark:border-[#2B3833] bg-[#F8FAF9] dark:bg-[#161F1C] flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-user-doctor"></i>
+                </div>
+                <div>
+                    <h2 class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA] m-0">
+                        @T("أطباء القسم والكوادر الطبية", "Department Physicians & Clinical Staff")
+                    </h2>
+                    <p class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] m-0">
+                        @T("الأطباء المعتمدون رسمياً ضمن هذا القسم وتخصصاتهم المباشرة", "Physicians assigned strictly to this department and their sub-specialties")
+                    </p>
                 </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-[#DDE3DF] dark:border-[#2B3833]">
-                <a asp-action="Index"
-                   class="px-4 py-2.5 rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] text-[#1A2621] dark:text-[#EAEFEA] text-xs font-semibold transition flex items-center gap-1.5">
-                    <i class="fa-solid @(_isAr ? "fa-arrow-right" : "fa-arrow-left") text-xs"></i>
-                    <span>@T("العودة للقائمة", "Back to List")</span>
+            @if (isAdminOrOwner)
+            {
+                <a asp-controller="Doctors" asp-action="Create"
+                   class="px-3.5 py-1.5 bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] hover:bg-slate-50 dark:hover:bg-[#202B27] text-[#202725] dark:text-[#EAEFEA] text-xs font-semibold rounded-xl transition inline-flex items-center gap-1.5 shadow-2xs">
+                    <i class="fa-solid fa-user-plus text-[10px]"></i>
+                    <span>@T("تعيين طبيب جديد", "Assign Doctor")</span>
                 </a>
-                <a asp-action="Edit" asp-route-id="@Model.DepartmentId"
-                   class="px-5 py-2.5 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-2">
-                    <i class="fa-solid fa-pen text-xs"></i>
-                    <span>@T("تعديل القسم", "Edit Department")</span>
-                </a>
-            </div>
+            }
         </div>
 
+        <div class="p-6">
+            @if (Model.Doctors != null && Model.Doctors.Any())
+            {
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @foreach (var doc in Model.Doctors)
+                    {
+                        <div class="p-4 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-[#F8FAF9] dark:bg-[#151E1B] hover:shadow-sm transition flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-start gap-3 mb-3">
+                                    <div class="w-10 h-10 rounded-xl bg-[#49665A]/15 border border-[#49665A]/30 text-[#49665A] font-bold text-sm flex items-center justify-center shrink-0">
+                                        <i class="fa-solid fa-stethoscope"></i>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <h3 class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA] truncate m-0">
+                                            Dr. @doc.DoctorName
+                                        </h3>
+                                        <div class="text-[10px] text-[#727A76] dark:text-[#9CA8A3] mt-0.5">
+                                            ID: #@doc.DoctorNumber
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Specialty Badge -->
+                                <div class="mb-3 flex items-center gap-1.5 flex-wrap">
+                                    @if (doc.Specialty != null)
+                                    {
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 inline-flex items-center gap-1">
+                                            <i class="fa-solid fa-certificate text-[9px]"></i>
+                                            <span>@doc.Specialty.Name</span>
+                                        </span>
+                                    }
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#49665A]/10 text-[#49665A] dark:text-[#9CA8A3] border border-[#49665A]/20 inline-flex items-center gap-1">
+                                        <span>@doc.Specialization</span>
+                                    </span>
+                                </div>
+
+                                <!-- Doctor Info: Room / Shift / Fee -->
+                                <div class="space-y-1.5 text-[11px] text-[#727A76] dark:text-[#9CA8A3] pt-2 border-t border-[#DDE3DF]/60 dark:border-[#2B3833]/60">
+                                    <div class="flex items-center justify-between">
+                                        <span><i class="fa-solid fa-door-open me-1 text-[#49665A]"></i> @T("العيادة / الغرفة", "Clinic / Room"):</span>
+                                        <span class="font-medium text-[#202725] dark:text-[#EAEFEA]">@T("غرفة كشف رئيسية", "Main Clinic Suite")</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span><i class="fa-solid fa-money-bill-wave me-1 text-emerald-600"></i> @T("الكشفية", "Consultation"):</span>
+                                        <span class="font-bold text-[#202725] dark:text-[#EAEFEA]">@doc.ConsultationFee JOD</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Active Status -->
+                            <div class="mt-4 pt-2.5 border-t border-[#DDE3DF]/60 dark:border-[#2B3833]/60 flex items-center justify-between">
+                                <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                    <i class="fa-solid fa-circle text-[6px]"></i>
+                                    <span>@T("نشط ومعتمد", "Active & Available")</span>
+                                </span>
+
+                                @if (!isDoctor)
+                                {
+                                    <a asp-controller="Doctors" asp-action="Details" asp-route-id="@doc.DoctorId"
+                                       class="text-[11px] font-semibold text-[#49665A] hover:underline inline-flex items-center gap-1">
+                                        <span>@T("الملف الطبي", "Profile")</span>
+                                        <i class="fa-solid @(_isAr ? "fa-arrow-left" : "fa-arrow-right") text-[9px]"></i>
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-8 px-4 rounded-xl border border-dashed border-[#DDE3DF] dark:border-[#2B3833]">
+                    <div class="w-12 h-12 mx-auto rounded-full bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-lg mb-2">
+                        <i class="fa-solid fa-user-doctor"></i>
+                    </div>
+                    <p class="text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                        @T("لا يوجد أطباء معينون في هذا القسم حالياً", "No physicians assigned to this department yet")
+                    </p>
+                    <p class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] max-w-sm mx-auto mb-3">
+                        @T("يمكنك تعيين أطباء لهذا القسم لتفعيل حجز المواعيد والتحويلات الداخلية.", "Assign doctors to this department to activate appointments and internal referrals.")
+                    </p>
+                    @if (isAdminOrOwner)
+                    {
+                        <a asp-controller="Doctors" asp-action="Create"
+                           class="px-4 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl transition inline-flex items-center gap-1.5 shadow-xs">
+                            <i class="fa-solid fa-user-plus text-xs"></i>
+                            <span>@T("إضافة طبيب للقسم", "Add Doctor to Department")</span>
+                        </a>
+                    }
+                </div>
+            }
+        </div>
     </div>
+
 </div>
+
+@* ── Inline Modal for Admin/Owner: Add Sub-Specialty ── *@
+@if (isAdminOrOwner)
+{
+    <div class="modal fade" id="addSpecialtyModal" tabindex="-1" aria-labelledby="addSpecialtyModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-2xl border border-[#DDE3DF] dark:border-[#2B3833] bg-white dark:bg-[#1B2421] shadow-xl overflow-hidden" dir="@(_isAr ? "rtl" : "ltr")">
+                <div class="modal-header px-6 py-4 bg-[#F8FAF9] dark:bg-[#161F1C] border-b border-[#DDE3DF] dark:border-[#2B3833]">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-[#49665A]/15 text-[#49665A] flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-notes-medical"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title text-sm font-bold text-[#202725] dark:text-[#EAEFEA] m-0" id="addSpecialtyModalLabel">
+                                @T("إضافة تخصص فرعي للقسم", "Add Sub-Specialty to Department")
+                            </h5>
+                            <span class="text-[11px] text-[#727A76] dark:text-[#9CA8A3]">@Model.DepartmentName</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close dark:invert text-xs @(_isAr ? "ms-0 me-auto" : "me-0 ms-auto")" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form asp-action="AddSpecialty" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+
+                    <div class="modal-body p-6 space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1.5">
+                                @T("اسم التخصص الفرعي", "Sub-Specialty Name") *
+                            </label>
+                            <input type="text" name="name" required maxlength="150"
+                                   placeholder="@T("مثال: تقويم الأسنان، جراحة الأعصاب، زراعة الأسنان...", "e.g. Orthodontics, Neurosurgery, Implantology...")"
+                                   class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-[#F6F7F5] dark:bg-[#151E1B] text-[#202725] dark:text-[#EAEFEA] focus:outline-none focus:ring-1 focus:ring-[#49665A] transition" />
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1.5">
+                                @T("وصف التخصص الفرعي (اختياري)", "Description (Optional)")
+                            </label>
+                            <textarea name="description" rows="3" maxlength="500"
+                                      placeholder="@T("ملاحظات أو مجال الممارسة السريرية لهذا التخصص...", "Clinical scope or notes about this specialty...")"
+                                      class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-[#F6F7F5] dark:bg-[#151E1B] text-[#202725] dark:text-[#EAEFEA] focus:outline-none focus:ring-1 focus:ring-[#49665A] transition"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer px-6 py-3.5 bg-[#F8FAF9] dark:bg-[#161F1C] border-t border-[#DDE3DF] dark:border-[#2B3833] flex items-center justify-end gap-2">
+                        <button type="button" class="px-4 py-2 text-xs font-semibold rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent text-[#727A76] hover:bg-slate-100 dark:hover:bg-[#202B27]" data-bs-dismiss="modal">
+                            @T("إلغاء", "Cancel")
+                        </button>
+                        <button type="submit" class="px-5 py-2 text-xs font-semibold rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white shadow-xs transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus text-[10px]"></i>
+                            <span>@T("حفظ التخصص الفرعي", "Save Sub-Specialty")</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}

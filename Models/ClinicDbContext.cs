@@ -53,6 +53,7 @@ namespace WebApplication1.Models
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<ReferralRequest> ReferralRequests { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<Specialty> Specialties { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -73,6 +74,7 @@ namespace WebApplication1.Models
             modelBuilder.Entity<Expense>().HasQueryFilter(e => IsSuperAdminUser || (CurrentClinicId != null && e.ClinicId == CurrentClinicId));
             modelBuilder.Entity<ReferralRequest>().HasQueryFilter(e => IsSuperAdminUser || (CurrentClinicId != null && e.ClinicId == CurrentClinicId));
             modelBuilder.Entity<Notification>().HasQueryFilter(e => IsSuperAdminUser || (CurrentClinicId != null && e.ClinicId == CurrentClinicId));
+            modelBuilder.Entity<Specialty>().HasQueryFilter(e => IsSuperAdminUser || (CurrentClinicId != null && e.ClinicId == CurrentClinicId));
 
             // إعدادات جدول الـ Department
             modelBuilder.Entity<Department>(entity =>
@@ -81,6 +83,20 @@ namespace WebApplication1.Models
                 entity.HasKey(e => e.DepartmentId);
                 entity.Property(e => e.DepartmentName).IsRequired().HasColumnType("varchar(150)");
                 entity.Property(e => e.DepartmentAbbr).HasColumnType("varchar(20)");
+            });
+
+            // إعدادات جدول الـ Specialty
+            modelBuilder.Entity<Specialty>(entity =>
+            {
+                entity.ToTable("Specialties");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(150);
+                entity.Property(e => e.Description).HasMaxLength(500);
+
+                entity.HasOne(s => s.Department)
+                      .WithMany(d => d.Specialties)
+                      .HasForeignKey(s => s.DepartmentId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             // إعدادات جدول الـ Doctor
@@ -96,6 +112,11 @@ namespace WebApplication1.Models
                       .WithMany(p => p.Doctors)
                       .HasForeignKey(d => d.DepartmentId)
                       .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(d => d.Specialty)
+                      .WithMany(s => s.Doctors)
+                      .HasForeignKey(d => d.SpecialtyId)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
 
             // إعدادات جدول الـ Patient

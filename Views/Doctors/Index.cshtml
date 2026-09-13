@@ -125,8 +125,56 @@
         </div>
     }
 
+    @* ─── Scoped Department Banner for Doctor Role ─── *@
+    @if (User.IsDoctor() && ViewBag.IsDoctorScoped == true)
+    {
+        <div class="mb-6 p-4 rounded-2xl bg-[#49665A]/10 border border-[#49665A]/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-[#49665A]/20 text-[#49665A] dark:text-[#83a89a] flex items-center justify-center text-base shrink-0">
+                    <i class="fa-solid fa-hospital-user"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA] m-0">
+                        @T($"قسمي: {ViewBag.ScopedDepartmentName} - الزملاء والتخصصات", $"My Department: {ViewBag.ScopedDepartmentName} Colleagues & Specialties")
+                    </h3>
+                    <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0 mt-0.5">
+                        @T("عرض مخصص للزملاء والكوادر الطبية التابعة لقسمك الطبي المعتمد فقط لتعزيز التعاون وسهولة التحويل.", "Scoped view displaying solely colleagues and clinical staff in your department.")
+                    </p>
+                </div>
+            </div>
+            <span class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#49665A] text-white shrink-0 shadow-2xs">
+                @Model.Count() @T("أطباء زملاء", "Colleagues")
+            </span>
+        </div>
+    }
+
+    @* ─── Department Filter Tabs for Admin/Owner/Receptionist ─── *@
+    @if (!User.IsDoctor() && ViewBag.Departments is List<WebApplication1.Models.Department> depts && depts.Any())
+    {
+        int? selectedDeptId = ViewBag.SelectedDepartmentId as int?;
+        <div class="flex items-center gap-2 overflow-x-auto pb-3 mb-4 scrollbar-none">
+            <a asp-action="Index" asp-route-departmentId="" asp-route-search="@ViewContext.HttpContext.Request.Query["search"]"
+               class="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition shrink-0 inline-flex items-center gap-1.5 @(!selectedDeptId.HasValue || selectedDeptId == 0 ? "bg-[#49665A] text-white shadow-2xs" : "bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] text-[#727A76] dark:text-[#9CA8A3] hover:text-[#202725] dark:hover:text-[#EAEFEA]")">
+                <i class="fa-solid fa-layer-group text-[10px]"></i>
+                <span>@T("جميع الأقسام", "All Departments")</span>
+            </a>
+            @foreach (var dept in depts)
+            {
+                bool isSelected = selectedDeptId == dept.DepartmentId;
+                <a asp-action="Index" asp-route-departmentId="@dept.DepartmentId" asp-route-search="@ViewContext.HttpContext.Request.Query["search"]"
+                   class="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition shrink-0 inline-flex items-center gap-1.5 @(isSelected ? "bg-[#49665A] text-white shadow-2xs" : "bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] text-[#727A76] dark:text-[#9CA8A3] hover:text-[#202725] dark:hover:text-[#EAEFEA]")">
+                    <span>@dept.DepartmentName</span>
+                </a>
+            }
+        </div>
+    }
+
     <!-- شريط البحث -->
     <form method="get" class="flex items-center gap-2 max-w-md w-full mb-6">
+        @if (ViewBag.SelectedDepartmentId != null)
+        {
+            <input type="hidden" name="departmentId" value="@ViewBag.SelectedDepartmentId" />
+        }
         <div class="relative flex-1">
             <i class="fa-solid fa-magnifying-glass absolute start-3.5 top-1/2 -translate-y-1/2 text-xs text-[#8A9992] dark:text-[#727A76]"></i>
             <input type="text" name="search" value="@ViewContext.HttpContext.Request.Query["search"]"
@@ -146,7 +194,7 @@
                 <thead>
                     <tr class="bg-[#F4F7F5] dark:bg-[#151E1B] border-b border-[#E5E9E7] dark:border-[#2B3833] text-[11px] uppercase tracking-wider text-[#5C6E66] dark:text-[#9CA8A3] font-semibold">
                         <th class="ps-6 text-start w-[32%] py-3.5">@T("اسم الطبيب", "Doctor Name")</th>
-                        <th class="text-start w-[28%] py-3.5">@T("التخصص", "Specialization")</th>
+                        <th class="text-start w-[28%] py-3.5">@T("التخصص والتخصص الفرعي", "Specialization & Sub-Specialty")</th>
                         <th class="text-start w-[20%] py-3.5">@T("القسم", "Department")</th>
                         <th class="pe-6 text-end w-[20%] py-3.5">@(User.IsDoctor() ? T("معلومات الزميل", "Colleague Info") : T("الإجراءات", "Actions"))</th>
                     </tr>
@@ -170,9 +218,18 @@
                                     </div>
                                 </td>
 
-                                <!-- التخصص -->
+                                <!-- التخصص والتخصص الفرعي -->
                                 <td class="py-3.5 text-[#1A2621] dark:text-[#EAEFEA] text-xs font-medium">
-                                    @item.Specialization
+                                    <div class="flex flex-col gap-1">
+                                        <span>@item.Specialization</span>
+                                        @if (item.Specialty != null)
+                                        {
+                                            <span class="inline-flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 font-medium">
+                                                <i class="fa-solid fa-certificate text-[9px]"></i>
+                                                <span>@item.Specialty.Name</span>
+                                            </span>
+                                        }
+                                    </div>
                                 </td>
 
                                 <!-- القسم -->
