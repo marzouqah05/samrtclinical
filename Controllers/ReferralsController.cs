@@ -73,7 +73,7 @@ namespace WebApplication1.Controllers
         // POST: Referrals/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(int patientId, int targetDepartmentId, int? targetDoctorId, string referralReason)
+        public async Task<IActionResult> Create(int patientId, int targetDepartmentId, int? targetDoctorId, string referralReason, string? urgency = "Normal")
         {
             if (patientId <= 0 || targetDepartmentId <= 0 || string.IsNullOrWhiteSpace(referralReason))
             {
@@ -133,6 +133,7 @@ namespace WebApplication1.Controllers
 
             // Clean doctor name formatting
             var cleanFromDoc = System.Text.RegularExpressions.Regex.Replace(fromDoctorName, @"^(Dr\.\s*|د\.\s*)+", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+            var cleanUrgency = string.IsNullOrWhiteSpace(urgency) ? "Normal" : urgency.Trim();
 
             // 4. Create ReferralRequest entity
             var referral = new ReferralRequest
@@ -143,6 +144,7 @@ namespace WebApplication1.Controllers
                 TargetDepartmentId = targetDepartmentId,
                 TargetDoctorId = targetDoctorId.HasValue && targetDoctorId.Value > 0 ? targetDoctorId.Value : null,
                 ReferralReason = referralReason.Trim(),
+                Urgency = cleanUrgency,
                 Status = ReferralStatus.Pending,
                 CreatedAt = DateTime.UtcNow
             };
@@ -151,7 +153,8 @@ namespace WebApplication1.Controllers
             await _context.SaveChangesAsync();
 
             // 5. Create Notification for Receptionist & Admin
-            var notifMessage = $"Dr. {cleanFromDoc} referred Patient {patient.PatientName} to {targetDeptName} - Reason: {referralReason.Trim()}";
+            var urgencyPrefix = cleanUrgency == "Urgent" ? "[URGENT / عاجل] " : (cleanUrgency == "ASAP" ? "[ASAP / بأقرب وقت] " : "");
+            var notifMessage = $"{urgencyPrefix}Dr. {cleanFromDoc} referred Patient {patient.PatientName} to {targetDeptName} - Reason: {referralReason.Trim()}";
             if (!string.IsNullOrEmpty(targetDocName))
             {
                 var cleanTargetDoc = System.Text.RegularExpressions.Regex.Replace(targetDocName, @"^(Dr\.\s*|د\.\s*)+", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
@@ -161,7 +164,7 @@ namespace WebApplication1.Controllers
             var notification = new Notification
             {
                 ClinicId = currentClinicId != Guid.Empty ? currentClinicId : null,
-                Title = $"Referral: {patient.PatientName}",
+                Title = $"{urgencyPrefix}Referral: {patient.PatientName}",
                 Message = notifMessage,
                 Type = "Referral",
                 TargetRole = "Receptionist",
@@ -190,7 +193,8 @@ namespace WebApplication1.Controllers
                     message = successMsg,
                     referralId = referral.Id,
                     patientName = patient.PatientName,
-                    departmentName = targetDeptName
+                    departmentName = targetDeptName,
+                    urgency = referral.Urgency
                 });
             }
 

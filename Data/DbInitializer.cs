@@ -85,8 +85,10 @@ namespace WebApplication1.Data
                             ""TargetDoctorId"" integer NULL,
                             ""ReferralReason"" varchar(1000) NOT NULL,
                             ""Status"" integer NOT NULL DEFAULT 0,
+                            ""Urgency"" varchar(50) NULL DEFAULT 'Normal',
                             ""CreatedAt"" timestamp without time zone NOT NULL DEFAULT NOW()
-                        );");
+                        );
+                        ALTER TABLE ""ReferralRequests"" ADD COLUMN IF NOT EXISTS ""Urgency"" varchar(50) NULL DEFAULT 'Normal';");
                 }
                 catch { }
 

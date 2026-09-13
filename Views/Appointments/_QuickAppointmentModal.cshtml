@@ -16,6 +16,8 @@
     {
         currentDoctorName = User.Identity?.Name ?? "Doctor";
     }
+    int? currentDoctorDeptId = ViewBag.CurrentDoctorDepartmentId as int?;
+    var currentDoctorDeptName = ViewBag.CurrentDoctorDepartmentName as string ?? "General Practice";
 }
 
 @* ══════════════════════════════════════════════════════
@@ -28,19 +30,40 @@
                 <div>
                     <h5 class="modal-title font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2 m-0" id="quickBookModalLabel">
                         <i class="bi bi-calendar-plus text-emerald-500"></i>
-                        <span>Quick Appointment</span>
+                        <span id="qb-modal-title">Quick Appointment</span>
                     </h5>
-                    <p class="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1 mb-0">Quickly schedule a new patient visit</p>
+                    <p class="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1 mb-0" id="qb-modal-subtitle">Quickly schedule a new patient visit</p>
                 </div>
                 <button type="button" class="btn-close dark:filter dark:invert" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body pt-5 px-0 pb-0 text-left">
+                
+                @if (isDoctorUser)
+                {
+                    @* ── Doctor Booking vs Referral Toggle Switch ── *@
+                    <div class="mb-5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/80 flex items-center gap-1">
+                        <button type="button" id="qb-tab-followup" onclick="switchDoctorBookingMode('followup')"
+                                class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/60 dark:border-slate-700/60 cursor-pointer">
+                            <i class="fa-solid fa-calendar-check"></i>
+                            <span>Follow-up in My Clinic / موعد متابعة عندي</span>
+                        </button>
+                        <button type="button" id="qb-tab-referral" onclick="switchDoctorBookingMode('referral')"
+                                class="flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 cursor-pointer">
+                            <i class="fa-solid fa-share-from-square"></i>
+                            <span>Transfer / Refer to Another Department / تحويل لقسم آخر</span>
+                        </button>
+                    </div>
+                }
+
                 <form asp-action="QuickBook" method="post" id="quickBookForm">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="isException" id="qbIsException" value="false" />
                     <input type="hidden" name="IsOutsideHoursException" id="qbIsOutsideHoursException" value="false" />
+                    <input type="hidden" name="bookingType" id="qbBookingType" value="FollowUp" />
+
                     <div class="space-y-4">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        @* ── Date & Time Grid (Option A: Follow-up) ── *@
+                        <div id="qb-datetime-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5 text-left">
                                     <i class="fa-regular fa-calendar me-1 text-emerald-600 dark:text-emerald-400"></i>Appointment Date
@@ -59,27 +82,69 @@
                                        required />
                             </div>
                         </div>
+
+                        @* ── Urgency / Priority Selector (Option B: Referral) ── *@
+                        <div id="qb-urgency-container" class="space-y-1.5" style="display: none;">
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5 text-left">
+                                <i class="fa-solid fa-triangle-exclamation me-1 text-amber-500"></i>Urgency / Priority (أولوية التحويل) *
+                            </label>
+                            <div class="grid grid-cols-3 gap-3">
+                                <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium cursor-pointer transition hover:bg-slate-100 dark:hover:bg-slate-700/60 has-checked:border-emerald-500 has-checked:bg-emerald-50/50 dark:has-checked:bg-emerald-950/40 has-checked:text-emerald-700 dark:has-checked:text-emerald-300">
+                                    <input type="radio" name="urgency" value="Normal" class="text-emerald-600 focus:ring-emerald-500" checked />
+                                    <span>Normal / عادي</span>
+                                </label>
+                                <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium cursor-pointer transition hover:bg-slate-100 dark:hover:bg-slate-700/60 has-checked:border-amber-500 has-checked:bg-amber-50/50 dark:has-checked:bg-amber-950/40 has-checked:text-amber-700 dark:has-checked:text-amber-300">
+                                    <input type="radio" name="urgency" value="ASAP" class="text-amber-600 focus:ring-amber-500" />
+                                    <span>ASAP / بأقرب وقت</span>
+                                </label>
+                                <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium cursor-pointer transition hover:bg-slate-100 dark:hover:bg-slate-700/60 has-checked:border-rose-500 has-checked:bg-rose-50/50 dark:has-checked:bg-rose-950/40 has-checked:text-rose-700 dark:has-checked:text-rose-300">
+                                    <input type="radio" name="urgency" value="Urgent" class="text-rose-600 focus:ring-rose-500" />
+                                    <span>Urgent / عاجل</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        @* ── Department & Doctor Grid ── *@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            @* Department Column *@
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5 text-left">
-                                    <i class="fa-solid fa-hospital me-1 text-emerald-600 dark:text-emerald-400"></i>Department
+                                    <i class="fa-solid fa-hospital me-1 text-emerald-600 dark:text-emerald-400"></i>
+                                    <span id="qb-department-label">Department</span>
                                 </label>
+
                                 @if (isDoctorUser)
                                 {
-                                    var deptName = ViewBag.CurrentDoctorDepartmentName as string ?? "General Practice";
-                                    var deptId = ViewBag.CurrentDoctorDepartmentId;
-                                    <input type="hidden" name="DepartmentId" id="qbDepartment" value="@deptId" />
-                                    <div class="w-full bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 rounded-xl text-blue-900 dark:text-blue-300 px-3.5 py-2.5 text-xs font-semibold flex items-center justify-between">
+                                    @* Locked Department Box (Follow-up) *@
+                                    <div id="qb-doc-dept-locked" class="w-full bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 rounded-xl text-blue-900 dark:text-blue-300 px-3.5 py-2.5 text-xs font-semibold flex items-center justify-between">
                                         <div class="flex items-center gap-2">
                                             <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-100 text-[10px]">
                                                 <i class="fa-solid fa-hospital"></i>
                                             </span>
-                                            <span>@deptName</span>
+                                            <span>@currentDoctorDeptName</span>
                                         </div>
                                         <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-blue-200/70 dark:bg-blue-800/60 text-blue-900 dark:text-blue-200">
                                             <i class="fa-solid fa-lock text-[9px] me-1"></i>Locked
                                         </span>
                                     </div>
+
+                                    @* Unlocked Department Dropdown (Referral: shows other departments) *@
+                                    <select name="DepartmentId" id="qbDepartment" style="display: none;"
+                                            class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 px-3.5 py-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 text-left">
+                                        <option value="">— Select Target Department / اختر القسم المستهدف —</option>
+                                        @if (ViewBag.AllDepartments != null)
+                                        {
+                                            foreach (var dept in ViewBag.AllDepartments)
+                                            {
+                                                if (currentDoctorDeptId.HasValue && dept.DepartmentId == currentDoctorDeptId.Value)
+                                                {
+                                                    continue; // Exclude current doctor's department
+                                                }
+                                                <option value="@dept.DepartmentId">@dept.DepartmentName</option>
+                                            }
+                                        }
+                                    </select>
+                                    <input type="hidden" id="qbDoctorDefaultDept" value="@currentDoctorDeptId" />
                                 }
                                 else
                                 {
@@ -96,14 +161,17 @@
                                     </select>
                                 }
                             </div>
+
+                            @* Doctor Column *@
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5 text-left">
                                     <i class="fa-solid fa-user-doctor me-1 text-emerald-600 dark:text-emerald-400"></i>Doctor
                                 </label>
+
                                 @if (isDoctorUser)
                                 {
-                                    <input type="hidden" name="DoctorId" id="qbDoctor" value="@currentDoctorId" />
-                                    <div class="w-full bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-emerald-800 dark:text-emerald-300 px-3.5 py-2.5 text-xs font-semibold flex items-center justify-between">
+                                    @* Locked Doctor Box (Follow-up) *@
+                                    <div id="qb-doc-doctor-locked" class="w-full bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-emerald-800 dark:text-emerald-300 px-3.5 py-2.5 text-xs font-semibold flex items-center justify-between">
                                         <div class="flex items-center gap-2">
                                             <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-200 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-100 text-[10px]">
                                                 <i class="fa-solid fa-user-doctor"></i>
@@ -114,6 +182,22 @@
                                             <i class="fa-solid fa-lock text-[9px] me-1"></i>Locked
                                         </span>
                                     </div>
+
+                                    @* Auto-assigned placeholder (Referral) *@
+                                    <div id="qb-doc-doctor-auto" style="display: none;" class="w-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 px-3.5 py-2.5 text-xs font-semibold flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px]">
+                                                <i class="fa-solid fa-users"></i>
+                                            </span>
+                                            <span>Auto-assigned by Reception / يتم تعيينه بواسطة الاستقبال</span>
+                                        </div>
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                            Auto
+                                        </span>
+                                    </div>
+
+                                    <input type="hidden" name="DoctorId" id="qbDoctor" value="@currentDoctorId" />
+                                    <input type="hidden" id="qbDoctorDefaultId" value="@currentDoctorId" />
                                 }
                                 else
                                 {
@@ -132,9 +216,11 @@
                                 }
                             </div>
                         </div>
+
+                        @* ── Patient Selection ── *@
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5 text-left">
-                                <i class="fa-solid fa-user me-1 text-emerald-600 dark:text-emerald-400"></i>Patient
+                                <i class="fa-solid fa-user me-1 text-emerald-600 dark:text-emerald-400"></i>Patient *
                             </label>
                             <select name="PatientId" id="qbPatient"
                                     class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 px-3.5 py-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 text-left"
@@ -149,11 +235,14 @@
                                 }
                             </select>
                         </div>
+
+                        @* ── Notes (Follow-up: Optional) vs Clinical Reason (Referral: Mandatory) ── *@
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5 text-left">
-                                <i class="fa-solid fa-notes-medical me-1 text-emerald-600 dark:text-emerald-400"></i>Notes (Optional)
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5 text-left" id="qb-notes-label">
+                                <i class="fa-solid fa-notes-medical me-1 text-emerald-600 dark:text-emerald-400"></i>
+                                <span id="qb-notes-title">Notes (Optional)</span>
                             </label>
-                            <textarea name="Notes"
+                            <textarea name="Notes" id="qbNotes"
                                       class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 px-3.5 py-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none text-left"
                                       rows="3"
                                       placeholder="Enter any symptoms, complaints, or notes..."></textarea>
@@ -165,9 +254,9 @@
                         <button type="button" class="bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 font-medium px-5 py-2.5 rounded-lg text-sm transition cursor-pointer inline-flex items-center gap-1.5" data-bs-dismiss="modal">
                             Cancel
                         </button>
-                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 py-2.5 rounded-lg text-sm shadow-md shadow-emerald-950/40 inline-flex items-center gap-2 transition active:scale-95 cursor-pointer border-0">
-                            <i class="bi bi-calendar-check"></i>
-                            <span>Save Appointment</span>
+                        <button type="submit" id="qbSubmitBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 py-2.5 rounded-lg text-sm shadow-md shadow-emerald-950/40 inline-flex items-center gap-2 transition active:scale-95 cursor-pointer border-0">
+                            <i id="qbSubmitIcon" class="bi bi-calendar-check"></i>
+                            <span id="qbSubmitText">Save Appointment</span>
                         </button>
                     </div>
                 </form>
@@ -177,6 +266,121 @@
 </div>
 
 <script>
+    function switchDoctorBookingMode(mode) {
+        var isReferral = (mode === 'referral');
+        var bookingTypeInput = document.getElementById('qbBookingType');
+        if (bookingTypeInput) bookingTypeInput.value = isReferral ? 'Referral' : 'FollowUp';
+
+        // Toggle buttons styling
+        var btnFollowUp = document.getElementById('qb-tab-followup');
+        var btnReferral = document.getElementById('qb-tab-referral');
+        if (btnFollowUp && btnReferral) {
+            if (isReferral) {
+                btnReferral.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/60 dark:border-slate-700/60 cursor-pointer';
+                btnFollowUp.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 cursor-pointer';
+            } else {
+                btnFollowUp.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/60 dark:border-slate-700/60 cursor-pointer';
+                btnReferral.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 cursor-pointer';
+            }
+        }
+
+        // Modal title & subtitle
+        var titleEl = document.getElementById('qb-modal-title');
+        var subTitleEl = document.getElementById('qb-modal-subtitle');
+        if (titleEl) {
+            titleEl.textContent = isReferral ? 'Internal Referral / تحويل سريري' : 'Quick Appointment';
+        }
+        if (subTitleEl) {
+            subTitleEl.textContent = isReferral ? 'Refer patient to another clinical department for specialized care' : 'Quickly schedule a new patient visit';
+        }
+
+        // Date & Time vs Urgency
+        var dtContainer = document.getElementById('qb-datetime-container');
+        var urgencyContainer = document.getElementById('qb-urgency-container');
+        var qbDate = document.getElementById('qbDate');
+        var qbTime = document.getElementById('qbTime');
+
+        if (isReferral) {
+            if (dtContainer) dtContainer.style.display = 'none';
+            if (urgencyContainer) urgencyContainer.style.display = 'block';
+            if (qbDate) qbDate.removeAttribute('required');
+            if (qbTime) qbTime.removeAttribute('required');
+        } else {
+            if (dtContainer) dtContainer.style.display = '';
+            if (urgencyContainer) urgencyContainer.style.display = 'none';
+            if (qbDate) qbDate.setAttribute('required', 'required');
+            if (qbTime) qbTime.setAttribute('required', 'required');
+        }
+
+        // Department
+        var deptLocked = document.getElementById('qb-doc-dept-locked');
+        var deptSelect = document.getElementById('qbDepartment');
+        var defaultDeptId = document.getElementById('qbDoctorDefaultDept')?.value || '';
+
+        if (isReferral) {
+            if (deptLocked) deptLocked.style.display = 'none';
+            if (deptSelect) {
+                deptSelect.style.display = 'block';
+                deptSelect.setAttribute('required', 'required');
+                if (deptSelect.value === defaultDeptId) deptSelect.value = '';
+            }
+        } else {
+            if (deptLocked) deptLocked.style.display = 'flex';
+            if (deptSelect) {
+                deptSelect.style.display = 'none';
+                deptSelect.removeAttribute('required');
+                deptSelect.value = defaultDeptId;
+            }
+        }
+
+        // Doctor
+        var docLocked = document.getElementById('qb-doc-doctor-locked');
+        var docAuto = document.getElementById('qb-doc-doctor-auto');
+        var docInput = document.getElementById('qbDoctor');
+        var defaultDocId = document.getElementById('qbDoctorDefaultId')?.value || '';
+
+        if (isReferral) {
+            if (docLocked) docLocked.style.display = 'none';
+            if (docAuto) docAuto.style.display = 'flex';
+            if (docInput) docInput.value = '0';
+        } else {
+            if (docLocked) docLocked.style.display = 'flex';
+            if (docAuto) docAuto.style.display = 'none';
+            if (docInput) docInput.value = defaultDocId;
+        }
+
+        // Notes / Clinical Reason
+        var notesTitle = document.getElementById('qb-notes-title');
+        var notesTextarea = document.getElementById('qbNotes');
+        if (isReferral) {
+            if (notesTitle) notesTitle.innerHTML = '<span class="text-rose-600 dark:text-rose-400">Clinical Reason / سبب التحويل (إلزامي) *</span>';
+            if (notesTextarea) {
+                notesTextarea.setAttribute('required', 'required');
+                notesTextarea.setAttribute('placeholder', 'Enter symptoms, clinical findings, and justification for department transfer (Required)...');
+                notesTextarea.name = 'ReferralReason';
+            }
+        } else {
+            if (notesTitle) notesTitle.textContent = 'Notes (Optional)';
+            if (notesTextarea) {
+                notesTextarea.removeAttribute('required');
+                notesTextarea.setAttribute('placeholder', 'Enter any symptoms, complaints, or notes...');
+                notesTextarea.name = 'Notes';
+            }
+        }
+
+        // Submit button
+        var submitBtn = document.getElementById('qbSubmitBtn');
+        var submitIcon = document.getElementById('qbSubmitIcon');
+        var submitText = document.getElementById('qbSubmitText');
+        if (isReferral) {
+            if (submitIcon) submitIcon.className = 'fa-solid fa-share-from-square';
+            if (submitText) submitText.textContent = 'Send Referral Request / إرسال طلب التحويل';
+        } else {
+            if (submitIcon) submitIcon.className = 'bi bi-calendar-check';
+            if (submitText) submitText.textContent = 'Save Appointment';
+        }
+    }
+
     function filterQuickBookDoctors(deptId) {
         var doctorSelect = document.getElementById('qbDoctor');
         if (!doctorSelect || doctorSelect.tagName !== 'SELECT') return;

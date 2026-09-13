@@ -921,8 +921,84 @@ namespace WebApplication1.Controllers
         // POST: Appointments/QuickBook — AJAX quick-book from calendar modal
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> QuickBook([Bind("AppointmentDate,AppointmentTime,DoctorId,PatientId,DepartmentId,ReferredByDoctorId,ReferralReason,Notes,IsOutsideHoursException")] Appointment appointment, bool isException = false)
+        public async Task<IActionResult> QuickBook([Bind("AppointmentDate,AppointmentTime,DoctorId,PatientId,DepartmentId,ReferredByDoctorId,ReferralReason,Notes,IsOutsideHoursException")] Appointment appointment, string? bookingType = null, string? urgency = "Normal", bool isException = false)
         {
+            if (bookingType == "Referral")
+            {
+                var reasonText = (appointment.ReferralReason ?? appointment.Notes ?? "").Trim();
+                if (appointment.PatientId <= 0 || !appointment.DepartmentId.HasValue || appointment.DepartmentId.Value <= 0 || string.IsNullOrWhiteSpace(reasonText))
+                {
+                    TempData["Error"] = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
+                        ? "يرجى تحديد المريض والقسم المستهدف وكتابة سبب التحويل السريري."
+                        : "Please select a patient, target department, and provide a clinical referral reason.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                int fromDocId = 0;
+                string fromDocName = User.Identity?.Name ?? "Doctor";
+                if (User.IsDoctor())
+                {
+                    var docId = await User.GetDoctorIdAsync(_context);
+                    if (docId.HasValue) fromDocId = docId.Value;
+                }
+                var clinicId = User.GetClinicId();
+                if (fromDocId == 0)
+                {
+                    var fallbackDoc = await _context.Doctors.FirstOrDefaultAsync(d => clinicId == Guid.Empty || d.ClinicId == clinicId);
+                    if (fallbackDoc != null) fromDocId = fallbackDoc.DoctorId;
+                }
+
+                var fromDoc = await _context.Doctors.FindAsync(fromDocId);
+                if (fromDoc != null) fromDocName = fromDoc.DoctorName;
+                var cleanFromDoc = System.Text.RegularExpressions.Regex.Replace(fromDocName, @"^(Dr\.\s*|د\.\s*)+", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+
+                var patient = await _context.Patients.FindAsync(appointment.PatientId);
+                var targetDept = await _context.Departments.FindAsync(appointment.DepartmentId.Value);
+                var targetDeptName = targetDept?.DepartmentName ?? "Department";
+                var cleanUrgency = string.IsNullOrWhiteSpace(urgency) ? "Normal" : urgency.Trim();
+
+                var referral = new ReferralRequest
+                {
+                    ClinicId = clinicId != Guid.Empty ? clinicId : null,
+                    PatientId = appointment.PatientId,
+                    FromDoctorId = fromDocId,
+                    TargetDepartmentId = appointment.DepartmentId.Value,
+                    TargetDoctorId = null,
+                    ReferralReason = reasonText,
+                    Urgency = cleanUrgency,
+                    Status = ReferralStatus.Pending,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.ReferralRequests.Add(referral);
+                await _context.SaveChangesAsync();
+
+                var urgencyPrefix = cleanUrgency == "Urgent" ? "[URGENT / عاجل] " : (cleanUrgency == "ASAP" ? "[ASAP / بأقرب وقت] " : "");
+                var notifMessage = $"{urgencyPrefix}Dr. {cleanFromDoc} referred Patient {patient?.PatientName ?? "Patient"} to {targetDeptName} - Reason: {reasonText}";
+
+                var notification = new Notification
+                {
+                    ClinicId = clinicId != Guid.Empty ? clinicId : null,
+                    Title = $"{urgencyPrefix}Referral: {patient?.PatientName ?? "Patient"}",
+                    Message = notifMessage,
+                    Type = "Referral",
+                    TargetRole = "Receptionist",
+                    PatientId = appointment.PatientId,
+                    ReferralRequestId = referral.Id,
+                    DoctorName = cleanFromDoc,
+                    PatientName = patient?.PatientName ?? "Patient",
+                    DepartmentName = targetDeptName,
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Notifications.Add(notification);
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
+                    ? "تم إرسال طلب التحويل بنجاح إلى الاستقبال!"
+                    : "Referral request sent successfully to reception!";
+                return RedirectToAction(nameof(Index));
+            }
+
             if (appointment.AppointmentDate.Date < DateTime.Today)
             {
                 string error = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"

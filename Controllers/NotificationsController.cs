@@ -158,6 +158,7 @@ namespace WebApplication1.Controllers
                     notes = r.ReferralReason,
                     referralReason = r.ReferralReason,
                     isTransfer = true,
+                    urgency = r.Urgency ?? "Normal",
                     message = $"Transferred from {fromDoc} -> {deptName}: {r.ReferralReason}",
                     status = r.Status.ToString(),
                     timeAgo = GetTimeAgo(r.CreatedAt),

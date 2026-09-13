@@ -39,6 +39,9 @@ namespace WebApplication1.Models
         [MaxLength(1000)]
         public string ReferralReason { get; set; } = string.Empty;
 
+        [MaxLength(50)]
+        public string Urgency { get; set; } = "Normal";
+
         public ReferralStatus Status { get; set; } = ReferralStatus.Pending;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
