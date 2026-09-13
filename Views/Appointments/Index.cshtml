@@ -1656,14 +1656,19 @@
 
             if (isDoctor) {
                 // Doctor actions: strictly NO "Complete & Bill" and NO "Cancel Appointment"
+                window.currentDrawerPatientId = p.patientId || 0;
                 const isActive = p.status !== 'Completed' && p.status !== 'Cancelled';
                 if (isActive) {
                     const emrUrl = p.patientId ? `/Patients/Details/${p.patientId}` : `/Appointments/Details/${id}`;
                     const emrText = isAr ? 'ابدأ الكشف / Open Medical Record' : 'Open Medical Record / ابدأ الكشف';
+                    const refText = isAr ? 'إحالة لعيادة أخرى' : 'Refer to Another Department / إحالة لعيادة أخرى';
                     actionsDiv.innerHTML += `
                         <a href="${emrUrl}" class="btn btn-primary fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center text-decoration-none">
                             <i class="fa-solid fa-notes-medical me-1"></i> ${emrText}
-                        </a>`;
+                        </a>
+                        <button type="button" onclick="closeEventPanel(); openReferralModal(${p.patientId || 0}, '${escapeJs(p.patientName || '')}')" class="btn btn-outline-success fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center">
+                            <i class="fa-solid fa-share-from-square me-1"></i> ${refText}
+                        </button>`;
                 }
                 const closeText = isAr ? 'إغلاق' : 'Close';
                 actionsDiv.innerHTML += `

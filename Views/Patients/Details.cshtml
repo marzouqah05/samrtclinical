@@ -119,6 +119,12 @@
 
                 <!-- Action Buttons -->
                 <div class="flex flex-col gap-2 shrink-0">
+                    <button type="button" onclick="openReferralModal(@Model.Patient.PatientId, '@Model.Patient.PatientName')"
+                            class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5 justify-center cursor-pointer"
+                            title="@T("تحويل المريض لعيادة أخرى", "Refer to Another Department")">
+                        <i class="fa-solid fa-share-from-square"></i>
+                        <span>@T("إحالة لعيادة أخرى", "Refer to Another Department")</span>
+                    </button>
                     <a asp-action="ExportMedicalReportPdf" asp-route-id="@Model.Patient.PatientId"
                        class="px-3.5 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5 justify-center">
                         <i class="fa-solid fa-file-pdf"></i>
@@ -174,12 +180,20 @@
                             </h2>
                             <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0">@T("توثيق الزيارات والفحوصات وخطة العلاج.", "Documentation of visits, physical findings, and management.")</p>
                         </div>
-                        <button type="button"
-                                class="px-3.5 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5"
-                                onclick="toggleAddNoteForm()">
-                            <i class="fa-solid fa-plus text-[10px]"></i>
-                            <span>@T("إضافة زيارة / ملاحظة", "Add Clinical Note")</span>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="openReferralModal(@Model.Patient.PatientId, '@Model.Patient.PatientName')"
+                                    class="px-3.5 py-2 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+                                    title="@T("تحويل المريض لعيادة أخرى", "Refer to Another Department")">
+                                <i class="fa-solid fa-share-from-square text-[11px]"></i>
+                                <span>@T("إحالة لعيادة أخرى", "Refer to Another Department")</span>
+                            </button>
+                            <button type="button"
+                                    class="px-3.5 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5"
+                                    onclick="toggleAddNoteForm()">
+                                <i class="fa-solid fa-plus text-[10px]"></i>
+                                <span>@T("إضافة زيارة / ملاحظة", "Add Clinical Note")</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Add Note Inline Form -->

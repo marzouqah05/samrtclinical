@@ -211,6 +211,16 @@
                     </a>
                 }
 
+                @if (Model.Patient != null)
+                {
+                    <button type="button" onclick="openReferralModal(@Model.PatientId, '@Model.Patient.PatientName')"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
+                            title="@T("تحويل المريض لعيادة أخرى", "Refer to Another Department")">
+                        <i class="fa-solid fa-share-from-square text-xs"></i>
+                        <span>@T("إحالة لعيادة أخرى", "Refer to Another Department")</span>
+                    </button>
+                }
+
                 <a asp-action="Index"
                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-[#DDE3DF] hover:bg-[#F6F7F5] text-[#727A76] text-sm font-medium rounded-lg transition-colors">
                     <i class="fa-solid fa-arrow-left text-xs"></i>

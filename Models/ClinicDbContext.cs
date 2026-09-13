@@ -51,6 +51,8 @@ namespace WebApplication1.Models
         public DbSet<MedicalRecord> MedicalRecords { get; set; }
         public DbSet<PatientAttachment> PatientAttachments { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<ReferralRequest> ReferralRequests { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -69,6 +71,8 @@ namespace WebApplication1.Models
             modelBuilder.Entity<Department>().HasQueryFilter(e => IsSuperAdminUser || (CurrentClinicId != null && e.ClinicId == CurrentClinicId));
             modelBuilder.Entity<Invoice>().HasQueryFilter(e => IsSuperAdminUser || (CurrentClinicId != null && e.ClinicId == CurrentClinicId));
             modelBuilder.Entity<Expense>().HasQueryFilter(e => IsSuperAdminUser || (CurrentClinicId != null && e.ClinicId == CurrentClinicId));
+            modelBuilder.Entity<ReferralRequest>().HasQueryFilter(e => IsSuperAdminUser || (CurrentClinicId != null && e.ClinicId == CurrentClinicId));
+            modelBuilder.Entity<Notification>().HasQueryFilter(e => IsSuperAdminUser || (CurrentClinicId != null && e.ClinicId == CurrentClinicId));
 
             // إعدادات جدول الـ Department
             modelBuilder.Entity<Department>(entity =>
@@ -263,6 +267,65 @@ namespace WebApplication1.Models
             {
                 entity.Property(u => u.ClinicId).HasColumnType("uuid");
                 entity.HasIndex(u => u.ClinicId);
+            });
+
+            // ── ReferralRequest ──────────────────────────────────────────────
+            modelBuilder.Entity<ReferralRequest>(entity =>
+            {
+                entity.ToTable("ReferralRequests");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ReferralReason).IsRequired().HasMaxLength(1000);
+                entity.HasIndex(e => e.ClinicId);
+                entity.HasIndex(e => e.Status);
+
+                entity.HasOne(r => r.Patient)
+                      .WithMany()
+                      .HasForeignKey(r => r.PatientId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(r => r.FromDoctor)
+                      .WithMany()
+                      .HasForeignKey(r => r.FromDoctorId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(r => r.TargetDepartment)
+                      .WithMany()
+                      .HasForeignKey(r => r.TargetDepartmentId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(r => r.TargetDoctor)
+                      .WithMany()
+                      .HasForeignKey(r => r.TargetDoctorId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // ── Notification ─────────────────────────────────────────────────
+            modelBuilder.Entity<Notification>(entity =>
+            {
+                entity.ToTable("Notifications");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Message).IsRequired().HasMaxLength(1000);
+                entity.Property(e => e.Type).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.TargetRole).IsRequired().HasMaxLength(50);
+                entity.HasIndex(e => e.ClinicId);
+                entity.HasIndex(e => e.IsRead);
+                entity.HasIndex(e => e.CreatedAt);
+
+                entity.HasOne(n => n.Patient)
+                      .WithMany()
+                      .HasForeignKey(n => n.PatientId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(n => n.ReferralRequest)
+                      .WithMany()
+                      .HasForeignKey(n => n.ReferralRequestId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(n => n.Appointment)
+                      .WithMany()
+                      .HasForeignKey(n => n.AppointmentId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
 

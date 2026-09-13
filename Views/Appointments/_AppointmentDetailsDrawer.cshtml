@@ -47,6 +47,9 @@
                 <a id="ep-doctor-emr" href="#" class="btn btn-primary fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center text-decoration-none">
                     <i class="fa-solid fa-notes-medical me-1"></i> @T("ابدأ الكشف / فتح الملف الطبي", "Open Medical Record / ابدأ الكشف")
                 </a>
+                <button type="button" id="ep-doctor-refer-btn" class="btn btn-outline-success fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center" onclick="triggerDrawerReferral()">
+                    <i class="fa-solid fa-share-from-square me-1"></i> @T("إحالة لعيادة أخرى", "Refer to Another Department")
+                </button>
                 <button type="button" class="btn btn-secondary fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center" onclick="closeEventPanel()">
                     <i class="fa-solid fa-xmark me-1"></i> @T("إغلاق", "Close")
                 </button>
@@ -66,3 +69,13 @@
         </div>
     </div>
 </div>
+
+<script>
+    function triggerDrawerReferral() {
+        const patientName = document.getElementById('ep-patient')?.textContent || '';
+        closeEventPanel();
+        if (typeof openReferralModal === 'function') {
+            openReferralModal(window.currentDrawerPatientId || 0, patientName);
+        }
+    }
+</script>
