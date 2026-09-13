@@ -406,13 +406,20 @@
         opacity: 0.85;
     }
 
-    .fc-timegrid-event .fc-event-time,
-    .fc-timegrid-event .fc-event-title,
-    .fc-timegrid-event .fc-event-main,
-    .fc-daygrid-event .fc-event-time,
-    .fc-daygrid-event .fc-event-title,
-    .fc-daygrid-event .fc-event-main {
+    /* Ensure event text is always dark and visible */
+    .fc-event-main, .fc-event-title, .fc-event-time {
         color: #ffffff !important;
+        font-weight: 600 !important;
+        font-size: 0.8rem !important;
+        white-space: normal !important;
+        overflow: visible !important;
+    }
+
+    /* Month view events */
+    .fc-daygrid-event {
+        padding: 2px 6px !important;
+        border-radius: 4px !important;
+        margin-top: 2px !important;
     }
 
     .fc .fc-daygrid-event-dot {
@@ -428,11 +435,11 @@
     }
 
     /* ─── 3. Refined List / Agenda View Items ─── */
-    .fc .fc-list-table {
-        border-collapse: separate !important;
-        border-spacing: 0 6px !important;
+    .fc-list-table {
         border: none !important;
-        padding: 0 4px !important;
+    }
+    .fc-list-event:hover td {
+        background-color: #f1f5f9 !important;
     }
 
     .fc-list-day-cushion {
@@ -1596,91 +1603,33 @@
                 eventMouseLeave: function () {
                     hideTooltip();
                 },
-                views: {
-                    listWeek: {
-                        eventContent: function (arg) {
-                            const status = (arg.event.extendedProps && arg.event.extendedProps.status ? arg.event.extendedProps.status : 'Confirmed').toLowerCase();
-                            const statusLabel = (arg.event.extendedProps && arg.event.extendedProps.status) ? arg.event.extendedProps.status : 'Confirmed';
-                            const title = arg.event.title || '';
-                            const timeText = arg.timeText || '';
-                            const isException = arg.event.extendedProps && arg.event.extendedProps.isException;
-
-                            // Define Badge styles per status
-                            let badgeClass = "bg-blue-100 text-blue-700 border-blue-300";
-                            let dotColor = "bg-blue-500";
-                            if (status.includes("pending")) {
-                                badgeClass = "bg-amber-100 text-amber-800 border-amber-300";
-                                dotColor = "bg-amber-500";
-                            } else if (status.includes("completed")) {
-                                badgeClass = "bg-emerald-100 text-emerald-800 border-emerald-300";
-                                dotColor = "bg-emerald-500";
-                            } else if (status.includes("cancel")) {
-                                badgeClass = "bg-rose-100 text-rose-800 border-rose-300";
-                                dotColor = "bg-rose-500";
-                            }
-
-                            return {
-                                html: `
-                                <div class="fc-custom-list-item flex items-center justify-between w-full py-1.5 px-3">
-                                    <div class="flex items-center gap-3">
-                                        <span class="w-2.5 h-2.5 rounded-full ${dotColor} inline-block flex-shrink-0"></span>
-                                        <span class="font-semibold text-slate-700 text-xs md:text-sm tracking-wide">${timeText}</span>
-                                        <span class="font-medium text-slate-900 text-sm md:text-base">${title}</span>
-                                        ${isException ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded">Exc</span>' : ''}
-                                    </div>
-                                    <div>
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border uppercase tracking-wider ${badgeClass}">
-                                            ${statusLabel}
-                                        </span>
-                                    </div>
-                                </div>
-                                `
-                            };
-                        }
-                    }
-                },
                 eventContent: function (arg) {
-                    if (arg.view && arg.view.type && !arg.view.type.toLowerCase().includes('list')) {
-                        return;
-                    }
+                    // If it's the Agenda/List view, render with clean text & badge:
+                    if (arg.view.type.includes('list')) {
+                        const status = (arg.event.extendedProps.status || 'Confirmed').toUpperCase();
+                        const title = arg.event.title || 'Appointment';
+                        const timeText = arg.timeText || '';
+                        
+                        let colorClass = "bg-blue-100 text-blue-800 border-blue-300";
+                        if (status.includes("PENDING")) colorClass = "bg-amber-100 text-amber-800 border-amber-300";
+                        if (status.includes("COMPLETED")) colorClass = "bg-emerald-100 text-emerald-800 border-emerald-300";
+                        if (status.includes("CANCEL")) colorClass = "bg-rose-100 text-rose-800 border-rose-300";
 
-                    const status = (arg.event.extendedProps && arg.event.extendedProps.status ? arg.event.extendedProps.status : 'Confirmed').toLowerCase();
-                    const statusLabel = (arg.event.extendedProps && arg.event.extendedProps.status) ? arg.event.extendedProps.status : 'Confirmed';
-                    const title = arg.event.title || '';
-                    const timeText = arg.timeText || '';
-                    const isException = arg.event.extendedProps && arg.event.extendedProps.isException;
-
-                    // Define Badge styles per status
-                    let badgeClass = "bg-blue-100 text-blue-700 border-blue-300";
-                    let dotColor = "bg-blue-500";
-                    if (status.includes("pending")) {
-                        badgeClass = "bg-amber-100 text-amber-800 border-amber-300";
-                        dotColor = "bg-amber-500";
-                    } else if (status.includes("completed")) {
-                        badgeClass = "bg-emerald-100 text-emerald-800 border-emerald-300";
-                        dotColor = "bg-emerald-500";
-                    } else if (status.includes("cancel")) {
-                        badgeClass = "bg-rose-100 text-rose-800 border-rose-300";
-                        dotColor = "bg-rose-500";
-                    }
-
-                    return {
-                        html: `
-                        <div class="fc-custom-list-item flex items-center justify-between w-full py-1.5 px-3">
-                            <div class="flex items-center gap-3">
-                                <span class="w-2.5 h-2.5 rounded-full ${dotColor} inline-block flex-shrink-0"></span>
-                                <span class="font-semibold text-slate-700 text-xs md:text-sm tracking-wide">${timeText}</span>
-                                <span class="font-medium text-slate-900 text-sm md:text-base">${title}</span>
-                                ${isException ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded">Exc</span>' : ''}
-                            </div>
-                            <div>
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border uppercase tracking-wider ${badgeClass}">
-                                    ${statusLabel}
+                        return {
+                            html: `
+                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 6px 12px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="font-weight: 700; font-size: 0.85rem; color: #334155;">${timeText}</span>
+                                    <span style="font-weight: 600; font-size: 0.95rem; color: #0f172a;">${title}</span>
+                                </div>
+                                <span style="padding: 2px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; border: 1px solid;" class="${colorClass}">
+                                    ${status}
                                 </span>
-                            </div>
-                        </div>
-                        `
-                    };
+                            </div>`
+                        };
+                    }
+                    // Return null for Month, Week, Day so FullCalendar uses its native, working title/time layout!
+                    return null;
                 },
                 eventClassNames: function (arg) {
                     const status = (arg.event.extendedProps && arg.event.extendedProps.status) ? arg.event.extendedProps.status : '';
@@ -1705,13 +1654,6 @@
                     }
                     if (status === 'Cancelled') {
                         info.el.classList.add('event-cancelled');
-                    }
-                    if (info.event.extendedProps && info.event.extendedProps.isException && !info.el.querySelector('.fc-custom-list-item')) {
-                        const badge = document.createElement('span');
-                        badge.className = 'ms-1 px-1 py-0.5 rounded text-[9px] font-bold bg-amber-400 text-amber-950 inline-block shadow-xs';
-                        badge.textContent = isRtl ? 'استثناء' : 'Exc';
-                        const titleEl = info.el.querySelector('.fc-event-title') || info.el;
-                        titleEl.appendChild(badge);
                     }
                 },
                 // Clicking on a blank date opens the modal with pre-filled date (blocked for past dates)

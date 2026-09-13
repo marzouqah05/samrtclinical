@@ -89,21 +89,28 @@
     opacity: 0.85;
 }
 
-.fc-timegrid-event .fc-event-time,
-.fc-timegrid-event .fc-event-title,
-.fc-timegrid-event .fc-event-main,
-.fc-daygrid-event .fc-event-time,
-.fc-daygrid-event .fc-event-title,
-.fc-daygrid-event .fc-event-main {
+/* Ensure event text is always dark and visible */
+.fc-event-main, .fc-event-title, .fc-event-time {
     color: #ffffff !important;
+    font-weight: 600 !important;
+    font-size: 0.8rem !important;
+    white-space: normal !important;
+    overflow: visible !important;
 }
 
-/* ── 3. Refined List / Agenda items (Soft Tinted Healthcare Cards) ── */
-.fc .fc-list-table {
-    border-collapse: separate !important;
-    border-spacing: 0 6px !important;
+/* Month view events */
+.fc-daygrid-event {
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    margin-top: 2px !important;
+}
+
+/* ── 3. Refined List / Agenda items ── */
+.fc-list-table {
     border: none !important;
-    padding: 0 4px !important;
+}
+.fc-list-event:hover td {
+    background-color: #f1f5f9 !important;
 }
 
 .fc-list-day-cushion {
