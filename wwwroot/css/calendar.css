@@ -1,0 +1,196 @@
+/* ==================================================
+   FullCalendar Modern Healthcare UI Styling
+   ================================================== */
+
+/* ── 1. TimeGrid (Week & Day View) Event Cards ── */
+.fc-timegrid-event {
+    border-radius: 8px !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    padding: 3px 6px !important;
+    font-size: 0.78rem !important;
+    line-height: 1.25 !important;
+    overflow: hidden !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+    cursor: pointer !important;
+}
+
+.fc-timegrid-event:hover {
+    transform: translateY(-1px) scale(1.01) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+    z-index: 50 !important;
+}
+
+.fc-event-main {
+    padding: 2px 4px !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* TimeGrid Slot Height & Alignment */
+.fc .fc-timegrid-slot {
+    height: 38px !important;
+}
+.fc .fc-timegrid-slot-label {
+    vertical-align: top;
+    font-size: 11px;
+    font-weight: 500;
+    color: #64748b;
+}
+
+/* ── 2. Month / DayGrid Events ── */
+.fc .fc-daygrid-event {
+    border-radius: 6px !important;
+    padding: 3px 6px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    border: 0 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.12) !important;
+    transition: filter 0.15s ease, transform 0.15s ease !important;
+    cursor: pointer !important;
+}
+.fc .fc-daygrid-event:hover {
+    filter: brightness(1.1) !important;
+}
+
+/* Status colors for DayGrid & TimeGrid */
+.fc-timegrid-event.fc-event-confirmed,
+.fc-timegrid-event.event-confirmed,
+.fc-daygrid-event.fc-event-confirmed,
+.fc-daygrid-event.event-confirmed {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+}
+
+.fc-timegrid-event.fc-event-completed,
+.fc-timegrid-event.event-completed,
+.fc-daygrid-event.fc-event-completed,
+.fc-daygrid-event.event-completed {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+}
+
+.fc-timegrid-event.fc-event-pending,
+.fc-timegrid-event.event-pending,
+.fc-daygrid-event.fc-event-pending,
+.fc-daygrid-event.event-pending {
+    background-color: #d97706 !important;
+    color: #ffffff !important;
+}
+
+.fc-timegrid-event.fc-event-cancelled,
+.fc-timegrid-event.event-cancelled,
+.fc-daygrid-event.fc-event-cancelled,
+.fc-daygrid-event.event-cancelled {
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+    text-decoration: line-through !important;
+    opacity: 0.85;
+}
+
+.fc-timegrid-event .fc-event-time,
+.fc-timegrid-event .fc-event-title,
+.fc-timegrid-event .fc-event-main,
+.fc-daygrid-event .fc-event-time,
+.fc-daygrid-event .fc-event-title,
+.fc-daygrid-event .fc-event-main {
+    color: #ffffff !important;
+}
+
+/* ── 3. Refined List / Agenda items ── */
+.fc .fc-list-table {
+    border-collapse: separate !important;
+    border-spacing: 0 6px !important;
+    border: none !important;
+    padding: 0 4px !important;
+}
+
+.fc-list-day-cushion {
+    background: #f1f5f9 !important;
+    font-weight: 700 !important;
+    color: #334155 !important;
+    border-radius: 8px !important;
+    padding: 8px 14px !important;
+    border: none !important;
+}
+
+.fc-list-event {
+    background: #ffffff !important;
+    border-radius: 10px !important;
+    margin-bottom: 6px !important;
+    border-left-width: 5px !important; /* Color accent strictly on border */
+    border-left-style: solid !important;
+    border-top: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+    transition: background-color 0.15s ease, transform 0.15s ease !important;
+    cursor: pointer !important;
+}
+
+.fc-list-event:hover {
+    background-color: #f8fafc !important;
+}
+
+.fc-list-event td {
+    border: none !important;
+    background: transparent !important;
+}
+
+.fc-list-event-title, .fc-list-event-time {
+    color: #1e293b !important;
+    font-weight: 500 !important;
+    padding: 10px 14px !important;
+}
+
+.fc-list-event-dot {
+    display: none !important;
+}
+
+.fc-list-event-graphic {
+    padding: 0 !important;
+    width: 0 !important;
+}
+
+/* Status-specific subtle borders */
+.fc-event-confirmed { border-left-color: #3b82f6 !important; }
+.fc-event-pending { border-left-color: #f59e0b !important; }
+.fc-event-completed { border-left-color: #10b981 !important; }
+.fc-event-cancelled { border-left-color: #ef4444 !important; }
+
+/* RTL support */
+[dir="rtl"] .fc-list-event,
+html[dir="rtl"] .fc-list-event {
+    border-left-width: 0 !important;
+    border-right-width: 5px !important;
+    border-right-style: solid !important;
+}
+[dir="rtl"] .fc-event-confirmed,
+html[dir="rtl"] .fc-event-confirmed { border-right-color: #3b82f6 !important; }
+[dir="rtl"] .fc-event-pending,
+html[dir="rtl"] .fc-event-pending { border-right-color: #f59e0b !important; }
+[dir="rtl"] .fc-event-completed,
+html[dir="rtl"] .fc-event-completed { border-right-color: #10b981 !important; }
+[dir="rtl"] .fc-event-cancelled,
+html[dir="rtl"] .fc-event-cancelled { border-right-color: #ef4444 !important; }
+
+/* Dark mode overrides */
+html.dark .fc-list-day-cushion {
+    background: #151E1B !important;
+    color: #EAEFEA !important;
+}
+html.dark .fc-list-event {
+    background: #1B2421 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+}
+html.dark .fc-list-event:hover {
+    background-color: #232F2B !important;
+}
+html.dark .fc-list-event-title,
+html.dark .fc-list-event-time {
+    color: #EAEFEA !important;
+}
+html.dark .fc-timegrid-event {
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
