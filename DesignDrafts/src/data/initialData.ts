@@ -157,6 +157,7 @@ export const PATIENT_OMAR: PatientData = {
   nextApptDoctor: 'د. سميث',
   nextApptDoctorEn: 'Dr. Smith',
   status: 'active',
+  telegramChatId: '849201842',
   timeline: [
     {
       id: 't-1',

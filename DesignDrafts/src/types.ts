@@ -42,6 +42,7 @@ export interface Appointment {
   timeSlot: string; // e.g., "09:00 AM"
   status: 'scheduled' | 'in_progress' | 'completed';
   room?: string;
+  telegramChatId?: string;
 }
 
 export interface MedicalFile {
@@ -87,6 +88,7 @@ export interface PatientData {
   nextApptDoctor: string;
   nextApptDoctorEn: string;
   status: 'active' | 'inactive';
+  telegramChatId?: string;
   timeline: TimelineEntry[];
   files: MedicalFile[];
 }

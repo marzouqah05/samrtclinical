@@ -14,6 +14,7 @@ namespace WebApplication1.Models
         public bool Exists { get; set; }
         public int? PatientId { get; set; }
         public string? FullName { get; set; }
+        public string? TelegramChatId { get; set; }
         public int? LastDoctorId { get; set; }
         public string? LastDoctorName { get; set; }
     }
@@ -32,6 +33,8 @@ namespace WebApplication1.Models
         [Required]
         [MaxLength(10)]
         public string NationalId { get; set; } = string.Empty;
+
+        public string? TelegramChatId { get; set; }
     }
 
     /// <summary>Response for POST /api/automation/patient</summary>
@@ -118,6 +121,7 @@ namespace WebApplication1.Models
         public int AppointmentId { get; set; }
         public string Time { get; set; } = string.Empty;
         public string PatientName { get; set; } = string.Empty;
+        public string? TelegramChatId { get; set; }
         public string? VisitType { get; set; }
         public string Status { get; set; } = string.Empty;
     }

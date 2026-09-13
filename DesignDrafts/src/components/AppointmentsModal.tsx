@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { X, Calendar, Clock, User, Stethoscope, DoorClosed } from 'lucide-react';
+import { X, Calendar, Clock, User, Stethoscope, DoorClosed, Send } from 'lucide-react';
 
 export const AppointmentsModal: React.FC = () => {
-  const { isApptModalOpen, setIsApptModalOpen, addAppointment, lang } = useApp();
+  const { isApptModalOpen, setIsApptModalOpen, addAppointment, lang, patient, updatePatient } = useApp();
   const isAr = lang === 'ar';
 
   const [patientName, setPatientName] = useState('');
+  const [telegramChatId, setTelegramChatId] = useState('');
   const [apptType, setApptType] = useState('general');
   const [doctor, setDoctor] = useState('Dr. Smith');
   const [timeSlot, setTimeSlot] = useState('02:00 PM');
@@ -55,10 +56,16 @@ export const AppointmentsModal: React.FC = () => {
       timeSlot: timeSlot,
       status: 'scheduled',
       room: isAr ? room : room === 'غرفة A' ? 'Room A' : room === 'غرفة B' ? 'Room B' : 'Room C',
+      telegramChatId: telegramChatId.trim() || undefined,
     });
+
+    if (telegramChatId.trim() && patient) {
+      updatePatient({ telegramChatId: telegramChatId.trim() });
+    }
 
     setIsApptModalOpen(false);
     setPatientName('');
+    setTelegramChatId('');
   };
 
   return (
@@ -102,6 +109,34 @@ export const AppointmentsModal: React.FC = () => {
                 className="w-full bg-white border border-[#CBD5E1] rounded px-3 py-2 text-[13px] text-[#0F172A] focus:outline-none focus:border-[#006194]"
               />
             </div>
+          </div>
+
+          {/* Telegram Chat ID (n8n Integration) */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[12px] font-medium text-[#0F172A] flex items-center gap-1.5">
+                <Send className="w-3.5 h-3.5 text-[#0088cc]" />
+                <span>{isAr ? 'معرف محادثة تيليجرام (Telegram Chat ID)' : 'Telegram Chat ID'}</span>
+              </label>
+              <span className="text-[10px] text-[#0088cc] font-semibold bg-[#e0f2fe] px-1.5 py-0.5 rounded border border-[#bae6fd]">
+                n8n Automation
+              </span>
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                value={telegramChatId}
+                onChange={(e) => setTelegramChatId(e.target.value)}
+                placeholder={isAr ? 'مثال: 849201842 أو معرف تيليجرام' : 'e.g., 849201842'}
+                className="w-full bg-white border border-[#CBD5E1] rounded px-3 py-2 text-[13px] text-[#0F172A] focus:outline-none focus:border-[#0088cc]"
+                dir="ltr"
+              />
+            </div>
+            <p className="text-[11px] text-[#64748B] mt-1">
+              {isAr
+                ? 'يستخدم لإرسال التذكيرات والمواعيد تلقائياً عبر بوت التيليجرام وسير عمل n8n'
+                : 'Used by n8n automated workflow to send real-time appointment reminders via Telegram'}
+            </p>
           </div>
 
           {/* Doctor & Type */}

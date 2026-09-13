@@ -218,7 +218,7 @@ namespace WebApplication1.Controllers
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist")]
         public async Task<IActionResult> Create(
-            [Bind("PatientId,PatientName,NationalId,PhoneNumber,DOB,Gender,BloodType,Allergies,ChronicDiseases,Notes")]
+            [Bind("PatientId,PatientName,NationalId,PhoneNumber,DOB,Gender,BloodType,Allergies,ChronicDiseases,Notes,TelegramChatId")]
             Patient patient)
         {
             if (User.IsDoctor()) return Forbid();
@@ -276,7 +276,7 @@ namespace WebApplication1.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id,
-            [Bind("PatientId,PatientName,NationalId,PhoneNumber,DOB,Gender,BloodType,Allergies,ChronicDiseases,Notes")]
+            [Bind("PatientId,PatientName,NationalId,PhoneNumber,DOB,Gender,BloodType,Allergies,ChronicDiseases,Notes,TelegramChatId")]
             Patient patient)
         {
             if (id != patient.PatientId) return NotFound();
@@ -328,6 +328,7 @@ namespace WebApplication1.Controllers
                 dbPatient.Allergies       = patient.Allergies;
                 dbPatient.ChronicDiseases = patient.ChronicDiseases;
                 dbPatient.Notes           = patient.Notes;
+                dbPatient.TelegramChatId  = patient.TelegramChatId;
 
                 _context.Update(dbPatient);
                 await _context.SaveChangesAsync();

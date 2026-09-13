@@ -14,12 +14,17 @@ import {
   Plus,
   Sparkles,
   CheckCircle,
+  Send,
+  Edit2,
+  Check,
+  X,
 } from 'lucide-react';
 
 export const PatientProfileView: React.FC = () => {
   const {
     lang,
     patient,
+    updatePatient,
     addPatientFile,
     addTimelineEntry,
     setPreviewFile,
@@ -32,7 +37,22 @@ export const PatientProfileView: React.FC = () => {
   const [newNoteTitle, setNewNoteTitle] = useState('');
   const [newNoteContent, setNewNoteContent] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  const [isEditingTelegram, setIsEditingTelegram] = useState(false);
+  const [telegramInput, setTelegramInput] = useState(patient.telegramChatId || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSaveTelegram = (e: React.FormEvent) => {
+    e.preventDefault();
+    updatePatient({ telegramChatId: telegramInput.trim() });
+    setIsEditingTelegram(false);
+    addToast(
+      isAr ? 'تم تحديث معرف تيليجرام' : 'Telegram Chat ID Updated',
+      isAr
+        ? `تم حفظ معرف المحادثة (${telegramInput.trim() || 'غير معين'}) لسير عمل n8n`
+        : `Saved Chat ID (${telegramInput.trim() || 'None'}) for n8n automation`,
+      'success'
+    );
+  };
 
   const handleExportPDF = () => {
     addToast(
@@ -138,6 +158,73 @@ export const PatientProfileView: React.FC = () => {
                     ? `${patient.gender}، ${patient.age} سنة • تاريخ الميلاد: ${patient.dob}`
                     : `${patient.genderEn}, ${patient.age} yrs • DOB: ${patient.dobEn}`}
                 </p>
+
+                {/* Telegram Chat ID for n8n Automation */}
+                <div className="mt-2.5 flex items-center gap-2">
+                  {!isEditingTelegram ? (
+                    <div className="inline-flex items-center gap-2">
+                      {patient.telegramChatId ? (
+                        <span
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-[#e0f2fe] text-[#0284c7] border border-[#bae6fd]"
+                          dir="ltr"
+                          title="Telegram Chat ID for n8n Automated Reminders"
+                        >
+                          <Send className="w-3.5 h-3.5 text-[#0088cc]" />
+                          <span>Telegram: {patient.telegramChatId}</span>
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs text-[#64748B] bg-slate-100 border border-slate-200"
+                          dir="ltr"
+                        >
+                          <Send className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{isAr ? 'لا يوجد معرف تيليجرام' : 'No Telegram ID'}</span>
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTelegramInput(patient.telegramChatId || '');
+                          setIsEditingTelegram(true);
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-[#006194] hover:text-[#004b73] hover:bg-[#eaedff] rounded transition-colors cursor-pointer border border-[#cbd5e1]/50"
+                        title={isAr ? 'تعديل معرف التيليجرام' : 'Edit Telegram Chat ID'}
+                      >
+                        <Edit2 className="w-3 h-3" />
+                        <span>{isAr ? 'تعديل' : 'Edit'}</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSaveTelegram} className="inline-flex items-center gap-1.5">
+                      <div className="relative flex items-center">
+                        <input
+                          type="text"
+                          value={telegramInput}
+                          onChange={(e) => setTelegramInput(e.target.value)}
+                          placeholder={isAr ? 'معرف التيليجرام' : 'Telegram Chat ID'}
+                          className="w-40 px-2.5 py-1 text-xs bg-white border border-[#0088cc] rounded focus:outline-none text-[#0F172A]"
+                          dir="ltr"
+                          autoFocus
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="p-1 bg-[#006194] text-white rounded hover:bg-[#004b73] cursor-pointer"
+                        title={isAr ? 'حفظ' : 'Save'}
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingTelegram(false)}
+                        className="p-1 bg-slate-200 text-slate-600 rounded hover:bg-slate-300 cursor-pointer"
+                        title={isAr ? 'إلغاء' : 'Cancel'}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </form>
+                  )}
+                </div>
 
                 {/* Allergies Chips */}
                 <div className="flex flex-wrap items-center gap-2 mt-3">

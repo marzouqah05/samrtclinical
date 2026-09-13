@@ -37,6 +37,7 @@ interface AppContextType {
   appointments: Appointment[];
   addAppointment: (appt: Omit<Appointment, 'id'>) => void;
   patient: PatientData;
+  updatePatient: (data: Partial<PatientData>) => void;
   addPatientFile: (file: Omit<MedicalFile, 'id'>) => void;
   addTimelineEntry: (entry: Omit<TimelineEntry, 'id'>) => void;
   backups: BackupRecord[];
@@ -238,6 +239,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  const updatePatient = (data: Partial<PatientData>) => {
+    setPatient((prev) => ({
+      ...prev,
+      ...data,
+    }));
+    addToast(
+      lang === 'ar' ? 'تم تحديث بيانات المريض' : 'Patient Updated',
+      lang === 'ar' ? 'تم حفظ التعديلات بنجاح' : 'Changes saved successfully',
+      'success'
+    );
+  };
+
   const triggerForceSync = () => {
     setIsSyncing(true);
     addToast(
@@ -299,6 +312,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         appointments,
         addAppointment,
         patient,
+        updatePatient,
         addPatientFile,
         addTimelineEntry,
         backups,

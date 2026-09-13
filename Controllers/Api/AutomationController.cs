@@ -94,6 +94,7 @@ namespace WebApplication1.Controllers.Api
                 Exists        = true,
                 PatientId     = patient.PatientId,
                 FullName      = patient.PatientName,
+                TelegramChatId = patient.TelegramChatId,
                 LastDoctorId  = lastAppointment?.DoctorId,
                 LastDoctorName = lastAppointment?.Doctor?.DoctorName,
             });
@@ -133,10 +134,11 @@ namespace WebApplication1.Controllers.Api
 
             var patient = new Patient
             {
-                PatientName  = request.FullName.Trim(),
-                PhoneNumber  = cleanPhone,
-                NationalId   = request.NationalId.Trim(),
-                DOB          = new DateTime(1990, 1, 1),  // Placeholder; patient can update via portal
+                PatientName    = request.FullName.Trim(),
+                PhoneNumber    = cleanPhone,
+                NationalId     = request.NationalId.Trim(),
+                DOB            = new DateTime(1990, 1, 1),  // Placeholder; patient can update via portal
+                TelegramChatId = string.IsNullOrWhiteSpace(request.TelegramChatId) ? null : request.TelegramChatId.Trim(),
             };
 
             _context.Patients.Add(patient);
@@ -451,12 +453,13 @@ namespace WebApplication1.Controllers.Api
                     DayName = g.Key.ToString("dddd", CultureInfo.InvariantCulture),
                     Appointments = g.Select(a => new WeeklyScheduleEntryDto
                     {
-                        AppointmentId = a.AppointmentId,
-                        Time          = a.AppointmentTime.ToString(@"hh\:mm"),
-                        PatientName   = a.Patient?.PatientName ?? "Unknown",
+                        AppointmentId  = a.AppointmentId,
+                        Time           = a.AppointmentTime.ToString(@"hh\:mm"),
+                        PatientName    = a.Patient?.PatientName ?? "Unknown",
+                        TelegramChatId = a.Patient?.TelegramChatId,
                         // VisitType extracted from first line of Notes (if set by bot)
-                        VisitType     = ExtractVisitType(a.Notes),
-                        Status        = a.Status,
+                        VisitType      = ExtractVisitType(a.Notes),
+                        Status         = a.Status,
                     }).ToList()
                 })
                 .ToList();
