@@ -167,6 +167,12 @@ namespace WebApplication1.Controllers
                 return NotFound();
             }
 
+            ViewBag.AllDoctors = await _context.Doctors
+                .Where(d => d.ClinicId == currentClinicId)
+                .Include(d => d.Department)
+                .OrderBy(d => d.DoctorName)
+                .ToListAsync();
+
             return View(department);
         }
 
@@ -204,6 +210,61 @@ namespace WebApplication1.Controllers
             return RedirectToAction(nameof(Details), new { id = departmentId });
         }
 
+        // POST: Departments/AssignDoctor
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
+        public async Task<IActionResult> AssignDoctor(int departmentId, int doctorId, int? specialtyId)
+        {
+            var currentClinicId = User.GetClinicId();
+            var department = await _context.Departments.FirstOrDefaultAsync(d => d.DepartmentId == departmentId && d.ClinicId == currentClinicId);
+            if (department == null) return NotFound();
+
+            var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.DoctorId == doctorId && d.ClinicId == currentClinicId);
+            if (doctor == null)
+            {
+                TempData["Error"] = "Doctor not found.";
+                return RedirectToAction(nameof(Details), new { id = departmentId });
+            }
+
+            doctor.DepartmentId = departmentId;
+
+            if (specialtyId.HasValue && specialtyId.Value > 0)
+            {
+                var specialtyExists = await _context.Specialties.AnyAsync(s => s.Id == specialtyId.Value && s.DepartmentId == departmentId && s.ClinicId == currentClinicId);
+                doctor.SpecialtyId = specialtyExists ? specialtyId.Value : null;
+            }
+            else
+            {
+                doctor.SpecialtyId = null;
+            }
+
+            _context.Update(doctor);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = $"Dr. {doctor.DoctorName} has been assigned to {department.DepartmentName} successfully.";
+            return RedirectToAction(nameof(Details), new { id = departmentId });
+        }
+
+        // POST: Departments/UnassignDoctor
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
+        public async Task<IActionResult> UnassignDoctor(int departmentId, int doctorId)
+        {
+            var currentClinicId = User.GetClinicId();
+            var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.DoctorId == doctorId && d.ClinicId == currentClinicId && d.DepartmentId == departmentId);
+            if (doctor != null)
+            {
+                doctor.DepartmentId = 0;
+                doctor.SpecialtyId = null;
+                _context.Update(doctor);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = $"Dr. {doctor.DoctorName} unassigned from department.";
+            }
+            return RedirectToAction(nameof(Details), new { id = departmentId });
+        }
+
         // GET: Departments/GetSpecialtiesByDepartment?departmentId=5
         [HttpGet]
         public async Task<IActionResult> GetSpecialtiesByDepartment(int departmentId)
@@ -229,14 +290,33 @@ namespace WebApplication1.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Owner,Admin,SuperAdmin")]
-        public async Task<IActionResult> Create([Bind("DepartmentId,DepartmentName,DepartmentAbbr")] Department department)
+        public async Task<IActionResult> Create([Bind("DepartmentId,DepartmentName,DepartmentAbbr")] Department department, string? initialSpecialties)
         {
             if (ModelState.IsValid)
             {
-                department.ClinicId = User.GetClinicId();
+                var currentClinicId = User.GetClinicId();
+                department.ClinicId = currentClinicId;
                 _context.Add(department);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+
+                if (!string.IsNullOrWhiteSpace(initialSpecialties))
+                {
+                    var rawTags = initialSpecialties.Split(new[] { ',', '،', ';', '؛' }, StringSplitOptions.RemoveEmptyEntries);
+                    var distinctTags = rawTags.Select(t => t.Trim()).Where(t => !string.IsNullOrEmpty(t)).Distinct();
+                    foreach (var tag in distinctTags)
+                    {
+                        _context.Specialties.Add(new Specialty
+                        {
+                            ClinicId = currentClinicId,
+                            DepartmentId = department.DepartmentId,
+                            Name = tag
+                        });
+                    }
+                    await _context.SaveChangesAsync();
+                }
+
+                TempData["Success"] = "Department added successfully.";
+                return RedirectToAction(nameof(Details), new { id = department.DepartmentId });
             }
 
             return View(department);

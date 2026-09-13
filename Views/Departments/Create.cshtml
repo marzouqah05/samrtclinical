@@ -74,6 +74,22 @@
                         </div>
                         <span asp-validation-for="DepartmentAbbr" class="text-rose-400 text-[11px] mt-1 block"></span>
                     </div>
+
+                    <!-- Initial Sub-Specialties (Optional Quick-Tags) -->
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1.5">
+                            @T("التخصصات الفرعية الأولية (اختياري - مفصولة بفاصلة)", "Initial Sub-Specialties (Optional - Comma Separated)")
+                        </label>
+                        <div class="relative">
+                            <i class="fa-solid fa-tags absolute start-3.5 top-1/2 -translate-y-1/2 text-xs text-[#727A76]"></i>
+                            <input type="text" name="initialSpecialties"
+                                   class="w-full ps-9 pe-3.5 py-2.5 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-[#F6F7F5] dark:bg-[#151E1B] text-[#202725] dark:text-[#EAEFEA] placeholder-[#727A76] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] transition"
+                                   placeholder="@T("مثال: تقويم الأسنان, زراعة الأسنان, جراحة الفكين", "e.g. Orthodontics, Implantology, Maxillofacial")" />
+                        </div>
+                        <p class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] mt-1.5 mb-0">
+                            @T("يمكنك إدخال التخصصات الفرعية التأسيسية مفصولة بفواصل، ويمكنك دوماً إضافة المزيد من صفحة تفاصيل القسم.", "Enter initial sub-specialties separated by commas, or manage them later in Department Details.")
+                        </p>
+                    </div>
                 </div>
             </div>
 
