@@ -365,6 +365,7 @@ namespace WebApplication1.Controllers
                     title       = $"{a.Patient?.PatientName ?? "Patient"} — {docTitle}" + (isExc ? " (⚠️ Exception)" : ""),
                     start       = startDt.ToString("yyyy-MM-ddTHH:mm:ss"),
                     end         = endDt.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    status      = a.Status,
                     color,
                     className   = (a.Status == "Cancelled" ? "event-cancelled " : "") + (isExc ? "event-exception" : ""),
                     extendedProps = new

@@ -1592,52 +1592,34 @@
                     hideTooltip();
                 },
                 eventContent: function (arg) {
-                    if (arg.view.type.includes('list')) {
-                        const status = (arg.event.extendedProps.status || 'Confirmed').toUpperCase();
-                        const title = arg.event.title || 'Appointment';
-                        
-                        // Accurate Time Extraction
-                        let timeStr = arg.timeText;
-                        if (!timeStr && arg.event.start) {
-                            timeStr = new Intl.DateTimeFormat('en-US', {
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true
-                            }).format(new Date(arg.event.start));
+                    if (arg.view.type.indexOf('list') !== -1) {
+                        var st = ((arg.event.extendedProps && arg.event.extendedProps.status) ? arg.event.extendedProps.status : (arg.event.status || 'Confirmed')).toUpperCase();
+                        var title = arg.event.title || '';
+                        var time = arg.timeText || '';
+                        if (!time && arg.event.start) {
+                            try {
+                                time = new Intl.DateTimeFormat('en-US', {
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                    hour12: true
+                                }).format(new Date(arg.event.start));
+                            } catch (e) {}
                         }
 
-                        // Distinct colors per status
-                        let badgeStyle = "background-color: #dbeafe; color: #1e40af; border-color: #93c5fd;"; // Blue (Confirmed)
-                        let borderLeftColor = "#3b82f6";
+                        var color = '#2563eb';
+                        var bg = '#dbeafe';
+                        if (st.indexOf('PENDING') !== -1) { color = '#d97706'; bg = '#fef3c7'; }
+                        else if (st.indexOf('COMPLETED') !== -1) { color = '#059669'; bg = '#d1fae5'; }
+                        else if (st.indexOf('CANCEL') !== -1) { color = '#dc2626'; bg = '#fee2e2'; }
 
-                        if (status.includes("PENDING")) {
-                            badgeStyle = "background-color: #fef3c7; color: #92400e; border-color: #fcd34d;"; // Amber (Pending)
-                            borderLeftColor = "#f59e0b";
-                        } else if (status.includes("COMPLETED")) {
-                            badgeStyle = "background-color: #d1fae5; color: #065f46; border-color: #6ee7b7;"; // Green (Completed)
-                            borderLeftColor = "#10b981";
-                        } else if (status.includes("CANCEL")) {
-                            badgeStyle = "background-color: #fee2e2; color: #991b1b; border-color: #fca5a5;"; // Red (Cancelled)
-                            borderLeftColor = "#ef4444";
-                        }
+                        var isRtl = document.documentElement.dir === 'rtl' || document.documentElement.lang.startsWith('ar');
+                        var borderRule = isRtl ? ('border-right:4px solid ' + color + '; border-left:none;') : ('border-left:4px solid ' + color + ';');
 
-                        const isException = arg.event.extendedProps.isException;
-
-                        return {
-                            html: `
-                            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 10px 16px; border-left: 5px solid ${borderLeftColor}; border-radius: 8px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin: 2px 0;">
-                                <div style="display: flex; align-items: center; gap: 14px;">
-                                    <span style="font-weight: 700; font-size: 0.82rem; color: #475569; min-width: 85px;">${timeStr}</span>
-                                    <span style="font-weight: 600; font-size: 0.95rem; color: #0f172a;">${title}</span>
-                                    ${isException ? '<span style="padding: 1px 6px; font-size: 10px; font-weight: bold; background: #f59e0b; color: #ffffff; border-radius: 4px;">Exc</span>' : ''}
-                                </div>
-                                <div>
-                                    <span style="padding: 4px 12px; border-radius: 9999px; font-size: 0.72rem; font-weight: 800; border: 1px solid; letter-spacing: 0.05em; ${badgeStyle}">
-                                        ${status}
-                                    </span>
-                                </div>
-                            </div>`
-                        };
+                        var el = document.createElement('div');
+                        el.style.cssText = 'display:flex; justify-content:space-between; align-items:center; width:100%; padding:8px 12px; border-left:4px solid ' + color + '; ' + borderRule + ' background:#fff;';
+                        el.innerHTML = '<div style="display:flex; gap:12px; align-items:center;"><strong style="color:#475569;">' + time + '</strong><span>' + title + '</span></div>' +
+                                       '<span style="padding:2px 8px; border-radius:9999px; font-size:11px; font-weight:bold; background:' + bg + '; color:' + color + ';">' + st + '</span>';
+                        return { domNodes: [el] };
                     }
                     return null;
                 },
