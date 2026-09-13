@@ -140,4 +140,53 @@ namespace WebApplication1.Models
         public int TotalAppointments { get; set; }
         public List<WeeklyScheduleDayDto> Days { get; set; } = new();
     }
+
+    // ── F. n8n Workflow Automation DTOs ───────────────────────────────────────
+
+    /// <summary>Response item for GET /api/automation/due-reminders</summary>
+    public class DueReminderDto
+    {
+        public int AppointmentId { get; set; }
+        public string PatientName { get; set; } = string.Empty;
+        public string? TelegramChatId { get; set; }
+        public string DoctorName { get; set; } = string.Empty;
+        public string DepartmentName { get; set; } = string.Empty;
+        public string AppointmentDate { get; set; } = string.Empty;
+        public string AppointmentTime { get; set; } = string.Empty;
+    }
+
+    /// <summary>Response item for GET /api/automation/due-followups</summary>
+    public class DueFollowupDto
+    {
+        public int AppointmentId { get; set; }
+        public string PatientName { get; set; } = string.Empty;
+        public string? TelegramChatId { get; set; }
+        public string DoctorName { get; set; } = string.Empty;
+        public string? DoctorPhone { get; set; }
+    }
+
+    /// <summary>Request body for POST /api/automation/update-status</summary>
+    public class UpdateStatusRequest
+    {
+        public System.Text.Json.JsonElement AppointmentId { get; set; }
+
+        [Required]
+        public string Action { get; set; } = string.Empty;
+    }
+
+    /// <summary>Request body for POST /api/automation/book-slot</summary>
+    public class BookSlotRequest
+    {
+        [Required]
+        public string PatientTelegramChatId { get; set; } = string.Empty;
+
+        [Required]
+        public System.Text.Json.JsonElement DoctorId { get; set; }
+
+        public string? Date { get; set; }
+
+        public string? Time { get; set; }
+
+        public string? Notes { get; set; }
+    }
 }

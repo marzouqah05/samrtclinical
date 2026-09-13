@@ -40,15 +40,20 @@ namespace WebApplication1.Controllers.Api
         /// </summary>
         private bool IsAuthorized()
         {
-            var configuredKey = _config["AutomationSettings:ApiKey"];
+            var configuredKey = _config["Automation:ApiKey"]
+                             ?? _config["AutomationSettings:ApiKey"];
 
             // If no key is configured, deny all requests (fail-secure)
             if (string.IsNullOrWhiteSpace(configuredKey))
                 return false;
 
-            Request.Headers.TryGetValue("X-Automation-Key", out var providedKey);
-            return !string.IsNullOrWhiteSpace(providedKey)
-                   && providedKey.ToString() == configuredKey;
+            if (Request.Headers.TryGetValue("X-Automation-Key", out var providedKey))
+            {
+                return !string.IsNullOrWhiteSpace(providedKey)
+                       && string.Equals(providedKey.ToString().Trim(), configuredKey.Trim(), StringComparison.Ordinal);
+            }
+
+            return false;
         }
 
         // ── A1. GET /api/automation/patient/{phone} ───────────────────────────
@@ -467,7 +472,291 @@ namespace WebApplication1.Controllers.Api
             });
         }
 
+        // ── F. n8n Workflow Automation Endpoints ───────────────────────────────
+        // ── 1. GET /api/automation/due-reminders ──────────────────────────────
+        /// <summary>
+        /// Returns appointments scheduled for tomorrow with status Confirmed or Pending,
+        /// where a reminder has not yet been sent.
+        /// </summary>
+        [HttpGet("due-reminders")]
+        [ProducesResponseType(typeof(List<DueReminderDto>), 200)]
+        [ProducesResponseType(401)]
+        public async Task<IActionResult> GetDueReminders()
+        {
+            if (!IsAuthorized())
+                return Unauthorized(new { error = "Invalid or missing X-Automation-Key header." });
+
+            var tomorrow = DateTime.UtcNow.Date.AddDays(1);
+            _logger.LogInformation("[Automation] GetDueReminders called for date: {Date}", tomorrow.ToString("yyyy-MM-dd"));
+
+            var appointments = await _context.Appointments
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Include(a => a.Patient)
+                .Include(a => a.Doctor)
+                .Include(a => a.Department)
+                .Where(a => a.AppointmentDate.Date == tomorrow
+                         && (a.Status == "Confirmed" || a.Status == "Pending")
+                         && !a.IsReminderSent)
+                .OrderBy(a => a.AppointmentTime)
+                .ToListAsync();
+
+            var result = appointments.Select(a => new DueReminderDto
+            {
+                AppointmentId   = a.AppointmentId,
+                PatientName     = a.Patient?.PatientName ?? "Unknown",
+                TelegramChatId  = a.Patient?.TelegramChatId,
+                DoctorName      = a.Doctor?.DoctorName ?? "Unknown",
+                DepartmentName  = a.Department?.DepartmentName ?? a.Doctor?.Department?.DepartmentName ?? string.Empty,
+                AppointmentDate = a.AppointmentDate.ToString("yyyy-MM-dd"),
+                AppointmentTime = a.AppointmentTime.ToString(@"hh\:mm"),
+            }).ToList();
+
+            return Ok(result);
+        }
+
+        // ── 2. GET /api/automation/due-followups ──────────────────────────────
+        /// <summary>
+        /// Returns completed appointments from yesterday where a follow-up message has not yet been dispatched.
+        /// </summary>
+        [HttpGet("due-followups")]
+        [ProducesResponseType(typeof(List<DueFollowupDto>), 200)]
+        [ProducesResponseType(401)]
+        public async Task<IActionResult> GetDueFollowups()
+        {
+            if (!IsAuthorized())
+                return Unauthorized(new { error = "Invalid or missing X-Automation-Key header." });
+
+            var yesterday = DateTime.UtcNow.Date.AddDays(-1);
+            _logger.LogInformation("[Automation] GetDueFollowups called for date: {Date}", yesterday.ToString("yyyy-MM-dd"));
+
+            var appointments = await _context.Appointments
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Include(a => a.Patient)
+                .Include(a => a.Doctor)
+                .Where(a => a.AppointmentDate.Date == yesterday
+                         && a.Status == "Completed"
+                         && (!a.IsFollowUpSent || a.FollowUpSentAt == null))
+                .OrderBy(a => a.AppointmentTime)
+                .ToListAsync();
+
+            var result = appointments.Select(a => new DueFollowupDto
+            {
+                AppointmentId  = a.AppointmentId,
+                PatientName    = a.Patient?.PatientName ?? "Unknown",
+                TelegramChatId = a.Patient?.TelegramChatId,
+                DoctorName     = a.Doctor?.DoctorName ?? "Unknown",
+                DoctorPhone    = a.Doctor?.DoctorPhone,
+            }).ToList();
+
+            return Ok(result);
+        }
+
+        // ── 3. POST /api/automation/update-status ─────────────────────────────
+        /// <summary>
+        /// Updates the status or reminder/follow-up flags of an appointment.
+        /// Action can be: "ReminderSent" | "FollowUpSent" | "Confirmed" | "Cancelled"
+        /// </summary>
+        [HttpPost("update-status")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> UpdateStatus([FromBody] UpdateStatusRequest request)
+        {
+            if (!IsAuthorized())
+                return Unauthorized(new { error = "Invalid or missing X-Automation-Key header." });
+
+            if (request == null || string.IsNullOrWhiteSpace(request.Action))
+                return BadRequest(new { error = "Missing or invalid payload: 'action' is required." });
+
+            int appointmentId = ParseId(request.AppointmentId);
+            if (appointmentId <= 0)
+                return BadRequest(new { error = "Invalid or missing 'appointmentId'." });
+
+            var appointment = await _context.Appointments
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
+
+            if (appointment == null)
+                return NotFound(new { error = $"Appointment with ID {appointmentId} not found." });
+
+            var action = request.Action.Trim();
+            _logger.LogInformation("[Automation] UpdateStatus called — appointmentId={Id}, action={Action}", appointmentId, action);
+
+            if (string.Equals(action, "ReminderSent", StringComparison.OrdinalIgnoreCase))
+            {
+                appointment.IsReminderSent = true;
+            }
+            else if (string.Equals(action, "FollowUpSent", StringComparison.OrdinalIgnoreCase))
+            {
+                appointment.IsFollowUpSent = true;
+                appointment.FollowUpSentAt = DateTime.UtcNow;
+            }
+            else if (string.Equals(action, "Confirmed", StringComparison.OrdinalIgnoreCase))
+            {
+                appointment.Status = "Confirmed";
+            }
+            else if (string.Equals(action, "Cancelled", StringComparison.OrdinalIgnoreCase))
+            {
+                appointment.Status = "Cancelled";
+            }
+            else
+            {
+                return BadRequest(new { error = $"Unsupported action '{request.Action}'. Allowed actions: ReminderSent, FollowUpSent, Confirmed, Cancelled." });
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success         = true,
+                appointmentId   = appointment.AppointmentId,
+                status          = appointment.Status,
+                isReminderSent  = appointment.IsReminderSent,
+                isFollowUpSent  = appointment.IsFollowUpSent,
+                followUpSentAt  = appointment.FollowUpSentAt,
+                message         = $"Action '{action}' processed successfully."
+            });
+        }
+
+        // ── 4. POST /api/automation/book-slot ─────────────────────────────────
+        /// <summary>
+        /// Books an appointment slot for a patient identified by their TelegramChatId.
+        /// Validates doctor availability and records the new appointment.
+        /// </summary>
+        [HttpPost("book-slot")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(409)]
+        public async Task<IActionResult> BookSlot([FromBody] BookSlotRequest request)
+        {
+            if (!IsAuthorized())
+                return Unauthorized(new { error = "Invalid or missing X-Automation-Key header." });
+
+            if (request == null)
+                return BadRequest(new { error = "Request payload cannot be empty." });
+
+            if (string.IsNullOrWhiteSpace(request.PatientTelegramChatId))
+                return BadRequest(new { error = "patientTelegramChatId is required." });
+
+            int doctorId = ParseId(request.DoctorId);
+            if (doctorId <= 0)
+                return BadRequest(new { error = "Invalid or missing doctorId." });
+
+            if (string.IsNullOrWhiteSpace(request.Date) || !DateTime.TryParse(request.Date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var apptDate))
+                return BadRequest(new { error = "Invalid or missing 'date'. Expected format: yyyy-MM-dd or ISO 8601." });
+
+            if (string.IsNullOrWhiteSpace(request.Time) || !TimeSpan.TryParse(request.Time, out var apptTime))
+                return BadRequest(new { error = "Invalid or missing 'time'. Expected format: HH:mm." });
+
+            // Validate Patient by TelegramChatId
+            var cleanChatId = request.PatientTelegramChatId.Trim();
+            var patient = await _context.Patients
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(p => p.TelegramChatId == cleanChatId);
+
+            if (patient == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = $"No patient found with TelegramChatId: {cleanChatId}."
+                });
+            }
+
+            // Validate Doctor
+            var doctor = await _context.Doctors
+                .IgnoreQueryFilters()
+                .Include(d => d.Department)
+                .FirstOrDefaultAsync(d => d.DoctorId == doctorId);
+
+            if (doctor == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = $"Doctor with ID {doctorId} not found."
+                });
+            }
+
+            // Check availability (double-booking guard)
+            bool slotTaken = await _context.Appointments
+                .IgnoreQueryFilters()
+                .AnyAsync(a => a.DoctorId == doctor.DoctorId
+                            && a.AppointmentDate.Date == apptDate.Date
+                            && a.AppointmentTime == apptTime
+                            && a.Status != "Cancelled");
+
+            if (slotTaken)
+            {
+                return Conflict(new
+                {
+                    success = false,
+                    message = $"Slot {apptTime:hh\\:mm} on {apptDate:yyyy-MM-dd} is already booked for Dr. {doctor.DoctorName}."
+                });
+            }
+
+            var appointment = new Appointment
+            {
+                PatientId       = patient.PatientId,
+                DoctorId        = doctor.DoctorId,
+                DepartmentId    = doctor.DepartmentId,
+                AppointmentDate = apptDate.Date,
+                AppointmentTime = apptTime,
+                Status          = "Confirmed",
+                Notes           = string.IsNullOrWhiteSpace(request.Notes)
+                                    ? "[Telegram Automation]"
+                                    : $"[Telegram Automation] {request.Notes}",
+                ClinicId        = doctor.ClinicId ?? patient.ClinicId,
+            };
+
+            _context.Appointments.Add(appointment);
+            await _context.SaveChangesAsync();
+
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserName   = "Telegram_Automation",
+                Action     = "CREATE",
+                EntityName = "Appointment",
+                EntityId   = appointment.AppointmentId.ToString(),
+                Timestamp  = DateTime.UtcNow,
+                Details    = $"Automated book-slot via Telegram | ChatId: {cleanChatId} | Patient: {patient.PatientName} | Doctor: Dr. {doctor.DoctorName} | Slot: {apptDate:yyyy-MM-dd} {apptTime:hh\\:mm}",
+            });
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success         = true,
+                appointmentId   = appointment.AppointmentId,
+                patientName     = patient.PatientName,
+                doctorName      = doctor.DoctorName,
+                departmentName  = doctor.Department?.DepartmentName ?? string.Empty,
+                appointmentDate = appointment.AppointmentDate.ToString("yyyy-MM-dd"),
+                appointmentTime = appointment.AppointmentTime.ToString(@"hh\:mm"),
+                status          = appointment.Status,
+                message         = "Appointment slot booked successfully."
+            });
+        }
+
         // ── Helpers ───────────────────────────────────────────────────────────
+
+        /// <summary>Extracts numeric integer ID from JSON number or string token.</summary>
+        private static int ParseId(System.Text.Json.JsonElement element)
+        {
+            if (element.ValueKind == System.Text.Json.JsonValueKind.Number && element.TryGetInt32(out int num))
+                return num;
+            if (element.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                var str = element.GetString();
+                if (int.TryParse(str, out int parsed))
+                    return parsed;
+            }
+            return 0;
+        }
 
         /// <summary>Extracts the visit type token from a bracketed channel prefix like "[Telegram] Dental checkup".</summary>
         private static string? ExtractVisitType(string? notes)

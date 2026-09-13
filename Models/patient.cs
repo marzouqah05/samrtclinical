@@ -75,6 +75,11 @@ namespace WebApplication1.Models
 
         public Guid? ClinicId { get; set; }
 
+        /// <summary>Telegram Chat ID for the patient — used by the n8n automation workflow and Telegram bot.</summary>
+        [Column(TypeName = "varchar(100)")]
+        [MaxLength(100)]
+        public string? TelegramChatId { get; set; }
+
         // --- العلاقات (Navigation Properties) ---
         public List<Appointment> Appointments { get; set; } = new List<Appointment>();
         public List<Treatment> Treatments { get; set; } = new List<Treatment>();
