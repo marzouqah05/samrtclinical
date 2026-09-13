@@ -1,0 +1,246 @@
+@model WebApplication1.Models.EditStaffViewModel
+@using System.Globalization
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    Func<string, string, string> T = (ar, en) => _isAr ? ar : en;
+    ViewData["Title"] = T($"تعديل بيانات الموظف: {Model.Username}", $"Edit Staff Member: {Model.Username}");
+}
+
+<div class="container-fluid py-3 max-w-2xl mx-auto" dir="@(_isAr ? "rtl" : "ltr")">
+
+    <!-- Top Header & Navigation Toolbar -->
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <!-- Breadcrumbs: Settings Hub / Staff Management / Edit Staff -->
+        <nav class="flex items-center gap-2 text-xs font-semibold" style="color:var(--clinic-muted)">
+            <a asp-controller="Settings" asp-action="Index" class="hover:underline flex items-center gap-1.5" style="color:var(--clinic-muted)">
+                <i class="fa-solid fa-gear text-[11px]"></i>
+                <span>@T("مركز الإعدادات", "Settings Hub")</span>
+            </a>
+            <span class="opacity-50">/</span>
+            <a asp-controller="Account" asp-action="StaffList" class="hover:underline" style="color:var(--clinic-muted)">
+                <span>@T("إدارة الموظفين", "Staff Management")</span>
+            </a>
+            <span class="opacity-50">/</span>
+            <span class="font-bold" style="color:var(--clinic-primary)">@T("تعديل الحساب", "Edit Staff")</span>
+        </nav>
+
+        <!-- Standard "Back to Staff List" Button -->
+        <a asp-controller="Account" asp-action="StaffList" 
+           class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/60 shadow-sm transition cursor-pointer">
+            <svg class="w-4 h-4 @(_isAr ? "rotate-180" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>@T("العودة لقائمة الموظفين", "Back to Staff List")</span>
+        </a>
+    </div>
+
+    <!-- Edit Staff Card -->
+    <div class="clinic-card p-6 md:p-8">
+
+        @* Header *@
+        <div class="flex items-center gap-3 mb-6 pb-4 border-b" style="border-color:var(--clinic-border)">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                 style="background:rgba(73,102,90,0.12);color:var(--clinic-primary)">
+                <i class="fa-solid fa-user-pen"></i>
+            </div>
+            <div>
+                <h2 class="text-base font-bold m-0 flex items-center gap-2" style="color:var(--clinic-text)">
+                    <span>@T("تعديل بيانات وحساب الموظف", "Edit Staff Account & Profile")</span>
+                    @if (Model.IsOwner)
+                    {
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                            Owner / SuperAdmin
+                        </span>
+                    }
+                </h2>
+                <p class="text-xs m-0 mt-0.5" style="color:var(--clinic-muted)">
+                    @T($"تحديث اسم المستخدم، الاسم الكامل، الصلاحية، وإعادة تعيين كلمة المرور لحساب '{Model.Username}'",
+                       $"Update username, full name, access level, or reset password for '{Model.Username}'")
+                </p>
+            </div>
+        </div>
+
+        @* Alerts *@
+        @if (TempData["Success"] != null)
+        {
+            <div class="mb-4 p-3 rounded-lg border flex items-center gap-3 text-xs font-medium" 
+                 style="background:var(--clinic-emerald-bg);border-color:rgba(46,125,91,0.25);color:var(--clinic-emerald-text);">
+                <i class="fa-solid fa-circle-check text-sm flex-shrink-0"></i>
+                <span>@TempData["Success"]</span>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="mb-4 p-3 rounded-lg border flex items-center gap-3 text-xs font-medium" 
+                 style="background:var(--clinic-rose-bg);border-color:rgba(184,58,56,0.25);color:var(--clinic-rose-text);">
+                <i class="fa-solid fa-circle-exclamation text-sm flex-shrink-0"></i>
+                <span>@TempData["Error"]</span>
+            </div>
+        }
+
+        <form asp-controller="Account" asp-action="UpdateStaff" method="post" id="editStaffForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+
+            @* ── Role Selection / Display ── *@
+            <div class="mb-4">
+                <label class="clinic-label">
+                    @T("الدور والصلاحية", "Assigned Role") <span class="text-rose-500">*</span>
+                </label>
+                @if (Model.IsOwner)
+                {
+                    <input type="hidden" asp-for="Role" value="Owner" />
+                    <div class="p-3 rounded-xl border flex items-center justify-between"
+                         style="background:var(--clinic-bg);border-color:var(--clinic-border)">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold text-sm">
+                                <i class="fa-solid fa-crown"></i>
+                            </span>
+                            <div>
+                                <span class="text-xs font-bold text-amber-600 dark:text-amber-400 block">Owner / SuperAdmin</span>
+                                <span class="text-[11px]" style="color:var(--clinic-muted)">
+                                    @T("المالك الرئيسي للنظام — رتبة ثابتة بحماية الحصانة لمنع حظر الوصول.", "Primary System Owner — Protected role to maintain administrative continuity.")
+                                </span>
+                            </div>
+                        </div>
+                        <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                            <i class="fa-solid fa-lock text-[9px]"></i>
+                            @T("ثابت", "Locked")
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    <select class="clinic-input" asp-for="Role" required>
+                        @foreach (var r in Model.AllowedRoles)
+                        {
+                            <option value="@r">
+                                @(r == "Admin" ? T("مدير النظام (Admin)", "System Administrator (Admin)") :
+                                  r == "Doctor" ? T("طبيب ممارس (Doctor)", "Medical Doctor (Doctor)") :
+                                  r == "Receptionist" ? T("موظف استقبال (Receptionist)", "Receptionist (Receptionist)") : r)
+                            </option>
+                        }
+                    </select>
+                }
+            </div>
+
+            @* ── Username & Full Name ── *@
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label asp-for="Username" class="clinic-label">
+                        @T("اسم المستخدم للدخول", "Username") <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <input type="text"
+                               class="clinic-input"
+                               asp-for="Username"
+                               required
+                               autocomplete="username"
+                               placeholder="@T("اسم المستخدم", "Username")" />
+                    </div>
+                    <p class="text-[11px] mt-1 mb-0" style="color:var(--clinic-muted)">
+                        @T("يستخدم لتسجيل الدخول للنظام ويجب أن يكون فريداً.", "Unique handle used directly to log in.")
+                    </p>
+                </div>
+
+                <div>
+                    <label asp-for="FullName" class="clinic-label">
+                        @T("الاسم الكامل / المعروض", "Full Name") <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text"
+                           class="clinic-input"
+                           asp-for="FullName"
+                           required
+                           placeholder="@T("الاسم المعروض", "Full Name")" />
+                </div>
+            </div>
+
+            @* ── Email & Phone ── *@
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label asp-for="Email" class="clinic-label">
+                        @T("البريد الإلكتروني", "Email Address")
+                    </label>
+                    <input type="email"
+                           class="clinic-input"
+                           asp-for="Email"
+                           autocomplete="email"
+                           placeholder="@T("user@clinic.com", "user@clinic.com")" />
+                </div>
+
+                <div>
+                    <label asp-for="PhoneNumber" class="clinic-label">
+                        @T("رقم الهاتف (اختياري)", "Phone Number (Optional)")
+                    </label>
+                    <input type="tel"
+                           class="clinic-input"
+                           asp-for="PhoneNumber"
+                           placeholder="07xxxxxxxx" />
+                </div>
+            </div>
+
+            @* ── Password Reset Section ── *@
+            <div class="p-4 rounded-xl border mb-6" style="background:var(--clinic-bg);border-color:var(--clinic-border)">
+                <div class="flex items-center gap-2 mb-2 text-xs font-bold" style="color:var(--clinic-text)">
+                    <i class="fa-solid fa-key" style="color:var(--clinic-primary)"></i>
+                    <span>@T("إعادة تعيين كلمة المرور (اختياري)", "Reset Password (Optional)")</span>
+                </div>
+                <p class="text-[11px] mb-3" style="color:var(--clinic-muted)">
+                    @T("اترك هذا الحقل فارغاً إذا كنت لا ترغب في تغيير كلمة المرور الحالية للمستخدم.",
+                       "Leave this field blank to keep the current password unchanged.")
+                </p>
+
+                <div class="relative">
+                    <input type="password"
+                           class="clinic-input pe-10"
+                           id="newPassword"
+                           asp-for="NewPassword"
+                           minlength="6"
+                           placeholder="@T("•••••••• (اتركه فارغاً للإبقاء على الحالية)", "•••••••• (leave blank to keep unchanged)")" />
+                    <button type="button"
+                            class="absolute inset-y-0 end-0 pe-3 flex items-center bg-transparent border-0 cursor-pointer"
+                            id="toggleEditPwd"
+                            style="color:var(--clinic-muted)"
+                            title="@T("إظهار/إخفاء كلمة المرور", "Toggle password visibility")">
+                        <i class="fa-solid fa-eye" id="editEyeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <hr class="clinic-divider" />
+
+            @* Actions *@
+            <div class="flex items-center justify-end gap-3 flex-wrap">
+                <a asp-controller="Account" asp-action="StaffList" class="btn-clinic-secondary">
+                    <i class="fa-solid fa-xmark"></i>
+                    @T("إلغاء", "Cancel")
+                </a>
+                <button type="submit" class="btn-clinic-primary">
+                    <i class="fa-solid fa-check"></i>
+                    @T("حفظ التعديلات", "Save Changes")
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    'use strict';
+
+    const toggleBtn = document.getElementById('toggleEditPwd');
+    const pwdInp    = document.getElementById('newPassword');
+    const eyeIcon   = document.getElementById('editEyeIcon');
+
+    if (toggleBtn && pwdInp && eyeIcon) {
+        toggleBtn.addEventListener('click', () => {
+            const isText = pwdInp.type === 'text';
+            pwdInp.type = isText ? 'password' : 'text';
+            eyeIcon.className = isText ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+        });
+    }
+})();
+</script>
+}

@@ -165,31 +165,44 @@
                                 <td class="py-3 px-4 text-center">
                                     @if (item.IsOwner)
                                     {
-                                        @* STRICT IMMUTABILITY: Owner cannot be deleted or edited *@
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20"
-                                              title="@T("حساب المالك محصن بحماية النظام ولا يمكن حذفه أو تعديل صلاحياته", "Owner account is protected and cannot be deleted or modified")">
-                                            <i class="fa-solid fa-lock text-[10px]"></i>
-                                            <span>@T("محمي", "Protected")</span>
-                                        </span>
-                                    }
-                                    else if (isCurrent)
-                                    {
-                                        <span class="text-xs font-medium" style="color:var(--clinic-muted)">
-                                            @T("الحساب الحالي", "Active Session")
-                                        </span>
+                                        @if (isCurrentOwner)
+                                        {
+                                            @* Owner can edit their own profile/credentials *@
+                                            <div class="flex items-center justify-center gap-2">
+                                                <a asp-controller="Staff" asp-action="Edit" asp-route-id="@item.User.Id"
+                                                   class="p-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1"
+                                                   title="@T("تعديل ملفك وبياناتك", "Edit Profile & Password")">
+                                                    <i class="fa-solid fa-user-pen text-[11px]"></i>
+                                                    <span class="text-[11px]">@T("تعديل", "Edit")</span>
+                                                </a>
+                                                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20"
+                                                      title="@T("حساب المالك محصن من الحذف بشكل دائم", "Owner account is protected from deletion")">
+                                                    <i class="fa-solid fa-shield-halved text-[9px]"></i>
+                                                    <span>@T("محمي", "Protected")</span>
+                                                </span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            @* Secondary Admin cannot edit or delete Owner *@
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20"
+                                                  title="@T("حساب المالك محمي من التعديل أو الحذف من قبل المديرين", "Owner account is protected from Admins")">
+                                                <i class="fa-solid fa-lock text-[10px]"></i>
+                                                <span>@T("محمي", "Protected")</span>
+                                            </span>
+                                        }
                                     }
                                     else if (item.CanDelete || item.CanEdit)
                                     {
                                         <div class="flex items-center justify-center gap-2">
                                             @if (item.CanEdit)
                                             {
-                                                <button type="button" 
-                                                        onclick="openEditStaffModal('@item.User.Id', '@item.User.UserName', '@item.FullName', '@item.Role')"
-                                                        class="p-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1"
-                                                        title="@T("تعديل الصلاحية", "Edit Role")">
+                                                <a asp-controller="Staff" asp-action="Edit" asp-route-id="@item.User.Id"
+                                                   class="p-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1"
+                                                   title="@T("تعديل بيانات وحساب الموظف", "Edit Account & Password")">
                                                     <i class="fa-solid fa-user-pen text-[11px]"></i>
                                                     <span class="text-[11px]">@T("تعديل", "Edit")</span>
-                                                </button>
+                                                </a>
                                             }
 
                                             @if (item.CanDelete)

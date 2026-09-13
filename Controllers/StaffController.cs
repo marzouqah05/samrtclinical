@@ -17,5 +17,18 @@ namespace WebApplication1.Controllers
         {
             return RedirectToAction("Register", "Account");
         }
+
+        [HttpGet]
+        public IActionResult Edit(string id)
+        {
+            return RedirectToAction("EditStaff", "Account", new { id });
+        }
+
+        [HttpGet]
+        [HttpPost]
+        public IActionResult Logout()
+        {
+            return RedirectToAction("Logout", "Account");
+        }
     }
 }

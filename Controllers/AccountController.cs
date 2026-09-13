@@ -798,6 +798,23 @@ namespace WebApplication1.Controllers
             return RedirectToAction("Login", "Account");
         }
 
+        // GET: Logout (Permits direct navigation or links)
+        [HttpGet]
+        [ActionName("Logout")]
+        public async Task<IActionResult> LogoutGet()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var sessionId = WebApplication1.Middleware.UserActivityMiddleware.GetOrCreateDeviceId(HttpContext);
+                var ua = Request.Headers["User-Agent"].ToString();
+                await _sessionTracking.EndSessionAsync(userId, sessionId, ua);
+            }
+
+            await _signInManager.SignOutAsync();
+            return RedirectToAction("Login", "Account");
+        }
+
         // GET: Access Denied
         [AllowAnonymous]
         public IActionResult AccessDenied()
@@ -845,29 +862,27 @@ namespace WebApplication1.Controllers
                     var isTargetOwner = roleLabel == "Owner" || roles.Contains("Owner") || roles.Contains("SuperAdmin");
                     var isCurrent = u.Id == currentUserId;
 
-                    // Immutability & Hierarchy Rules:
-                    // 1. NO user can delete or alter the role of an Owner account
-                    // 2. Self-deletion is forbidden
-                    // 3. Admin cannot delete or edit other Admins or Owners
-                    // 4. Owner can manage all Admins, Doctors, and Receptionists
+                    // Security & Hierarchy Rules:
+                    // 1. Owner account can NEVER be deleted (permanent deletion immunity)
+                    // 2. No user can delete themselves
+                    // 3. Regular Admin cannot delete or edit Owner or other Admins
+                    // 4. Regular Admin CAN edit/delete Doctors and Receptionists
+                    // 5. Owner CAN edit anyone (including themselves and other staff)
+                    // 6. Owner CAN delete anyone except Owner accounts and themselves
                     bool canDelete = false;
                     bool canEdit = false;
 
-                    if (!isTargetOwner && !isCurrent)
+                    if (isOwner)
                     {
-                        if (isOwner)
+                        canEdit = true; // Owner can edit all accounts (themselves, admins, doctors, receptionists)
+                        canDelete = !isTargetOwner && !isCurrent; // Owner can delete non-owner accounts
+                    }
+                    else if (User.IsInRole("Admin"))
+                    {
+                        if (!isTargetOwner && roleLabel != "Admin" && !isCurrent)
                         {
-                            canDelete = true;
-                            canEdit = true;
-                        }
-                        else if (User.IsInRole("Admin"))
-                        {
-                            // Admin can only delete/edit non-admin staff (Doctor, Receptionist)
-                            if (roleLabel != "Admin")
-                            {
-                                canDelete = true;
-                                canEdit = true;
-                            }
+                            canEdit = true; // Admin can edit doctors and receptionists
+                            canDelete = true; // Admin can delete doctors and receptionists
                         }
                     }
 
@@ -1003,11 +1018,10 @@ namespace WebApplication1.Controllers
             return RedirectToAction(nameof(StaffList));
         }
 
-        // ── POST: Update staff role / info ─────────────────────────────────────
-        [HttpPost]
+        // ── GET: Edit Staff Profile View ──────────────────────────────────────
+        [HttpGet]
         [Authorize(Roles = "Owner,Admin,SuperAdmin")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateStaff(string id, string? fullName, string? role)
+        public async Task<IActionResult> EditStaff(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -1022,48 +1036,218 @@ namespace WebApplication1.Controllers
                 return RedirectToAction(nameof(StaffList));
             }
 
-            var targetRoles = await _userManager.GetRolesAsync(user);
+            var roles = await _userManager.GetRolesAsync(user);
+            var isTargetOwner = roles.Contains("Owner") || roles.Contains("SuperAdmin");
+            var isCallerOwner = User.IsOwner();
 
-            // ── PROTECTION GUARD 1: Owner cannot be altered by anyone ──
-            if (targetRoles.Contains("Owner") || targetRoles.Contains("SuperAdmin"))
+            // Permission Check:
+            if (!isCallerOwner)
             {
-                TempData["Error"] = T("لا يمكن تعديل صلاحيات أو رتبة حساب المالك (Owner).", "Owner account permissions cannot be altered.");
-                return RedirectToAction(nameof(StaffList));
-            }
-
-            // ── PROTECTION GUARD 2: Admin cannot alter Admins or assign Admin/Owner ──
-            if (!User.IsOwner())
-            {
-                if (targetRoles.Contains("Admin") || role == "Admin" || role == "Owner")
+                if (isTargetOwner)
                 {
-                    TempData["Error"] = T("لا تملك الصلاحية الكافية لتعديل حسابات المديرين.", "You do not have permission to modify Admin accounts.");
+                    TempData["Error"] = T("لا تملك الصلاحية لتعديل حساب المالك (Owner).", "You do not have permission to edit the Owner account.");
+                    return RedirectToAction(nameof(StaffList));
+                }
+                if (roles.Contains("Admin"))
+                {
+                    TempData["Error"] = T("لا تملك الصلاحية لتعديل حسابات المديرين (Admin).", "You do not have permission to edit Admin accounts.");
                     return RedirectToAction(nameof(StaffList));
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(fullName))
+            string primaryRole = isTargetOwner ? "Owner" : roles.FirstOrDefault() ?? "Receptionist";
+
+            var allowedRoles = new List<string>();
+            if (isTargetOwner)
             {
-                user.FullName = fullName.Trim();
-                await _userManager.UpdateAsync(user);
+                allowedRoles.Add("Owner");
+            }
+            else
+            {
+                if (isCallerOwner)
+                {
+                    allowedRoles.Add("Admin");
+                    allowedRoles.Add("Doctor");
+                    allowedRoles.Add("Receptionist");
+                }
+                else
+                {
+                    allowedRoles.Add("Doctor");
+                    allowedRoles.Add("Receptionist");
+                }
             }
 
-            if (!string.IsNullOrWhiteSpace(role) && !targetRoles.Contains(role))
+            var model = new EditStaffViewModel
             {
-                var removableRoles = targetRoles.Where(r => r != "Owner" && r != "SuperAdmin").ToList();
-                if (removableRoles.Any())
+                Id = user.Id,
+                Username = user.UserName ?? string.Empty,
+                FullName = !string.IsNullOrWhiteSpace(user.FullName) ? user.FullName : (user.UserName ?? string.Empty),
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber,
+                Role = primaryRole,
+                IsOwner = isTargetOwner,
+                CanChangeRole = !isTargetOwner,
+                AllowedRoles = allowedRoles
+            };
+
+            return View("~/Views/Staff/Edit.cshtml", model);
+        }
+
+        // Alias for EditStaff
+        [HttpGet]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
+        public Task<IActionResult> Edit(string id) => EditStaff(id);
+
+        // ── POST: Update staff complete profile & credentials ──────────────────
+        [HttpPost]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateStaff(EditStaffViewModel model)
+        {
+            if (string.IsNullOrWhiteSpace(model.Id))
+            {
+                TempData["Error"] = T("معرّف المستخدم غير صالح.", "Invalid user ID.");
+                return RedirectToAction(nameof(StaffList));
+            }
+
+            var user = await _userManager.FindByIdAsync(model.Id);
+            if (user == null)
+            {
+                TempData["Error"] = T("المستخدم غير موجود.", "User not found.");
+                return RedirectToAction(nameof(StaffList));
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var isTargetOwner = roles.Contains("Owner") || roles.Contains("SuperAdmin");
+            var isCallerOwner = User.IsOwner();
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // Permission Check:
+            if (!isCallerOwner)
+            {
+                if (isTargetOwner)
                 {
-                    await _userManager.RemoveFromRolesAsync(user, removableRoles);
+                    TempData["Error"] = T("لا تملك الصلاحية لتعديل حساب المالك.", "You do not have permission to modify the Owner account.");
+                    return RedirectToAction(nameof(StaffList));
+                }
+                if (roles.Contains("Admin"))
+                {
+                    TempData["Error"] = T("لا تملك الصلاحية لتعديل حسابات المديرين.", "You do not have permission to modify Admin accounts.");
+                    return RedirectToAction(nameof(StaffList));
+                }
+            }
+
+            // 1. Validate & Update Username
+            var cleanUsername = model.Username?.Trim();
+            if (string.IsNullOrWhiteSpace(cleanUsername))
+            {
+                TempData["Error"] = T("اسم المستخدم مطلوب ولا يمكن أن يكون فارغاً.", "Username is required.");
+                return RedirectToAction(nameof(EditStaff), new { id = model.Id });
+            }
+
+            if (!string.Equals(user.UserName, cleanUsername, StringComparison.OrdinalIgnoreCase))
+            {
+                var existingUser = await _userManager.FindByNameAsync(cleanUsername);
+                if (existingUser != null && existingUser.Id != user.Id)
+                {
+                    TempData["Error"] = T($"اسم المستخدم '{cleanUsername}' مستخدم بالفعل.", $"Username '{cleanUsername}' is already in use.");
+                    return RedirectToAction(nameof(EditStaff), new { id = model.Id });
+                }
+                user.UserName = cleanUsername;
+            }
+
+            // 2. Validate & Update Full Name
+            user.FullName = string.IsNullOrWhiteSpace(model.FullName) ? cleanUsername : model.FullName.Trim();
+
+            // 3. Validate & Update Email
+            var cleanEmail = string.IsNullOrWhiteSpace(model.Email) ? $"{cleanUsername}@clinic.local" : model.Email.Trim();
+            if (!string.Equals(user.Email, cleanEmail, StringComparison.OrdinalIgnoreCase))
+            {
+                var existingEmailUser = await _userManager.FindByEmailAsync(cleanEmail);
+                if (existingEmailUser != null && existingEmailUser.Id != user.Id)
+                {
+                    TempData["Error"] = T($"البريد الإلكتروني '{cleanEmail}' مستخدم بالفعل.", $"Email '{cleanEmail}' is already registered.");
+                    return RedirectToAction(nameof(EditStaff), new { id = model.Id });
+                }
+                user.Email = cleanEmail;
+            }
+
+            // 4. Update Phone Number
+            user.PhoneNumber = string.IsNullOrWhiteSpace(model.PhoneNumber) ? null : model.PhoneNumber.Trim();
+
+            var updateResult = await _userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                TempData["Error"] = string.Join(" | ", updateResult.Errors.Select(e => e.Description));
+                return RedirectToAction(nameof(EditStaff), new { id = model.Id });
+            }
+
+            // 5. Update Role (if not Owner)
+            if (!isTargetOwner && !string.IsNullOrWhiteSpace(model.Role))
+            {
+                var targetRole = model.Role.Trim();
+                if (!isCallerOwner && (targetRole == "Admin" || targetRole == "Owner"))
+                {
+                    TempData["Error"] = T("لا تملك الصلاحية لتعيين صلاحية مدير أو مالك.", "You do not have permission to assign Admin or Owner roles.");
+                    return RedirectToAction(nameof(StaffList));
                 }
 
-                if (!await _roleManager.RoleExistsAsync(role))
-                    await _roleManager.CreateAsync(new IdentityRole(role));
+                if (!roles.Contains(targetRole))
+                {
+                    var removable = roles.Where(r => r != "Owner" && r != "SuperAdmin").ToList();
+                    if (removable.Any())
+                    {
+                        await _userManager.RemoveFromRolesAsync(user, removable);
+                    }
 
-                await _userManager.AddToRoleAsync(user, role);
+                    if (!await _roleManager.RoleExistsAsync(targetRole))
+                    {
+                        await _roleManager.CreateAsync(new IdentityRole(targetRole));
+                    }
+
+                    await _userManager.AddToRoleAsync(user, targetRole);
+                }
+            }
+
+            // 6. Password Reset (if new password specified)
+            if (!string.IsNullOrWhiteSpace(model.NewPassword))
+            {
+                var newPwd = model.NewPassword.Trim();
+                if (newPwd.Length < 6)
+                {
+                    TempData["Error"] = T("كلمة المرور الجديدة يجب ألا تقل عن 6 خانات.", "New password must be at least 6 characters.");
+                    return RedirectToAction(nameof(EditStaff), new { id = model.Id });
+                }
+
+                var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var resetResult = await _userManager.ResetPasswordAsync(user, resetToken, newPwd);
+                if (!resetResult.Succeeded)
+                {
+                    await _userManager.RemovePasswordAsync(user);
+                    var addResult = await _userManager.AddPasswordAsync(user, newPwd);
+                    if (!addResult.Succeeded)
+                    {
+                        TempData["Error"] = string.Join(" | ", addResult.Errors.Select(e => e.Description));
+                        return RedirectToAction(nameof(EditStaff), new { id = model.Id });
+                    }
+                }
+            }
+
+            // If the user modified their own credentials/username, refresh cookie
+            if (user.Id == currentUserId)
+            {
+                await _signInManager.RefreshSignInAsync(user);
             }
 
             TempData["Success"] = T($"تم تحديث بيانات المستخدم '{user.UserName}' بنجاح.",
                                     $"User '{user.UserName}' updated successfully.");
             return RedirectToAction(nameof(StaffList));
         }
+
+        // Alias for UpdateStaff
+        [HttpPost]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
+        [ValidateAntiForgeryToken]
+        public Task<IActionResult> Edit(EditStaffViewModel model) => UpdateStaff(model);
     }
 }
