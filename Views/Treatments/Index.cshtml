@@ -153,11 +153,14 @@
                                            title="@T("عرض التفاصيل", "View Details")">
                                             <i class="fa-solid fa-file-lines text-[10px] text-sky-500 dark:text-sky-400"></i>
                                         </a>
-                                        <a asp-action="Delete" asp-route-id="@item.TreatmentId"
-                                           class="w-7 h-7 flex items-center justify-center rounded-lg border border-rose-500/30 text-rose-600 dark:text-rose-500 hover:bg-rose-500/10 text-xs transition"
-                                           title="@T("حذف السجل", "Delete Record")">
-                                            <i class="fa-solid fa-trash text-[10px]"></i>
-                                        </a>
+                                        @if (User.IsAdminOrOwner())
+                                        {
+                                            <a asp-action="Delete" asp-route-id="@item.TreatmentId"
+                                               class="w-7 h-7 flex items-center justify-center rounded-lg border border-rose-500/30 text-rose-600 dark:text-rose-500 hover:bg-rose-500/10 text-xs transition"
+                                               title="@T("حذف السجل", "Delete Record")">
+                                                <i class="fa-solid fa-trash text-[10px]"></i>
+                                            </a>
+                                        }
                                     </div>
                                 </td>
                             </tr>

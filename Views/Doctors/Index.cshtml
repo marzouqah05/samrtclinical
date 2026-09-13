@@ -33,23 +33,36 @@
             <p class="text-[#727A76] dark:text-[#9CA8A3] text-xs m-0 mt-1">@T("عرض وبحث وإدارة أطباء العيادة وتخصصاتهم واستيراد الملفات", "View, search, and manage clinic physicians, specialties, and bulk files")</p>
         </div>
         <div class="flex items-center gap-2.5 flex-wrap">
-            <!-- 📥 Import Doctors Button -->
-            <button type="button" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700/80 font-medium px-4 py-2 rounded-lg text-sm transition inline-flex items-center gap-2 shadow-sm cursor-pointer" data-bs-toggle="modal" data-bs-target="#importDoctorsModal" title="@T("استيراد بيانات الأطباء من CSV", "Bulk import doctors from CSV")">
-                <i class="fa-solid fa-file-import text-slate-500 dark:text-slate-400"></i>
-                <span>@T("استيراد أطباء", "Import Doctors")</span>
-            </button>
+            @if (!User.IsDoctor())
+            {
+                <!-- 📥 Import Doctors Button -->
+                <button type="button" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700/80 font-medium px-4 py-2 rounded-lg text-sm transition inline-flex items-center gap-2 shadow-sm cursor-pointer" data-bs-toggle="modal" data-bs-target="#importDoctorsModal" title="@T("استيراد بيانات الأطباء من CSV", "Bulk import doctors from CSV")">
+                    <i class="fa-solid fa-file-import text-slate-500 dark:text-slate-400"></i>
+                    <span>@T("استيراد أطباء", "Import Doctors")</span>
+                </button>
 
-            <!-- 📤 Export Doctors Button -->
-            <a asp-action="Export" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700/80 font-medium px-4 py-2 rounded-lg text-sm transition inline-flex items-center gap-2 shadow-sm" title="@T("تصدير جميع الأطباء إلى CSV", "Export all doctors to CSV")">
-                <i class="fa-solid fa-file-excel text-emerald-500"></i>
-                <span>@T("تصدير CSV", "Export to CSV")</span>
-            </a>
+                <!-- 📤 Export Doctors Button -->
+                <a asp-action="Export" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700/80 font-medium px-4 py-2 rounded-lg text-sm transition inline-flex items-center gap-2 shadow-sm" title="@T("تصدير جميع الأطباء إلى CSV", "Export all doctors to CSV")">
+                    <i class="fa-solid fa-file-excel text-emerald-500"></i>
+                    <span>@T("تصدير CSV", "Export to CSV")</span>
+                </a>
 
-            <!-- ➕ Add Doctor Button -->
-            <a asp-action="Create" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-5 py-2.5 rounded-lg shadow-sm transition active:scale-95 inline-flex items-center gap-2 text-sm">
-                <i class="fa-solid fa-plus text-xs"></i>
-                <span>@T("إضافة طبيب جديد", "Add New Doctor")</span>
-            </a>
+                @if (User.IsAdminOrOwner())
+                {
+                    <!-- ➕ Add Doctor Button -->
+                    <a asp-action="Create" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-5 py-2.5 rounded-lg shadow-sm transition active:scale-95 inline-flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                        <span>@T("إضافة طبيب جديد", "Add New Doctor")</span>
+                    </a>
+                }
+            }
+            else
+            {
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-semibold">
+                    <i class="fa-solid fa-hospital-user text-xs"></i>
+                    <span>@T("أطباء وزملائي في نفس القسم والتخصص", "My Department Colleagues")</span>
+                </span>
+            }
         </div>
     </div>
 
@@ -135,7 +148,7 @@
                         <th class="ps-6 text-start w-[32%] py-3.5">@T("اسم الطبيب", "Doctor Name")</th>
                         <th class="text-start w-[28%] py-3.5">@T("التخصص", "Specialization")</th>
                         <th class="text-start w-[20%] py-3.5">@T("القسم", "Department")</th>
-                        <th class="pe-6 text-end w-[20%] py-3.5">@T("الإجراءات", "Actions")</th>
+                        <th class="pe-6 text-end w-[20%] py-3.5">@(User.IsDoctor() ? T("معلومات الزميل", "Colleague Info") : T("الإجراءات", "Actions"))</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -179,32 +192,47 @@
                                     }
                                 </td>
 
-                                <!-- أزرار التحكم -->
+                                <!-- أزرار التحكم أو معلومات الزميل -->
                                 <td class="py-3.5 text-end">
-                                    <div class="inline-flex items-center gap-1.5 pe-6">
-                                        <a asp-action="Edit" asp-route-id="@item.DoctorId"
-                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:text-white"
-                                           title="@T("تعديل", "Edit")">
-                                            <i class="fa-solid fa-pen text-[10px]"></i>
-                                            <span>@T("تعديل", "Edit")</span>
-                                        </a>
-                                        <a asp-action="Details" asp-route-id="@item.DoctorId"
-                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm bg-white border border-slate-200 text-cyan-600 hover:bg-cyan-50 hover:text-cyan-700 dark:bg-slate-800 dark:border-slate-700 dark:text-cyan-400 dark:hover:bg-slate-700 dark:hover:text-cyan-300"
-                                           title="@T("تفاصيل", "Details")">
-                                            <i class="fa-solid fa-circle-info text-[10px]"></i>
-                                            <span>@T("تفاصيل", "Details")</span>
-                                        </a>
+                                    @if (User.IsDoctor())
+                                    {
+                                        <div class="pe-6 flex items-center justify-end gap-2">
+                                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-[#49665A]/10 text-[#49665A] dark:text-[#9CA8A3] border border-[#49665A]/20">
+                                                <i class="fa-solid fa-stethoscope text-[10px]"></i>
+                                                <span>@T("طبيب زميل في القسم", "Department Colleague")</span>
+                                            </span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="inline-flex items-center gap-1.5 pe-6">
+                                            <a asp-action="Edit" asp-route-id="@item.DoctorId"
+                                               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:text-white"
+                                               title="@T("تعديل", "Edit")">
+                                                <i class="fa-solid fa-pen text-[10px]"></i>
+                                                <span>@T("تعديل", "Edit")</span>
+                                            </a>
+                                            <a asp-action="Details" asp-route-id="@item.DoctorId"
+                                               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm bg-white border border-slate-200 text-cyan-600 hover:bg-cyan-50 hover:text-cyan-700 dark:bg-slate-800 dark:border-slate-700 dark:text-cyan-400 dark:hover:bg-slate-700 dark:hover:text-cyan-300"
+                                               title="@T("تفاصيل", "Details")">
+                                                <i class="fa-solid fa-circle-info text-[10px]"></i>
+                                                <span>@T("تفاصيل", "Details")</span>
+                                            </a>
 
-                                        <form asp-action="Delete" asp-route-id="@item.DoctorId" method="post" class="inline m-0">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit"
-                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:bg-rose-950/40 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-900/60 dark:hover:text-rose-200"
-                                                    onclick="return confirm('@T("هل أنت متأكد من حذف الدكتور بشكل نهائي?", "Are you sure you want to permanently delete Dr. " + item.DoctorName + "?")');" title="@T("حذف", "Delete")">
-                                                <i class="fa-solid fa-trash-can text-[10px]"></i>
-                                                <span>@T("حذف", "Delete")</span>
-                                            </button>
-                                        </form>
-                                    </div>
+                                            @if (User.IsAdminOrOwner())
+                                            {
+                                                <form asp-action="Delete" asp-route-id="@item.DoctorId" method="post" class="inline m-0">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit"
+                                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:bg-rose-950/40 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-900/60 dark:hover:text-rose-200"
+                                                            onclick="return confirm('@T("هل أنت متأكد من حذف الدكتور بشكل نهائي?", "Are you sure you want to permanently delete Dr. " + item.DoctorName + "?")');" title="@T("حذف", "Delete")">
+                                                        <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                                        <span>@T("حذف", "Delete")</span>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    }
                                 </td>
                             </tr>
                         }

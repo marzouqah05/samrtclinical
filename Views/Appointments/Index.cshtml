@@ -1054,9 +1054,13 @@
                                         {
                                             <div class="mt-1">
                                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30"
-                                                      title="@T("موعد استثنائي خارج ساعات العمل أو ضمن فترات الاحتياط", "Schedule Exception: booked outside hours or in buffer slot")">
+                                                      title="@(!string.IsNullOrWhiteSpace(item.Notes) ? item.Notes : T("موعد استثنائي خارج ساعات العمل أو ضمن فترات الاحتياط", "Schedule Exception: booked outside hours or in buffer slot"))">
                                                     <i class="fa-solid fa-triangle-exclamation text-[9px]"></i>
                                                     <span>@T("استثناء", "Exception")</span>
+                                                    @if (!string.IsNullOrWhiteSpace(item.Notes))
+                                                    {
+                                                        <span class="text-[9px] opacity-80 max-w-[120px] truncate" title="@item.Notes">(@item.Notes)</span>
+                                                    }
                                                 </span>
                                             </div>
                                         }
@@ -1134,8 +1138,8 @@
                                                 </a>
                                             }
 
-                                            @* ── Confirm button ─────────────────────────────── *@
-                                            @if (item.Status != "Confirmed" && item.Status != "Completed" && item.Status != "Cancelled")
+                                            @* ── Confirm button (Only Receptionist or Admin) ─────────────────────────────── *@
+                                            @if (item.Status != "Confirmed" && item.Status != "Completed" && item.Status != "Cancelled" && !User.IsDoctor())
                                             {
                                                 <form asp-action="UpdateStatus" method="post" class="d-inline m-0">
                                                     @Html.AntiForgeryToken()

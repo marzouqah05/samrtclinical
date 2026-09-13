@@ -53,8 +53,10 @@ namespace WebApplication1.Controllers
 
         /// <summary>GET /Patients/Export</summary>
         [HttpGet]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist")]
         public async Task<IActionResult> Export()
         {
+            if (User.IsDoctor()) return Forbid();
             var csvBytes = await _importExportService.ExportPatientsToCsvAsync();
             string fileName = $"Patients_Export_{DateTime.Now:yyyyMMdd_HHmm}.csv";
             return File(csvBytes, "text/csv; charset=utf-8", fileName);
@@ -63,8 +65,10 @@ namespace WebApplication1.Controllers
         /// <summary>POST /Patients/Import</summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist")]
         public async Task<IActionResult> Import(IFormFile? file)
         {
+            if (User.IsDoctor()) return Forbid();
             if (file == null || file.Length == 0)
             {
                 TempData["Error"] = "Please select a valid CSV or Excel file to upload.";
@@ -203,14 +207,21 @@ namespace WebApplication1.Controllers
             return View(vm);
         }
 
-        public IActionResult Create() => View();
+        [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist")]
+        public IActionResult Create()
+        {
+            if (User.IsDoctor()) return Forbid();
+            return View();
+        }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist")]
         public async Task<IActionResult> Create(
             [Bind("PatientId,PatientName,NationalId,PhoneNumber,DOB,Gender,BloodType,Allergies,ChronicDiseases,Notes")]
             Patient patient)
         {
+            if (User.IsDoctor()) return Forbid();
             if (patient.DOB > DateTime.UtcNow.Date)
             {
                 string errorMsg = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar"
@@ -246,6 +257,17 @@ namespace WebApplication1.Controllers
         {
             if (id == null) return NotFound();
             var currentClinicId = User.GetClinicId();
+
+            if (User.IsDoctor())
+            {
+                var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                var isAssigned = currentDoctorId.HasValue && (
+                    await _context.Appointments.AnyAsync(a => a.ClinicId == currentClinicId && a.DoctorId == currentDoctorId.Value && a.PatientId == id.Value) ||
+                    await _context.MedicalRecords.AnyAsync(m => m.DoctorId == currentDoctorId.Value && m.PatientId == id.Value)
+                );
+                if (!isAssigned) return Forbid();
+            }
+
             var patient = await _context.Patients.FirstOrDefaultAsync(p => p.PatientId == id && p.ClinicId == currentClinicId);
             if (patient == null) return NotFound();
             return View(patient);
@@ -259,6 +281,16 @@ namespace WebApplication1.Controllers
         {
             if (id != patient.PatientId) return NotFound();
             var currentClinicId = User.GetClinicId();
+
+            if (User.IsDoctor())
+            {
+                var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                var isAssigned = currentDoctorId.HasValue && (
+                    await _context.Appointments.AnyAsync(a => a.ClinicId == currentClinicId && a.DoctorId == currentDoctorId.Value && a.PatientId == id) ||
+                    await _context.MedicalRecords.AnyAsync(m => m.DoctorId == currentDoctorId.Value && m.PatientId == id)
+                );
+                if (!isAssigned) return Forbid();
+            }
 
             var dbPatient = await _context.Patients.FirstOrDefaultAsync(p => p.PatientId == id && p.ClinicId == currentClinicId);
             if (dbPatient == null) return NotFound();

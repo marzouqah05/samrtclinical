@@ -209,9 +209,16 @@ namespace WebApplication1.Controllers
             }
 
             // 2. الفلترة بالطبيب: للأطباء يتم تقييد الاستعلام بطبيبهم فقط، وللمشرفين وموظفي الاستقبال يُسمح بالاستعلام العام
-            if (isDoctor && currentDoctorId.HasValue)
+            if (isDoctor)
             {
-                query = query.Where(a => a.DoctorId == currentDoctorId.Value);
+                if (currentDoctorId.HasValue)
+                {
+                    query = query.Where(a => a.DoctorId == currentDoctorId.Value);
+                }
+                else
+                {
+                    query = query.Where(a => false);
+                }
             }
             else if (doctorFilter.HasValue && doctorFilter.Value > 0)
             {
@@ -300,6 +307,10 @@ namespace WebApplication1.Controllers
                 if (currentDoctorId.HasValue)
                 {
                     query = query.Where(a => a.DoctorId == currentDoctorId.Value);
+                }
+                else
+                {
+                    query = query.Where(a => false);
                 }
             }
             else if (doctorFilter.HasValue && doctorFilter.Value > 0)
@@ -478,8 +489,8 @@ namespace WebApplication1.Controllers
             if (ModelState.IsValid)
             {
                 appointment.ClinicId = currentClinicId;
-                // للأطباء: يُحجز الموعد كطلب متابعة "Pending Confirmation" لتقوم الاستقبال بتأكيده
-                appointment.Status = isDoctor ? "Pending Confirmation" : "Pending";
+                // Force status = AppointmentStatus.Pending on POST to AppointmentsController.Create if user has role Doctor
+                appointment.Status = isDoctor ? AppointmentStatus.Pending : (string.IsNullOrWhiteSpace(appointment.Status) ? AppointmentStatus.Pending : appointment.Status);
                 appointment.AppointmentDate = DateTime.SpecifyKind(appointment.AppointmentDate.Date, DateTimeKind.Utc);
 
                 _context.Add(appointment);
@@ -681,6 +692,12 @@ namespace WebApplication1.Controllers
                     var eval = EvaluateWorkingHours(appointment.AppointmentTime, cfg);
                     bool finalException = (isException || appointment.IsOutsideHoursException) && eval.isException;
 
+                    // Only Receptionist or Admin can elevate status to Confirmed
+                    if (User.IsDoctor() && appointment.Status == AppointmentStatus.Confirmed && existing.Status != AppointmentStatus.Confirmed)
+                    {
+                        appointment.Status = existing.Status;
+                    }
+
                     existing.AppointmentDate = appointment.AppointmentDate;
                     existing.AppointmentTime = appointment.AppointmentTime;
                     existing.DoctorId        = appointment.DoctorId;
@@ -873,7 +890,7 @@ namespace WebApplication1.Controllers
                     if (currentDoctorId.HasValue)
                     {
                         appointment.DoctorId = currentDoctorId.Value;
-                        appointment.Status = "Pending Confirmation";
+                        appointment.Status = AppointmentStatus.Pending;
                     }
                     else
                     {
@@ -882,7 +899,7 @@ namespace WebApplication1.Controllers
                 }
                 else
                 {
-                    appointment.Status = "Pending";
+                    appointment.Status = AppointmentStatus.Pending;
                 }
 
                 appointment.AppointmentDate = DateTime.SpecifyKind(appointment.AppointmentDate.Date, DateTimeKind.Utc);
@@ -911,6 +928,12 @@ namespace WebApplication1.Controllers
             {
                 var currentDoctorId = await User.GetDoctorIdAsync(_context);
                 if (!currentDoctorId.HasValue || appointment.DoctorId != currentDoctorId.Value)
+                {
+                    return Forbid();
+                }
+
+                // Only Receptionist or Admin can update status to Confirmed
+                if (newStatus == AppointmentStatus.Confirmed)
                 {
                     return Forbid();
                 }

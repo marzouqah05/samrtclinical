@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Models;
+using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {
@@ -22,13 +23,28 @@ namespace WebApplication1.Controllers
         // GET: Treatments
         public async Task<IActionResult> Index(string searchPatient, DateTime? filterDate)
         {
+            var currentClinicId = User.GetClinicId();
             // جلب المعالجات مع تضمين الموعد والمريض المرتبط به لمنع الـ Null Reference
             var query = _context.Treatments
+                .Where(t => t.Appointment != null && t.Appointment.ClinicId == currentClinicId)
                 .Include(t => t.Appointment)
                     .ThenInclude(a => a != null ? a.Patient : null)
                 .Include(t => t.Appointment)
                     .ThenInclude(a => a != null ? a.Doctor : null)
                 .AsQueryable();
+
+            if (User.IsDoctor())
+            {
+                var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                if (currentDoctorId.HasValue)
+                {
+                    query = query.Where(t => t.Appointment != null && t.Appointment.DoctorId == currentDoctorId.Value);
+                }
+                else
+                {
+                    query = query.Where(t => false);
+                }
+            }
 
             // 1. البحث باسم المريض
             if (!string.IsNullOrEmpty(searchPatient))
@@ -194,6 +210,7 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Treatments/Delete/5
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -215,6 +232,7 @@ namespace WebApplication1.Controllers
         // POST: Treatments/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var treatment = await _context.Treatments.FindAsync(id);

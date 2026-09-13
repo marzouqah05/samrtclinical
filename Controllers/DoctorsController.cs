@@ -44,8 +44,10 @@ namespace WebApplication1.Controllers
         /// Exports all doctors to a downloadable CSV file.
         /// </summary>
         [HttpGet]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist")]
         public async Task<IActionResult> Export()
         {
+            if (User.IsDoctor()) return Forbid();
             var csvBytes = await _importExportService.ExportDoctorsToCsvAsync();
             string fileName = $"Doctors_Export_{DateTime.Now:yyyyMMdd_HHmm}.csv";
             return File(csvBytes, "text/csv; charset=utf-8", fileName);
@@ -56,8 +58,10 @@ namespace WebApplication1.Controllers
         /// Displays the bulk doctor import page.
         /// </summary>
         [HttpGet]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist")]
         public IActionResult Import()
         {
+            if (User.IsDoctor()) return Forbid();
             return View();
         }
 
@@ -67,8 +71,10 @@ namespace WebApplication1.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist")]
         public async Task<IActionResult> Import(IFormFile? file)
         {
+            if (User.IsDoctor()) return Forbid();
             if (file == null || file.Length == 0)
             {
                 TempData["Error"] = "Please select a valid CSV or Excel file to upload.";
@@ -127,6 +133,38 @@ namespace WebApplication1.Controllers
                 .Include(d => d.Department)
                 .AsQueryable();
 
+            if (User.IsDoctor())
+            {
+                var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                if (currentDoctorId.HasValue)
+                {
+                    var currentDoctor = await _context.Doctors.FirstOrDefaultAsync(d => d.DoctorId == currentDoctorId.Value && d.ClinicId == currentClinicId);
+                    if (currentDoctor != null)
+                    {
+                        if (currentDoctor.DepartmentId > 0)
+                        {
+                            doctors = doctors.Where(d => d.DepartmentId == currentDoctor.DepartmentId);
+                        }
+                        else if (!string.IsNullOrEmpty(currentDoctor.Specialization))
+                        {
+                            doctors = doctors.Where(d => d.Specialization == currentDoctor.Specialization);
+                        }
+                        else
+                        {
+                            doctors = doctors.Where(d => d.DoctorId == currentDoctorId.Value);
+                        }
+                    }
+                    else
+                    {
+                        doctors = doctors.Where(d => false);
+                    }
+                }
+                else
+                {
+                    doctors = doctors.Where(d => false);
+                }
+            }
+
             if (!string.IsNullOrEmpty(search))
             {
                 doctors = doctors.Where(d =>
@@ -142,6 +180,7 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
+            if (User.IsDoctor()) return Forbid();
             var currentClinicId = User.GetClinicId();
 
             var doctor = await _context.Doctors
