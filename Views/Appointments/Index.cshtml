@@ -446,106 +446,40 @@
 
     /* Base row styling */
     .fc-list-event {
-        margin-bottom: 6px !important;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
         border-radius: 8px !important;
-        border-left-width: 5px !important;
-        border-left-style: solid !important;
-        border-top: none !important;
-        border-right: none !important;
-        border-bottom: none !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+        margin-bottom: 6px !important;
         transition: all 0.15s ease-in-out !important;
         cursor: pointer !important;
     }
 
-    .fc-list-event td {
-        border: none !important;
-        background: transparent !important;
+    .fc-list-event:hover {
+        background-color: #f8fafc !important;
+        border-color: #cbd5e1 !important;
+        transform: translateX(2px);
     }
 
-    .fc-list-event-time, 
-    .fc-list-event-title {
-        color: #0f172a !important; /* High-contrast dark slate text */
-        font-weight: 600 !important;
-        padding: 10px 14px !important;
+    [dir="rtl"] .fc-list-event:hover,
+    html[dir="rtl"] .fc-list-event:hover {
+        transform: translateX(-2px);
     }
 
     .fc-list-event-dot {
-        display: none !important;
+        display: none !important; /* Hide the tiny default calendar dot */
     }
 
-    .fc-list-event-graphic {
+    .fc-list-event-graphic, .fc-list-event-time, .fc-list-event-title {
+        border: none !important;
         padding: 0 !important;
+    }
+
+    td.fc-list-event-graphic,
+    td.fc-list-event-time {
+        display: none !important;
         width: 0 !important;
+        padding: 0 !important;
     }
-
-    /* CONFIRMED (Soft Sky Blue) */
-    .fc-list-event.fc-event-confirmed,
-    .fc-list-event[data-status="Confirmed"] {
-        background-color: #eff6ff !important; /* Soft blue tint */
-        border-left-color: #2563eb !important; /* Solid blue */
-    }
-    .fc-list-event.fc-event-confirmed:hover,
-    .fc-list-event[data-status="Confirmed"]:hover {
-        background-color: #dbeafe !important;
-    }
-
-    /* PENDING (Soft Amber / Warning) */
-    .fc-list-event.fc-event-pending,
-    .fc-list-event[data-status="Pending"] {
-        background-color: #fffbeb !important; /* Soft amber tint */
-        border-left-color: #d97706 !important; /* Solid amber */
-    }
-    .fc-list-event.fc-event-pending:hover,
-    .fc-list-event[data-status="Pending"]:hover {
-        background-color: #fef3c7 !important;
-    }
-
-    /* COMPLETED (Soft Emerald Green) */
-    .fc-list-event.fc-event-completed,
-    .fc-list-event[data-status="Completed"] {
-        background-color: #ecfdf5 !important; /* Soft emerald tint */
-        border-left-color: #059669 !important; /* Solid emerald */
-    }
-    .fc-list-event.fc-event-completed:hover,
-    .fc-list-event[data-status="Completed"]:hover {
-        background-color: #d1fae5 !important;
-    }
-
-    /* CANCELLED (Soft Rose Red) */
-    .fc-list-event.fc-event-cancelled,
-    .fc-list-event[data-status="Cancelled"] {
-        background-color: #fef2f2 !important; /* Soft rose tint */
-        border-left-color: #dc2626 !important; /* Solid red */
-    }
-    .fc-list-event.fc-event-cancelled:hover,
-    .fc-list-event[data-status="Cancelled"]:hover {
-        background-color: #fee2e2 !important;
-    }
-
-    /* RTL support for list view */
-    [dir="rtl"] .fc-list-event,
-    html[dir="rtl"] .fc-list-event {
-        border-left-width: 0 !important;
-        border-right-width: 5px !important;
-        border-right-style: solid !important;
-    }
-    [dir="rtl"] .fc-list-event.fc-event-confirmed,
-    [dir="rtl"] .fc-list-event[data-status="Confirmed"],
-    html[dir="rtl"] .fc-list-event.fc-event-confirmed,
-    html[dir="rtl"] .fc-list-event[data-status="Confirmed"] { border-right-color: #2563eb !important; }
-    [dir="rtl"] .fc-list-event.fc-event-pending,
-    [dir="rtl"] .fc-list-event[data-status="Pending"],
-    html[dir="rtl"] .fc-list-event.fc-event-pending,
-    html[dir="rtl"] .fc-list-event[data-status="Pending"] { border-right-color: #d97706 !important; }
-    [dir="rtl"] .fc-list-event.fc-event-completed,
-    [dir="rtl"] .fc-list-event[data-status="Completed"],
-    html[dir="rtl"] .fc-list-event.fc-event-completed,
-    html[dir="rtl"] .fc-list-event[data-status="Completed"] { border-right-color: #059669 !important; }
-    [dir="rtl"] .fc-list-event.fc-event-cancelled,
-    [dir="rtl"] .fc-list-event[data-status="Cancelled"],
-    html[dir="rtl"] .fc-list-event.fc-event-cancelled,
-    html[dir="rtl"] .fc-list-event[data-status="Cancelled"] { border-right-color: #dc2626 !important; }
     .fc-theme-standard td.fc-day-today,
     .fc .fc-daygrid-day.fc-day-today {
         background-color: transparent !important;
@@ -569,85 +503,24 @@
         background: #151E1B !important;
         color: #EAEFEA !important;
     }
-    html.dark .fc-list-event-time, 
-    html.dark .fc-list-event-title,
-    [data-bs-theme="dark"] .fc-list-event-time, 
-    [data-bs-theme="dark"] .fc-list-event-title {
+    html.dark .fc-list-event,
+    [data-bs-theme="dark"] .fc-list-event {
+        background: #1e293b !important;
+        border: 1px solid #334155 !important;
+    }
+    html.dark .fc-list-event:hover,
+    [data-bs-theme="dark"] .fc-list-event:hover {
+        background-color: #283548 !important;
+        border-color: #475569 !important;
+    }
+    html.dark .fc-custom-list-item .text-slate-700,
+    [data-bs-theme="dark"] .fc-custom-list-item .text-slate-700 {
+        color: #cbd5e1 !important;
+    }
+    html.dark .fc-custom-list-item .text-slate-900,
+    [data-bs-theme="dark"] .fc-custom-list-item .text-slate-900 {
         color: #f8fafc !important;
     }
-
-    html.dark .fc-list-event.fc-event-confirmed,
-    html.dark .fc-list-event[data-status="Confirmed"],
-    [data-bs-theme="dark"] .fc-list-event.fc-event-confirmed,
-    [data-bs-theme="dark"] .fc-list-event[data-status="Confirmed"] {
-        background-color: rgba(37, 99, 235, 0.18) !important;
-        border-left-color: #3b82f6 !important;
-    }
-    html.dark .fc-list-event.fc-event-confirmed:hover,
-    html.dark .fc-list-event[data-status="Confirmed"]:hover,
-    [data-bs-theme="dark"] .fc-list-event.fc-event-confirmed:hover,
-    [data-bs-theme="dark"] .fc-list-event[data-status="Confirmed"]:hover {
-        background-color: rgba(37, 99, 235, 0.28) !important;
-    }
-
-    html.dark .fc-list-event.fc-event-pending,
-    html.dark .fc-list-event[data-status="Pending"],
-    [data-bs-theme="dark"] .fc-list-event.fc-event-pending,
-    [data-bs-theme="dark"] .fc-list-event[data-status="Pending"] {
-        background-color: rgba(217, 119, 6, 0.18) !important;
-        border-left-color: #f59e0b !important;
-    }
-    html.dark .fc-list-event.fc-event-pending:hover,
-    html.dark .fc-list-event[data-status="Pending"]:hover,
-    [data-bs-theme="dark"] .fc-list-event.fc-event-pending:hover,
-    [data-bs-theme="dark"] .fc-list-event[data-status="Pending"]:hover {
-        background-color: rgba(217, 119, 6, 0.28) !important;
-    }
-
-    html.dark .fc-list-event.fc-event-completed,
-    html.dark .fc-list-event[data-status="Completed"],
-    [data-bs-theme="dark"] .fc-list-event.fc-event-completed,
-    [data-bs-theme="dark"] .fc-list-event[data-status="Completed"] {
-        background-color: rgba(5, 150, 105, 0.18) !important;
-        border-left-color: #10b981 !important;
-    }
-    html.dark .fc-list-event.fc-event-completed:hover,
-    html.dark .fc-list-event[data-status="Completed"]:hover,
-    [data-bs-theme="dark"] .fc-list-event.fc-event-completed:hover,
-    [data-bs-theme="dark"] .fc-list-event[data-status="Completed"]:hover {
-        background-color: rgba(5, 150, 105, 0.28) !important;
-    }
-
-    html.dark .fc-list-event.fc-event-cancelled,
-    html.dark .fc-list-event[data-status="Cancelled"],
-    [data-bs-theme="dark"] .fc-list-event.fc-event-cancelled,
-    [data-bs-theme="dark"] .fc-list-event[data-status="Cancelled"] {
-        background-color: rgba(220, 38, 38, 0.18) !important;
-        border-left-color: #ef4444 !important;
-    }
-    html.dark .fc-list-event.fc-event-cancelled:hover,
-    html.dark .fc-list-event[data-status="Cancelled"]:hover,
-    [data-bs-theme="dark"] .fc-list-event.fc-event-cancelled:hover,
-    [data-bs-theme="dark"] .fc-list-event[data-status="Cancelled"]:hover {
-        background-color: rgba(220, 38, 38, 0.28) !important;
-    }
-
-    html.dark [dir="rtl"] .fc-list-event.fc-event-confirmed,
-    html.dark [dir="rtl"] .fc-list-event[data-status="Confirmed"],
-    [data-bs-theme="dark"] [dir="rtl"] .fc-list-event.fc-event-confirmed,
-    [data-bs-theme="dark"] [dir="rtl"] .fc-list-event[data-status="Confirmed"] { border-right-color: #3b82f6 !important; }
-    html.dark [dir="rtl"] .fc-list-event.fc-event-pending,
-    html.dark [dir="rtl"] .fc-list-event[data-status="Pending"],
-    [data-bs-theme="dark"] [dir="rtl"] .fc-list-event.fc-event-pending,
-    [data-bs-theme="dark"] [dir="rtl"] .fc-list-event[data-status="Pending"] { border-right-color: #f59e0b !important; }
-    html.dark [dir="rtl"] .fc-list-event.fc-event-completed,
-    html.dark [dir="rtl"] .fc-list-event[data-status="Completed"],
-    [data-bs-theme="dark"] [dir="rtl"] .fc-list-event.fc-event-completed,
-    [data-bs-theme="dark"] [dir="rtl"] .fc-list-event[data-status="Completed"] { border-right-color: #10b981 !important; }
-    html.dark [dir="rtl"] .fc-list-event.fc-event-cancelled,
-    html.dark [dir="rtl"] .fc-list-event[data-status="Cancelled"],
-    [data-bs-theme="dark"] [dir="rtl"] .fc-list-event.fc-event-cancelled,
-    [data-bs-theme="dark"] [dir="rtl"] .fc-list-event[data-status="Cancelled"] { border-right-color: #ef4444 !important; }
 
     /* ─── Table Card ─── */
     .table-card {
@@ -1723,6 +1596,92 @@
                 eventMouseLeave: function () {
                     hideTooltip();
                 },
+                views: {
+                    listWeek: {
+                        eventContent: function (arg) {
+                            const status = (arg.event.extendedProps && arg.event.extendedProps.status ? arg.event.extendedProps.status : 'Confirmed').toLowerCase();
+                            const statusLabel = (arg.event.extendedProps && arg.event.extendedProps.status) ? arg.event.extendedProps.status : 'Confirmed';
+                            const title = arg.event.title || '';
+                            const timeText = arg.timeText || '';
+                            const isException = arg.event.extendedProps && arg.event.extendedProps.isException;
+
+                            // Define Badge styles per status
+                            let badgeClass = "bg-blue-100 text-blue-700 border-blue-300";
+                            let dotColor = "bg-blue-500";
+                            if (status.includes("pending")) {
+                                badgeClass = "bg-amber-100 text-amber-800 border-amber-300";
+                                dotColor = "bg-amber-500";
+                            } else if (status.includes("completed")) {
+                                badgeClass = "bg-emerald-100 text-emerald-800 border-emerald-300";
+                                dotColor = "bg-emerald-500";
+                            } else if (status.includes("cancel")) {
+                                badgeClass = "bg-rose-100 text-rose-800 border-rose-300";
+                                dotColor = "bg-rose-500";
+                            }
+
+                            return {
+                                html: `
+                                <div class="fc-custom-list-item flex items-center justify-between w-full py-1.5 px-3">
+                                    <div class="flex items-center gap-3">
+                                        <span class="w-2.5 h-2.5 rounded-full ${dotColor} inline-block flex-shrink-0"></span>
+                                        <span class="font-semibold text-slate-700 text-xs md:text-sm tracking-wide">${timeText}</span>
+                                        <span class="font-medium text-slate-900 text-sm md:text-base">${title}</span>
+                                        ${isException ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded">Exc</span>' : ''}
+                                    </div>
+                                    <div>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border uppercase tracking-wider ${badgeClass}">
+                                            ${statusLabel}
+                                        </span>
+                                    </div>
+                                </div>
+                                `
+                            };
+                        }
+                    }
+                },
+                eventContent: function (arg) {
+                    if (arg.view && arg.view.type && !arg.view.type.toLowerCase().includes('list')) {
+                        return;
+                    }
+
+                    const status = (arg.event.extendedProps && arg.event.extendedProps.status ? arg.event.extendedProps.status : 'Confirmed').toLowerCase();
+                    const statusLabel = (arg.event.extendedProps && arg.event.extendedProps.status) ? arg.event.extendedProps.status : 'Confirmed';
+                    const title = arg.event.title || '';
+                    const timeText = arg.timeText || '';
+                    const isException = arg.event.extendedProps && arg.event.extendedProps.isException;
+
+                    // Define Badge styles per status
+                    let badgeClass = "bg-blue-100 text-blue-700 border-blue-300";
+                    let dotColor = "bg-blue-500";
+                    if (status.includes("pending")) {
+                        badgeClass = "bg-amber-100 text-amber-800 border-amber-300";
+                        dotColor = "bg-amber-500";
+                    } else if (status.includes("completed")) {
+                        badgeClass = "bg-emerald-100 text-emerald-800 border-emerald-300";
+                        dotColor = "bg-emerald-500";
+                    } else if (status.includes("cancel")) {
+                        badgeClass = "bg-rose-100 text-rose-800 border-rose-300";
+                        dotColor = "bg-rose-500";
+                    }
+
+                    return {
+                        html: `
+                        <div class="fc-custom-list-item flex items-center justify-between w-full py-1.5 px-3">
+                            <div class="flex items-center gap-3">
+                                <span class="w-2.5 h-2.5 rounded-full ${dotColor} inline-block flex-shrink-0"></span>
+                                <span class="font-semibold text-slate-700 text-xs md:text-sm tracking-wide">${timeText}</span>
+                                <span class="font-medium text-slate-900 text-sm md:text-base">${title}</span>
+                                ${isException ? '<span class="px-1.5 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded">Exc</span>' : ''}
+                            </div>
+                            <div>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border uppercase tracking-wider ${badgeClass}">
+                                    ${statusLabel}
+                                </span>
+                            </div>
+                        </div>
+                        `
+                    };
+                },
                 eventClassNames: function (arg) {
                     const status = (arg.event.extendedProps && arg.event.extendedProps.status) ? arg.event.extendedProps.status : '';
                     const statusLower = status.toLowerCase();
@@ -1747,7 +1706,7 @@
                     if (status === 'Cancelled') {
                         info.el.classList.add('event-cancelled');
                     }
-                    if (info.event.extendedProps && info.event.extendedProps.isException) {
+                    if (info.event.extendedProps && info.event.extendedProps.isException && !info.el.querySelector('.fc-custom-list-item')) {
                         const badge = document.createElement('span');
                         badge.className = 'ms-1 px-1 py-0.5 rounded text-[9px] font-bold bg-amber-400 text-amber-950 inline-block shadow-xs';
                         badge.textContent = isRtl ? 'استثناء' : 'Exc';
