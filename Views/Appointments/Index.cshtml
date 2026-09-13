@@ -1647,6 +1647,22 @@
                 notesSection.style.display = 'none';
             }
 
+            const referralBox = document.getElementById('ep-referral-box');
+            if (referralBox) {
+                if (p.referredByDoctor || p.referralReason) {
+                    referralBox.style.display = 'block';
+                    const cleanRefDoc = p.referredByDoctor ? formatDoctorTitle(p.referredByDoctor) : (isAr ? 'طبيب محوِّل' : 'Referring Doctor');
+                    const targetDept = p.departmentName || (isAr ? 'القسم' : 'Department');
+                    const badgeText = `Transferred from ${cleanRefDoc} -> ${targetDept}`;
+                    const badgeEl = document.getElementById('ep-referral-badge-text');
+                    if (badgeEl) badgeEl.textContent = badgeText;
+                    const reasonEl = document.getElementById('ep-referral-reason');
+                    if (reasonEl) reasonEl.textContent = p.referralReason ? `"${p.referralReason}"` : (isAr ? 'لا يوجد سبب مفصل' : 'No clinical reason specified');
+                } else {
+                    referralBox.style.display = 'none';
+                }
+            }
+
             // Build action buttons (d-grid gap-2 mt-4 with Bootstrap 5 button classes)
             const actionsDiv = document.getElementById('ep-actions');
             actionsDiv.className = 'd-grid gap-2 mt-4';

@@ -31,6 +31,9 @@ namespace WebApplication1.Controllers
             var pendingApptsQuery = _context.Appointments
                 .Include(a => a.Patient)
                 .Include(a => a.Doctor)
+                    .ThenInclude(d => d.Department)
+                .Include(a => a.Department)
+                .Include(a => a.ReferredByDoctor)
                 .Where(a => (a.Status == "Pending" || a.Status == "Pending Confirmation" || a.Status == AppointmentStatus.Pending) &&
                             (currentClinicId == Guid.Empty || a.ClinicId == currentClinicId));
 
@@ -91,6 +94,10 @@ namespace WebApplication1.Controllers
                 var timeFormatted = a.AppointmentTime.ToString(@"hh\:mm");
                 var dateFormatted = a.AppointmentDate.ToString("yyyy-MM-dd");
                 var pName = a.Patient?.PatientName ?? "Patient";
+                var targetDeptName = a.Department?.DepartmentName ?? a.Doctor?.Department?.DepartmentName ?? "General Practice";
+                var refDocName = a.ReferredByDoctor != null ? (a.ReferredByDoctor.DoctorName.StartsWith("Dr.", StringComparison.OrdinalIgnoreCase) || a.ReferredByDoctor.DoctorName.StartsWith("د.", StringComparison.OrdinalIgnoreCase) ? a.ReferredByDoctor.DoctorName : $"Dr. {a.ReferredByDoctor.DoctorName}") : null;
+                var reason = a.ReferralReason ?? a.Notes ?? "";
+                var isTransfer = !string.IsNullOrEmpty(refDocName) || !string.IsNullOrEmpty(a.ReferralReason);
 
                 items.Add(new
                 {
@@ -107,7 +114,13 @@ namespace WebApplication1.Controllers
                     date = dateFormatted,
                     time = timeFormatted,
                     notes = a.Notes ?? "",
-                    message = $"{docName} requested booking for {pName} at {timeFormatted} on {dateFormatted}.",
+                    referralReason = reason,
+                    referredByDoctorName = refDocName,
+                    targetDepartmentName = targetDeptName,
+                    isTransfer = isTransfer,
+                    message = isTransfer && !string.IsNullOrEmpty(refDocName)
+                        ? $"Transferred from {refDocName} -> {targetDeptName}: {reason}"
+                        : $"{docName} requested booking for {pName} at {timeFormatted} on {dateFormatted}.",
                     status = a.Status,
                     timeAgo = a.AppointmentDate.Date == DateTime.Today ? $"Today at {timeFormatted}" : $"{dateFormatted} {timeFormatted}",
                     createdAt = a.AppointmentDate.Date.Add(a.AppointmentTime)
@@ -137,11 +150,15 @@ namespace WebApplication1.Controllers
                     patientName = pName,
                     patientId = r.PatientId,
                     doctorName = fromDoc,
+                    referredByDoctorName = fromDoc,
                     departmentName = deptName,
+                    targetDepartmentName = deptName,
                     targetDepartmentId = r.TargetDepartmentId,
                     targetDoctorId = r.TargetDoctorId,
                     notes = r.ReferralReason,
-                    message = $"{fromDoc} referred {pName} to {deptName}: {r.ReferralReason}",
+                    referralReason = r.ReferralReason,
+                    isTransfer = true,
+                    message = $"Transferred from {fromDoc} -> {deptName}: {r.ReferralReason}",
                     status = r.Status.ToString(),
                     timeAgo = GetTimeAgo(r.CreatedAt),
                     createdAt = r.CreatedAt
@@ -246,13 +263,12 @@ namespace WebApplication1.Controllers
                 ClinicId = currentClinicId != Guid.Empty ? currentClinicId : null,
                 PatientId = patientId,
                 DoctorId = doctorId,
+                DepartmentId = doctor.DepartmentId,
                 AppointmentDate = appointmentDate.Date,
                 AppointmentTime = appointmentTime,
                 Status = "Confirmed",
                 Notes = notes ?? (referralId.HasValue ? $"Scheduled from internal referral #{referralId.Value}" : "Scheduled via reception notification")
             };
-
-            _context.Appointments.Add(appointment);
 
             // Update referral status if associated
             if (referralId.HasValue && referralId.Value > 0)
@@ -261,8 +277,17 @@ namespace WebApplication1.Controllers
                 if (referral != null)
                 {
                     referral.Status = ReferralStatus.Scheduled;
+                    appointment.ReferredByDoctorId = referral.FromDoctorId;
+                    appointment.ReferralReason = referral.ReferralReason;
+                    appointment.DepartmentId = referral.TargetDepartmentId;
+                    if (string.IsNullOrWhiteSpace(notes))
+                    {
+                        appointment.Notes = $"Transferred from internal referral #{referral.Id}: {referral.ReferralReason}";
+                    }
                 }
             }
+
+            _context.Appointments.Add(appointment);
 
             // Mark notification as read
             if (notificationId.HasValue && notificationId.Value > 0)

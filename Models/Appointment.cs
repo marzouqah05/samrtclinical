@@ -78,6 +78,21 @@ namespace WebApplication1.Models
 
         public Treatment? Treatment { get; set; }
 
+        // ── Department Association ──────────────────────────────────────────
+        public int? DepartmentId { get; set; }
+
+        [ForeignKey("DepartmentId")]
+        public Department? Department { get; set; }
+
+        // ── Clinical Referral Tracking ──────────────────────────────────────
+        public int? ReferredByDoctorId { get; set; }
+
+        [ForeignKey("ReferredByDoctorId")]
+        public Doctor? ReferredByDoctor { get; set; }
+
+        [Column(TypeName = "text")]
+        public string? ReferralReason { get; set; }
+
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
             if (AppointmentDate.Date < DateTime.Today)

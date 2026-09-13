@@ -66,6 +66,9 @@ namespace WebApplication1.Data
                 try
                 {
                     await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""Appointments"" ADD COLUMN IF NOT EXISTS ""IsOutsideHoursException"" boolean NOT NULL DEFAULT FALSE;");
+                    await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""Appointments"" ADD COLUMN IF NOT EXISTS ""DepartmentId"" integer NULL;");
+                    await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""Appointments"" ADD COLUMN IF NOT EXISTS ""ReferredByDoctorId"" integer NULL;");
+                    await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""Appointments"" ADD COLUMN IF NOT EXISTS ""ReferralReason"" text NULL;");
                 }
                 catch { }
 

@@ -72,15 +72,15 @@
                 </select>
             </div>
 
-            <!-- Clinical Reason / Symptoms Note -->
+            <!-- Clinical Reason / Symptoms Note (MANDATORY) -->
             <div>
                 <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1.5">
                     <i class="fa-solid fa-notes-medical text-[#49665A] dark:text-emerald-400 me-1"></i>
-                    @T("السبب السريري والأعراض / التبرير الطبي", "Clinical Reason / Symptoms Note") *
+                    @T("سبب التحويل الطبي", "Clinical Reason / سبب التحويل الطبي") <span class="text-rose-500 font-bold">*</span>
                 </label>
                 <textarea id="ref-referralReason" name="referralReason" rows="3" required
                           class="w-full px-3.5 py-2.5 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-white dark:bg-[#121A17] text-[#202725] dark:text-[#EAEFEA] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A] transition"
-                          placeholder="@T("اكتب الأعراض، التشخيص المبدئي وسبب التحويل للعيادة الأخرى...", "e.g. Patient presents with severe palpitations and arrhythmia. Requires cardiac ultrasound and specialist review.")"></textarea>
+                          placeholder="@T("مثال: الاشتباه في وجود التهاب في العصب يتطلب تقييماً متخصصاً لعلاج الجذور...", "e.g., Suspected root canal infection requiring endodontic evaluation...")"></textarea>
             </div>
 
             <!-- Action Buttons -->
@@ -172,6 +172,16 @@
 
     async function submitDoctorReferral(event) {
         event.preventDefault();
+        const reasonInput = document.getElementById('ref-referralReason');
+        const reason = reasonInput?.value?.trim();
+        const isAr = document.documentElement.getAttribute('dir') === 'rtl';
+
+        if (!reason) {
+            alert(isAr ? 'سبب التحويل الطبي إلزامي (يرجى كتابة التبرير السريري للمتابعة).' : 'Clinical Reason / Reason for Transfer is mandatory. Please fill in the justification.');
+            reasonInput?.focus();
+            return;
+        }
+
         const btn = document.getElementById('ref-submit-btn');
         if (btn) btn.disabled = true;
 

@@ -129,6 +129,16 @@ namespace WebApplication1.Models
                       .WithMany(p => p.Appointments)
                       .HasForeignKey(a => a.PatientId)
                       .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(a => a.ReferredByDoctor)
+                      .WithMany()
+                      .HasForeignKey(a => a.ReferredByDoctorId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(a => a.Department)
+                      .WithMany()
+                      .HasForeignKey(a => a.DepartmentId)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
 
             // إعدادات جدول الـ Treatment

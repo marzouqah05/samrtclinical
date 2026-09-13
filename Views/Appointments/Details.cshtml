@@ -153,6 +153,50 @@
                         </div>
                     </div>
 
+                    @if (Model.Department != null || Model.Doctor?.Department != null)
+                    {
+                        var dept = Model.Department ?? Model.Doctor?.Department;
+                        <div class="border-t border-[#DDE3DF]"></div>
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center text-lg font-bold shrink-0">
+                                <i class="fa-solid fa-hospital"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA] m-0">@dept?.DepartmentName</p>
+                                <p class="text-xs text-[#727A76] m-0">@T("القسم / التخصص الطبي", "Department / Specialty")</p>
+                            </div>
+                        </div>
+                    }
+
+                    @if (Model.ReferredByDoctor != null || !string.IsNullOrWhiteSpace(Model.ReferralReason))
+                    {
+                        var rawDoc = Model.ReferredByDoctor?.DoctorName ?? "Referring Doctor";
+                        var refDocTitle = rawDoc.StartsWith("Dr.", StringComparison.OrdinalIgnoreCase) || rawDoc.StartsWith("د.", StringComparison.OrdinalIgnoreCase) ? rawDoc : $"Dr. {rawDoc}";
+                        var targetDept = Model.Department?.DepartmentName ?? Model.Doctor?.Department?.DepartmentName ?? "General Practice";
+
+                        <div class="border-t border-[#DDE3DF]"></div>
+                        <div class="p-4 rounded-xl border border-teal-200 dark:border-teal-800/70 bg-teal-50/70 dark:bg-teal-950/30 space-y-2.5 text-start">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-teal-600 text-white shadow-xs">
+                                    <i class="fa-solid fa-share-from-square text-[10px]"></i>
+                                    <span>Transferred from @refDocTitle &rarr; @targetDept</span>
+                                </span>
+                                <span class="text-xs text-teal-800 dark:text-teal-300 font-semibold">
+                                    @T("إحالة سريرية داخلية موجهة من الطبيب", "Internal Clinical Referral")
+                                </span>
+                            </div>
+                            <div class="space-y-1">
+                                <span class="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                                    <i class="fa-solid fa-quote-left text-teal-600 dark:text-teal-400 me-1"></i>
+                                    @T("سبب التحويل الطبي", "Clinical Reason / سبب التحويل الطبي")
+                                </span>
+                                <div class="p-3 rounded-lg bg-white dark:bg-slate-900 border border-teal-200/80 dark:border-teal-900 text-xs text-slate-800 dark:text-slate-200 italic leading-relaxed">
+                                    "@(Model.ReferralReason ?? Model.Notes ?? T("لا يوجد مبرر سريري مفصل", "No clinical justification specified"))"
+                                </div>
+                            </div>
+                        </div>
+                    }
+
                 </div>
             </div>
 

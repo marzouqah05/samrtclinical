@@ -283,6 +283,16 @@ namespace WebApplication1.Controllers
                 ViewBag.AllPatients = await _context.Patients.Where(p => p.ClinicId == currentClinicId).OrderBy(p => p.PatientName).ToListAsync();
             }
 
+            var allDepts = await _context.Departments.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DepartmentName).ToListAsync();
+            ViewBag.AllDepartments = allDepts;
+
+            if (isDoctor && currentDoctorId.HasValue)
+            {
+                var myDoc = await _context.Doctors.Include(d => d.Department).FirstOrDefaultAsync(d => d.ClinicId == currentClinicId && d.DoctorId == currentDoctorId.Value);
+                ViewBag.CurrentDoctorDepartmentId = myDoc?.DepartmentId;
+                ViewBag.CurrentDoctorDepartmentName = myDoc?.Department?.DepartmentName ?? "General Practice";
+            }
+
             var cfg = await _settingsService.GetSettingsAsync();
             ViewBag.WorkingHoursStart = cfg.WorkingHoursStart ?? "08:00";
             ViewBag.WorkingHoursEnd = cfg.WorkingHoursEnd ?? "20:00";
@@ -301,6 +311,9 @@ namespace WebApplication1.Controllers
                 .Where(a => a.ClinicId == currentClinicId)
                 .Include(a => a.Patient)
                 .Include(a => a.Doctor)
+                    .ThenInclude(d => d.Department)
+                .Include(a => a.Department)
+                .Include(a => a.ReferredByDoctor)
                 .AsQueryable();
 
             if (isDoctor)
@@ -343,6 +356,8 @@ namespace WebApplication1.Controllers
                 var docTitle = string.IsNullOrWhiteSpace(cleanDoc) || cleanDoc == "?" ? "?" : $"Dr. {cleanDoc}";
 
                 var isExc = a.IsOutsideHoursException;
+                var deptName = a.Department?.DepartmentName ?? a.Doctor?.Department?.DepartmentName ?? "";
+                var refDocName = a.ReferredByDoctor != null ? (a.ReferredByDoctor.DoctorName.StartsWith("Dr.", StringComparison.OrdinalIgnoreCase) || a.ReferredByDoctor.DoctorName.StartsWith("د.", StringComparison.OrdinalIgnoreCase) ? a.ReferredByDoctor.DoctorName : $"Dr. {a.ReferredByDoctor.DoctorName}") : null;
 
                 return new
                 {
@@ -354,12 +369,16 @@ namespace WebApplication1.Controllers
                     className   = (a.Status == "Cancelled" ? "event-cancelled " : "") + (isExc ? "event-exception" : ""),
                     extendedProps = new
                     {
-                        status      = a.Status,
-                        doctorName  = docTitle,
-                        patientName = a.Patient?.PatientName ?? "",
-                        patientId   = a.PatientId,
-                        notes       = a.Notes ?? "",
-                        isException = isExc
+                        status             = a.Status,
+                        doctorName         = docTitle,
+                        patientName        = a.Patient?.PatientName ?? "",
+                        patientId          = a.PatientId,
+                        notes              = a.Notes ?? "",
+                        isException        = isExc,
+                        departmentName     = deptName,
+                        referredByDoctorId = a.ReferredByDoctorId,
+                        referredByDoctor   = refDocName,
+                        referralReason     = a.ReferralReason
                     }
                 };
             });
@@ -373,14 +392,21 @@ namespace WebApplication1.Controllers
             var currentClinicId = User.GetClinicId();
             var isDoctor = User.IsDoctor();
 
+            var depts = await _context.Departments.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DepartmentName).ToListAsync();
+            ViewBag.AllDepartments = depts;
+            ViewData["DepartmentId"] = new SelectList(depts, "DepartmentId", "DepartmentName");
+
             if (isDoctor)
             {
                 var currentDoctorId = await User.GetDoctorIdAsync(_context);
                 if (currentDoctorId.HasValue)
                 {
-                    var myDocs = await _context.Doctors.Where(d => d.ClinicId == currentClinicId && d.DoctorId == currentDoctorId.Value).ToListAsync();
+                    var myDocs = await _context.Doctors.Include(d => d.Department).Where(d => d.ClinicId == currentClinicId && d.DoctorId == currentDoctorId.Value).ToListAsync();
+                    var myDoc = myDocs.FirstOrDefault();
                     ViewBag.CurrentDoctorId = currentDoctorId.Value;
-                    ViewBag.CurrentDoctorName = myDocs.FirstOrDefault()?.DoctorName;
+                    ViewBag.CurrentDoctorName = myDoc?.DoctorName;
+                    ViewBag.CurrentDoctorDepartmentId = myDoc?.DepartmentId;
+                    ViewBag.CurrentDoctorDepartmentName = myDoc?.Department?.DepartmentName ?? "General Practice";
                     ViewData["DoctorId"] = new SelectList(myDocs, "DoctorId", "DoctorName", currentDoctorId.Value);
 
                     var myPatientIds = await _context.Appointments
@@ -402,7 +428,9 @@ namespace WebApplication1.Controllers
             }
             else
             {
-                ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DoctorName), "DoctorId", "DoctorName");
+                var allDocs = await _context.Doctors.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DoctorName).ToListAsync();
+                ViewBag.AllDoctors = allDocs;
+                ViewData["DoctorId"] = new SelectList(allDocs, "DoctorId", "DoctorName");
                 ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId).OrderBy(p => p.PatientName), "PatientId", "PatientName");
             }
 
@@ -418,7 +446,7 @@ namespace WebApplication1.Controllers
         // POST: Appointments/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,Notes,IsWeekendOverride,IsOutsideHoursException")] Appointment appointment, bool isException = false)
+        public async Task<IActionResult> Create([Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,DepartmentId,ReferredByDoctorId,ReferralReason,Notes,IsWeekendOverride,IsOutsideHoursException")] Appointment appointment, bool isException = false)
         {
             var currentClinicId = User.GetClinicId();
             var isDoctor = User.IsDoctor();
@@ -495,6 +523,20 @@ namespace WebApplication1.Controllers
             if (ModelState.IsValid)
             {
                 appointment.ClinicId = currentClinicId;
+                if ((!appointment.DepartmentId.HasValue || appointment.DepartmentId.Value <= 0) && appointment.DoctorId > 0)
+                {
+                    var doc = await _context.Doctors.FindAsync(appointment.DoctorId);
+                    if (doc != null) appointment.DepartmentId = doc.DepartmentId;
+                }
+                if (isDoctor)
+                {
+                    var docId = await User.GetDoctorIdAsync(_context);
+                    if (docId.HasValue && appointment.DoctorId != docId.Value)
+                    {
+                        appointment.ReferredByDoctorId = docId.Value;
+                    }
+                }
+
                 // Force status = AppointmentStatus.Pending on POST to AppointmentsController.Create if user has role Doctor
                 appointment.Status = isDoctor ? AppointmentStatus.Pending : (string.IsNullOrWhiteSpace(appointment.Status) ? AppointmentStatus.Pending : appointment.Status);
                 appointment.AppointmentDate = DateTime.SpecifyKind(appointment.AppointmentDate.Date, DateTimeKind.Utc);
@@ -553,7 +595,10 @@ namespace WebApplication1.Controllers
             var currentClinicId = User.GetClinicId();
             var appointment = await _context.Appointments
                 .Include(a => a.Doctor)
+                    .ThenInclude(d => d.Department)
                 .Include(a => a.Patient)
+                .Include(a => a.Department)
+                .Include(a => a.ReferredByDoctor)
                 .FirstOrDefaultAsync(m => m.AppointmentId == id && m.ClinicId == currentClinicId);
 
             if (appointment == null)
@@ -594,7 +639,7 @@ namespace WebApplication1.Controllers
         // POST: Appointments/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,Status,Notes,IsWeekendOverride,IsOutsideHoursException")] Appointment appointment, bool isException = false)
+        public async Task<IActionResult> Edit(int id, [Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,DepartmentId,ReferredByDoctorId,ReferralReason,Status,Notes,IsWeekendOverride,IsOutsideHoursException")] Appointment appointment, bool isException = false)
         {
             if (id != appointment.AppointmentId)
             {
@@ -708,6 +753,7 @@ namespace WebApplication1.Controllers
                     existing.AppointmentTime = appointment.AppointmentTime;
                     existing.DoctorId        = appointment.DoctorId;
                     existing.PatientId       = appointment.PatientId;
+                    existing.DepartmentId    = appointment.DepartmentId;
                     existing.Status          = appointment.Status;
                     existing.Notes           = appointment.Notes;
                     existing.IsOutsideHoursException = finalException;
@@ -749,12 +795,18 @@ namespace WebApplication1.Controllers
                 currentDoctorId = _context.Doctors.FirstOrDefault(d => d.ClinicId == currentClinicId && (d.DoctorEmail == userEmail || d.DoctorName == userEmail || d.DoctorNumber == userEmail))?.DoctorId;
             }
 
+            var depts = _context.Departments.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DepartmentName).ToList();
+            ViewBag.AllDepartments = depts;
+            ViewData["DepartmentId"] = new SelectList(depts, "DepartmentId", "DepartmentName", appointment?.DepartmentId);
+
             if (isDoctor && currentDoctorId.HasValue)
             {
-                var myDocs = _context.Doctors.Where(d => d.ClinicId == currentClinicId && d.DoctorId == currentDoctorId.Value).ToList();
+                var myDoc = _context.Doctors.Include(d => d.Department).FirstOrDefault(d => d.ClinicId == currentClinicId && d.DoctorId == currentDoctorId.Value);
                 ViewBag.CurrentDoctorId = currentDoctorId.Value;
-                ViewBag.CurrentDoctorName = myDocs.FirstOrDefault()?.DoctorName;
-                ViewData["DoctorId"] = new SelectList(myDocs, "DoctorId", "DoctorName", currentDoctorId.Value);
+                ViewBag.CurrentDoctorName = myDoc?.DoctorName;
+                ViewBag.CurrentDoctorDepartmentId = myDoc?.DepartmentId;
+                ViewBag.CurrentDoctorDepartmentName = myDoc?.Department?.DepartmentName ?? "General Practice";
+                ViewData["DoctorId"] = new SelectList(myDoc != null ? new[] { myDoc } : Enumerable.Empty<Doctor>(), "DoctorId", "DoctorName", currentDoctorId.Value);
 
                 var myPatientIds = _context.Appointments
                     .Where(a => a.ClinicId == currentClinicId && a.DoctorId == currentDoctorId.Value)
@@ -769,7 +821,9 @@ namespace WebApplication1.Controllers
             }
             else
             {
-                ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DoctorName), "DoctorId", "DoctorName", appointment?.DoctorId);
+                var allDocs = _context.Doctors.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DoctorName).ToList();
+                ViewBag.AllDoctors = allDocs;
+                ViewData["DoctorId"] = new SelectList(allDocs, "DoctorId", "DoctorName", appointment?.DoctorId);
                 ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId).OrderBy(p => p.PatientName), "PatientId", "PatientName", appointment?.PatientId);
             }
 
@@ -867,7 +921,7 @@ namespace WebApplication1.Controllers
         // POST: Appointments/QuickBook — AJAX quick-book from calendar modal
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> QuickBook([Bind("AppointmentDate,AppointmentTime,DoctorId,PatientId,Notes,IsOutsideHoursException")] Appointment appointment, bool isException = false)
+        public async Task<IActionResult> QuickBook([Bind("AppointmentDate,AppointmentTime,DoctorId,PatientId,DepartmentId,ReferredByDoctorId,ReferralReason,Notes,IsOutsideHoursException")] Appointment appointment, bool isException = false)
         {
             if (appointment.AppointmentDate.Date < DateTime.Today)
             {
@@ -899,12 +953,25 @@ namespace WebApplication1.Controllers
             {
                 appointment.ClinicId = User.GetClinicId();
 
+                if ((!appointment.DepartmentId.HasValue || appointment.DepartmentId.Value <= 0) && appointment.DoctorId > 0)
+                {
+                    var doc = await _context.Doctors.FindAsync(appointment.DoctorId);
+                    if (doc != null) appointment.DepartmentId = doc.DepartmentId;
+                }
+
                 if (User.IsDoctor())
                 {
                     var currentDoctorId = await User.GetDoctorIdAsync(_context);
                     if (currentDoctorId.HasValue)
                     {
-                        appointment.DoctorId = currentDoctorId.Value;
+                        if (appointment.DoctorId != currentDoctorId.Value)
+                        {
+                            appointment.ReferredByDoctorId = currentDoctorId.Value;
+                        }
+                        else
+                        {
+                            appointment.DoctorId = currentDoctorId.Value;
+                        }
                         appointment.Status = AppointmentStatus.Pending;
                     }
                     else
@@ -971,7 +1038,10 @@ namespace WebApplication1.Controllers
 
             var appointment = await _context.Appointments
                 .Include(a => a.Doctor)
+                    .ThenInclude(d => d.Department)
                 .Include(a => a.Patient)
+                .Include(a => a.Department)
+                .Include(a => a.ReferredByDoctor)
                 .FirstOrDefaultAsync(m => m.AppointmentId == id && m.ClinicId == currentClinicId);
 
             if (appointment == null) return NotFound();

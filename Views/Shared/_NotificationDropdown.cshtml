@@ -99,6 +99,23 @@
                     <span class="text-[#727A76] dark:text-[#9CA8A3] block mb-0.5">@T("ملاحظات الطبيب:", "Doctor Notes:")</span>
                     <p id="rc-notes" class="text-[11px] text-[#202725] dark:text-[#EAEFEA] italic m-0 bg-white/60 dark:bg-[#121A17] p-2 rounded-lg"></p>
                 </div>
+
+                <!-- Distinct Clinical Transfer Box -->
+                <div id="rc-transfer-box" class="p-3 rounded-xl bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200/80 dark:border-teal-800/60 space-y-2 text-xs" style="display:none;">
+                    <div class="flex items-center gap-1.5">
+                        <span class="px-2.5 py-1 text-[11px] font-bold rounded-full bg-teal-600 text-white flex items-center gap-1">
+                            <i class="fa-solid fa-share-from-square text-[10px]"></i>
+                            <span id="rc-transfer-badge-text">Transferred</span>
+                        </span>
+                    </div>
+                    <div class="space-y-1">
+                        <span class="text-[11px] font-bold text-teal-800 dark:text-teal-300 block">
+                            <i class="fa-solid fa-quote-left text-teal-600 dark:text-teal-400 me-1"></i>
+                            @T("سبب التحويل الطبي", "Clinical Reason / سبب التحويل الطبي")
+                        </span>
+                        <p id="rc-transfer-reason" class="text-[11px] text-[#202725] dark:text-[#EAEFEA] italic m-0 bg-white dark:bg-[#121A17] p-2.5 rounded-lg border border-teal-100 dark:border-teal-900 leading-relaxed"></p>
+                    </div>
+                </div>
             </div>
 
             <input type="hidden" id="rc-appointmentId" />
@@ -156,6 +173,23 @@
                     <div class="text-xs flex items-center justify-between">
                         <span class="text-[#727A76] dark:text-[#9CA8A3]">@T("القسم المستهدف:", "Target Dept:")</span>
                         <span id="rb-deptName" class="font-bold text-emerald-600 dark:text-emerald-400">—</span>
+                    </div>
+                </div>
+
+                <!-- Distinct Clinical Transfer Box -->
+                <div id="rb-transfer-box" class="p-3 rounded-xl bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200/80 dark:border-teal-800/60 space-y-2 text-xs">
+                    <div class="flex items-center gap-1.5">
+                        <span class="px-2.5 py-1 text-[11px] font-bold rounded-full bg-teal-600 text-white flex items-center gap-1">
+                            <i class="fa-solid fa-share-from-square text-[10px]"></i>
+                            <span id="rb-transfer-badge-text">Transferred</span>
+                        </span>
+                    </div>
+                    <div class="space-y-1">
+                        <span class="text-[11px] font-bold text-teal-800 dark:text-teal-300 block">
+                            <i class="fa-solid fa-quote-left text-teal-600 dark:text-teal-400 me-1"></i>
+                            @T("سبب التحويل الطبي", "Clinical Reason / سبب التحويل الطبي")
+                        </span>
+                        <p id="rb-transfer-reason" class="text-[11px] text-[#202725] dark:text-[#EAEFEA] italic m-0 bg-white dark:bg-[#121A17] p-2.5 rounded-lg border border-teal-100 dark:border-teal-900 leading-relaxed"></p>
                     </div>
                 </div>
 
@@ -296,6 +330,11 @@
             data.items.forEach(item => {
                 if (item.type === 'Appointment') {
                     // Pending Doctor Appointment Item
+                    const isTransfer = item.isTransfer || !!item.referredByDoctorName;
+                    const cleanRefDoc = item.referredByDoctorName || '';
+                    const cleanTargetDept = item.targetDepartmentName || '';
+                    const cleanReason = item.referralReason || '';
+
                     html += `
                         <div id="notif-appt-${item.appointmentId}" class="p-3.5 hover:bg-[#FDF6EC]/40 dark:hover:bg-[#201D16]/40 transition-colors space-y-2 text-start">
                             <div class="flex items-center justify-between gap-2">
@@ -326,12 +365,25 @@
                                     <span class="text-[#727A76] dark:text-[#9CA8A3]">${isAr ? 'الوقت والتاريخ:' : 'Time:'}</span>
                                     <span class="font-bold text-amber-600 dark:text-amber-400">${item.time} ${item.date ? `(${item.date})` : ''}</span>
                                 </div>
-                                ${item.notes ? `
+
+                                ${isTransfer && cleanRefDoc ? `
+                                    <div class="p-2 rounded-lg bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200/70 dark:border-teal-800/50 space-y-1.5">
+                                        <div class="flex items-center gap-1">
+                                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-teal-600 text-white truncate flex items-center gap-1">
+                                                <i class="fa-solid fa-share-from-square text-[9px]"></i>
+                                                Transferred from ${escapeHtml(cleanRefDoc)} &rarr; ${escapeHtml(cleanTargetDept)}
+                                            </span>
+                                        </div>
+                                        <div class="text-[11px] text-[#202725] dark:text-[#EAEFEA] italic bg-white/80 dark:bg-[#121A17] p-2 rounded border border-teal-100 dark:border-teal-900 leading-relaxed">
+                                            <span class="not-italic font-semibold block text-[10px] text-teal-800 dark:text-teal-300 mb-0.5">${isAr ? 'سبب التحويل الطبي:' : 'Clinical Reason:'}</span>
+                                            "${escapeHtml(cleanReason || item.notes || '')}"
+                                        </div>
+                                    </div>` : (item.notes ? `
                                     <div class="pt-1 border-t border-[#DDE3DF]/40 dark:border-[#2B3833]/40">
                                         <p class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] italic m-0 line-clamp-2">
                                             <span class="font-semibold">${isAr ? 'ملاحظة:' : 'Note:'}</span> ${escapeHtml(item.notes)}
                                         </p>
-                                    </div>` : ''}
+                                    </div>` : '')}
                             </div>
 
                             <!-- Quick Action Button -->
@@ -342,7 +394,7 @@
                                     <span>${isAr ? 'التفاصيل' : 'Details'}</span>
                                 </a>
                                 <button type="button"
-                                        onclick="openReviewConfirmModal(${item.appointmentId}, '${escapeJs(item.patientName)}', '${escapeJs(item.doctorName)}', '${escapeJs(item.time)}', '${escapeJs(item.date || '')}', '${escapeJs(item.notes || '')}')"
+                                        onclick="openReviewConfirmModal(${item.appointmentId}, '${escapeJs(item.patientName)}', '${escapeJs(item.doctorName)}', '${escapeJs(item.time)}', '${escapeJs(item.date || '')}', '${escapeJs(item.notes || '')}', '${escapeJs(cleanRefDoc)}', '${escapeJs(cleanTargetDept)}', '${escapeJs(cleanReason)}')"
                                         class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95">
                                     <i class="fa-solid fa-check text-[11px]"></i>
                                     <span>${isAr ? 'مراجعة وتأكيد' : 'Review & Confirm'}</span>
@@ -351,6 +403,10 @@
                         </div>`;
                 } else if (item.type === 'Referral') {
                     // Unresolved Referral Item
+                    const refDoc = item.referredByDoctorName || item.doctorName || 'Doctor';
+                    const targetDept = item.targetDepartmentName || item.departmentName || 'Specialty';
+                    const refReason = item.referralReason || item.notes || '';
+
                     html += `
                         <div id="notif-ref-${item.id}" class="p-3.5 hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] transition-colors space-y-2 text-start">
                             <div class="flex items-center justify-between gap-2">
@@ -375,23 +431,30 @@
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-[#727A76] dark:text-[#9CA8A3]">${isAr ? 'من الطبيب:' : 'From:'}</span>
-                                    <span class="font-medium text-[#202725] dark:text-[#EAEFEA]">${escapeHtml(item.doctorName)}</span>
+                                    <span class="font-medium text-[#202725] dark:text-[#EAEFEA]">${escapeHtml(refDoc)}</span>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-[#727A76] dark:text-[#9CA8A3]">${isAr ? 'القسم المستهدف:' : 'Target Dept:'}</span>
-                                    <span class="font-semibold text-emerald-600 dark:text-emerald-400">${escapeHtml(item.departmentName || '—')}</span>
+                                    <span class="font-semibold text-emerald-600 dark:text-emerald-400">${escapeHtml(targetDept)}</span>
                                 </div>
-                                ${item.notes ? `
-                                    <div class="pt-1 border-t border-[#DDE3DF]/40 dark:border-[#2B3833]/40">
-                                        <p class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] italic m-0 line-clamp-2">
-                                            <span class="font-semibold">${isAr ? 'السبب:' : 'Reason:'}</span> ${escapeHtml(item.notes)}
-                                        </p>
-                                    </div>` : ''}
+
+                                <div class="p-2 rounded-lg bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200/70 dark:border-teal-800/50 space-y-1.5">
+                                    <div class="flex items-center gap-1">
+                                        <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-teal-600 text-white truncate flex items-center gap-1">
+                                            <i class="fa-solid fa-share-from-square text-[9px]"></i>
+                                            Transferred from ${escapeHtml(refDoc)} &rarr; ${escapeHtml(targetDept)}
+                                        </span>
+                                    </div>
+                                    <div class="text-[11px] text-[#202725] dark:text-[#EAEFEA] italic bg-white/80 dark:bg-[#121A17] p-2 rounded border border-teal-100 dark:border-teal-900 leading-relaxed">
+                                        <span class="not-italic font-semibold block text-[10px] text-teal-800 dark:text-teal-300 mb-0.5">${isAr ? 'سبب التحويل الطبي:' : 'Clinical Reason:'}</span>
+                                        "${escapeHtml(refReason)}"
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="flex items-center justify-end gap-1.5 pt-1">
                                 <button type="button"
-                                        onclick="openReceptionBookingModalFromNotif(${item.id}, ${item.patientId || 0}, '${escapeJs(item.patientName || '')}', ${item.targetDepartmentId || 0}, '${escapeJs(item.departmentName || '')}', ${item.targetDoctorId || 0}, ${item.referralId || item.id})"
+                                        onclick="openReceptionBookingModalFromNotif(${item.id}, ${item.patientId || 0}, '${escapeJs(item.patientName || '')}', ${item.targetDepartmentId || 0}, '${escapeJs(targetDept)}', ${item.targetDoctorId || 0}, ${item.referralId || item.id}, '${escapeJs(refDoc)}', '${escapeJs(refReason)}')"
                                         class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#49665A] hover:bg-[#3D574D] text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95">
                                     <i class="fa-solid fa-calendar-plus text-[11px]"></i>
                                     <span>${isAr ? 'تأكيد / حجز موعد' : 'Confirm / Book Slot'}</span>
@@ -433,7 +496,7 @@
         }
 
         // Modal: Review & Confirm Appointment Handlers
-        function openReviewConfirmModal(appointmentId, patientName, doctorName, time, date, notes) {
+        function openReviewConfirmModal(appointmentId, patientName, doctorName, time, date, notes, refDoc, targetDept, referralReason) {
             document.getElementById('rc-appointmentId').value = appointmentId;
             document.getElementById('rc-patientName').textContent = patientName || '—';
             document.getElementById('rc-doctorName').textContent = doctorName || '—';
@@ -446,6 +509,20 @@
                 notesBox.style.display = 'block';
             } else {
                 notesBox.style.display = 'none';
+            }
+
+            const transferBox = document.getElementById('rc-transfer-box');
+            if (transferBox) {
+                if (refDoc || referralReason) {
+                    transferBox.style.display = 'block';
+                    const badgeText = `Transferred from ${refDoc || 'Doctor'} -> ${targetDept || 'Department'}`;
+                    const badgeEl = document.getElementById('rc-transfer-badge-text');
+                    if (badgeEl) badgeEl.textContent = badgeText;
+                    const reasonEl = document.getElementById('rc-transfer-reason');
+                    if (reasonEl) reasonEl.textContent = referralReason ? `"${referralReason}"` : '—';
+                } else {
+                    transferBox.style.display = 'none';
+                }
             }
 
             const detailsLink = document.getElementById('rc-details-link');
@@ -545,12 +622,26 @@
             }
         }
 
-        async function openReceptionBookingModalFromNotif(notifId, patientId, patientName, deptId, deptName, docId, referralId) {
+        async function openReceptionBookingModalFromNotif(notifId, patientId, patientName, deptId, deptName, docId, referralId, referringDoc, referralReason) {
             document.getElementById('rb-notificationId').value = notifId || '';
             document.getElementById('rb-patientId').value = patientId || '';
             document.getElementById('rb-referralId').value = referralId || '';
             document.getElementById('rb-patientName').textContent = patientName || 'Patient';
             document.getElementById('rb-deptName').textContent = deptName || 'General Practice';
+
+            const transferBox = document.getElementById('rb-transfer-box');
+            if (transferBox) {
+                if (referringDoc || referralReason) {
+                    transferBox.style.display = 'block';
+                    const badgeText = `Transferred from ${referringDoc || 'Doctor'} -> ${deptName || 'Department'}`;
+                    const badgeEl = document.getElementById('rb-transfer-badge-text');
+                    if (badgeEl) badgeEl.textContent = badgeText;
+                    const reasonEl = document.getElementById('rb-transfer-reason');
+                    if (reasonEl) reasonEl.textContent = referralReason ? `"${referralReason}"` : '—';
+                } else {
+                    transferBox.style.display = 'none';
+                }
+            }
 
             // Load doctors for this department
             const docSelect = document.getElementById('rb-doctorId');
