@@ -1,5 +1,8 @@
 using System;
 using System.Security.Claims;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using WebApplication1.Models;
 
 namespace WebApplication1.Services
 {
@@ -54,6 +57,26 @@ namespace WebApplication1.Services
             return null;
         }
 
+        public static async Task<int?> GetDoctorIdAsync(this ClaimsPrincipal user, ClinicDbContext db)
+        {
+            if (user == null) return null;
+            var docId = user.GetDoctorId();
+            if (docId.HasValue) return docId;
+
+            if (user.IsDoctor())
+            {
+                var clinicId = user.GetClinicId();
+                var email = user.FindFirst(ClaimTypes.Email)?.Value ?? user.FindFirst("email")?.Value;
+                var name = user.Identity?.Name;
+                var doc = await db.Doctors.FirstOrDefaultAsync(d =>
+                    (clinicId == Guid.Empty || d.ClinicId == clinicId) &&
+                    ((!string.IsNullOrEmpty(email) && d.DoctorEmail == email) ||
+                     (!string.IsNullOrEmpty(name) && (d.DoctorName == name || d.DoctorNumber == name))));
+                return doc?.DoctorId;
+            }
+            return null;
+        }
+
         public static Guid GetClinicId(this ClaimsPrincipal user)
         {
             if (user == null) return Guid.Empty;
@@ -68,3 +91,4 @@ namespace WebApplication1.Services
         }
     }
 }
+

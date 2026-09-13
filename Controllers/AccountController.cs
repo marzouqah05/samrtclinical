@@ -961,6 +961,10 @@ namespace WebApplication1.Controllers
             // ── PROTECTION GUARD 1: Owner / SuperAdmin cannot be deleted by anyone ──
             if (targetRoles.Contains("Owner") || targetRoles.Contains("SuperAdmin"))
             {
+                if (!User.IsOwner())
+                {
+                    throw new UnauthorizedAccessException("Forbidden: Target user has role Owner and current user is not Owner.");
+                }
                 TempData["Error"] = T("حساب المالك الرئيسي (Owner / SuperAdmin) محمي بحصانة النظام ولا يمكن حذفه نهائياً.",
                                       "The Owner / SuperAdmin account is protected by system immunity and cannot be deleted.");
                 return RedirectToAction(nameof(StaffList));
@@ -1045,8 +1049,7 @@ namespace WebApplication1.Controllers
             {
                 if (isTargetOwner)
                 {
-                    TempData["Error"] = T("لا تملك الصلاحية لتعديل حساب المالك (Owner).", "You do not have permission to edit the Owner account.");
-                    return RedirectToAction(nameof(StaffList));
+                    throw new UnauthorizedAccessException("Forbidden: Target user has role Owner and current user is not Owner.");
                 }
                 if (roles.Contains("Admin"))
                 {
@@ -1127,8 +1130,7 @@ namespace WebApplication1.Controllers
             {
                 if (isTargetOwner)
                 {
-                    TempData["Error"] = T("لا تملك الصلاحية لتعديل حساب المالك.", "You do not have permission to modify the Owner account.");
-                    return RedirectToAction(nameof(StaffList));
+                    throw new UnauthorizedAccessException("Forbidden: Target user has role Owner and current user is not Owner.");
                 }
                 if (roles.Contains("Admin"))
                 {

@@ -120,20 +120,29 @@ namespace WebApplication1.Controllers
                     .Where(a => a.ClinicId == currentClinicId && a.AppointmentDate.Date == today && a.Status != "Cancelled")
                     .CountAsync();
 
-                // Financial Analytics (Forbidden for doctors)
+                // Financial Analytics (Restricted to Owner & Admin; hidden from Doctors & Receptionists)
                 ViewBag.TotalInvoicesCount = await _context.Invoices.Where(i => i.ClinicId == currentClinicId).CountAsync();
 
-                ViewBag.TotalRevenue = await _context.Invoices
-                    .Where(i => i.ClinicId == currentClinicId && i.Status == "Paid")
-                    .SumAsync(i => (decimal?)i.NetAmount) ?? 0.00m;
+                if (User.IsAdminOrOwner())
+                {
+                    ViewBag.TotalRevenue = await _context.Invoices
+                        .Where(i => i.ClinicId == currentClinicId && i.Status == "Paid")
+                        .SumAsync(i => (decimal?)i.NetAmount) ?? 0.00m;
 
-                ViewBag.PendingRevenue = await _context.Invoices
-                    .Where(i => i.ClinicId == currentClinicId && i.Status == "Unpaid")
-                    .SumAsync(i => (decimal?)i.NetAmount) ?? 0.00m;
+                    ViewBag.PendingRevenue = await _context.Invoices
+                        .Where(i => i.ClinicId == currentClinicId && i.Status == "Unpaid")
+                        .SumAsync(i => (decimal?)i.NetAmount) ?? 0.00m;
 
-                ViewBag.TotalExpenses = await _context.Expenses
-                    .Where(e => e.ClinicId == currentClinicId)
-                    .SumAsync(e => (decimal?)e.Amount) ?? 0.00m;
+                    ViewBag.TotalExpenses = await _context.Expenses
+                        .Where(e => e.ClinicId == currentClinicId)
+                        .SumAsync(e => (decimal?)e.Amount) ?? 0.00m;
+                }
+                else
+                {
+                    ViewBag.TotalRevenue   = 0.00m;
+                    ViewBag.PendingRevenue = 0.00m;
+                    ViewBag.TotalExpenses  = 0.00m;
+                }
             }
 
             ViewBag.SearchVal = search;
@@ -196,10 +205,10 @@ namespace WebApplication1.Controllers
         }
 
         // ── 4. Revenue Chart API (Last 7 Days) ────────────────────────────────
-        [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist")]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> GetRevenueChart()
         {
-            if (User.IsDoctor()) return Forbid();
+            if (!User.IsAdminOrOwner()) return Forbid();
 
             var currentClinicId = User.GetClinicId();
             var sevenDaysAgo = DateTime.UtcNow.Date.AddDays(-7);

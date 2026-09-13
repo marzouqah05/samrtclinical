@@ -186,6 +186,14 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Index(string statusFilter, string searchPatient, int? doctorFilter)
         {
             var currentClinicId = User.GetClinicId();
+            var isDoctor = User.IsDoctor();
+            int? currentDoctorId = null;
+
+            if (isDoctor)
+            {
+                currentDoctorId = await User.GetDoctorIdAsync(_context);
+                doctorFilter = currentDoctorId;
+            }
 
             // جلب المواعيد مع تضمين بيانات المريض والطبيب لمنع الـ Lazy Loading Nulls
             var query = _context.Appointments
@@ -200,8 +208,12 @@ namespace WebApplication1.Controllers
                 query = query.Where(a => a.Status == statusFilter);
             }
 
-            // 2. الفلترة بالطبيب
-            if (doctorFilter.HasValue && doctorFilter.Value > 0)
+            // 2. الفلترة بالطبيب: للأطباء يتم تقييد الاستعلام بطبيبهم فقط، وللمشرفين وموظفي الاستقبال يُسمح بالاستعلام العام
+            if (isDoctor && currentDoctorId.HasValue)
+            {
+                query = query.Where(a => a.DoctorId == currentDoctorId.Value);
+            }
+            else if (doctorFilter.HasValue && doctorFilter.Value > 0)
             {
                 query = query.Where(a => a.DoctorId == doctorFilter.Value);
             }
@@ -214,11 +226,17 @@ namespace WebApplication1.Controllers
             }
 
             // حساب إجمالي مواعيد العيادة لحفظ العدادات العلوية عند الفلترة
-            ViewBag.TotalAll = await _context.Appointments.Where(a => a.ClinicId == currentClinicId).CountAsync();
-            ViewBag.TotalPending = await _context.Appointments.Where(a => a.ClinicId == currentClinicId).CountAsync(a => a.Status == "Pending");
-            ViewBag.TotalConfirmed = await _context.Appointments.Where(a => a.ClinicId == currentClinicId).CountAsync(a => a.Status == "Confirmed");
-            ViewBag.TotalCompleted = await _context.Appointments.Where(a => a.ClinicId == currentClinicId).CountAsync(a => a.Status == "Completed");
-            ViewBag.TotalCancelled = await _context.Appointments.Where(a => a.ClinicId == currentClinicId).CountAsync(a => a.Status == "Cancelled");
+            var baseCountQuery = _context.Appointments.Where(a => a.ClinicId == currentClinicId);
+            if (isDoctor && currentDoctorId.HasValue)
+            {
+                baseCountQuery = baseCountQuery.Where(a => a.DoctorId == currentDoctorId.Value);
+            }
+
+            ViewBag.TotalAll = await baseCountQuery.CountAsync();
+            ViewBag.TotalPending = await baseCountQuery.CountAsync(a => a.Status == "Pending" || a.Status == "Pending Confirmation");
+            ViewBag.TotalConfirmed = await baseCountQuery.CountAsync(a => a.Status == "Confirmed");
+            ViewBag.TotalCompleted = await baseCountQuery.CountAsync(a => a.Status == "Completed");
+            ViewBag.TotalCancelled = await baseCountQuery.CountAsync(a => a.Status == "Cancelled");
 
             // ترتيب المواعيد تصاعدياً حسب التاريخ الأقرب ثم الوقت
             var appointments = await query
@@ -230,11 +248,31 @@ namespace WebApplication1.Controllers
             ViewBag.CurrentStatus = statusFilter;
             ViewBag.CurrentSearch = searchPatient;
             ViewBag.CurrentDoctor = doctorFilter;
+            ViewBag.IsDoctor = isDoctor;
 
             // قائمة الأطباء للفلتر
-            ViewBag.Doctors = new SelectList(await _context.Doctors.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DoctorName).ToListAsync(), "DoctorId", "DoctorName", doctorFilter);
-            ViewBag.AllDoctors = await _context.Doctors.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DoctorName).ToListAsync();
-            ViewBag.AllPatients = await _context.Patients.Where(p => p.ClinicId == currentClinicId).OrderBy(p => p.PatientName).ToListAsync();
+            if (isDoctor && currentDoctorId.HasValue)
+            {
+                var myDocs = await _context.Doctors.Where(d => d.ClinicId == currentClinicId && d.DoctorId == currentDoctorId.Value).ToListAsync();
+                ViewBag.Doctors = new SelectList(myDocs, "DoctorId", "DoctorName", currentDoctorId);
+                ViewBag.AllDoctors = myDocs;
+
+                var myAssignedPatients = await _context.Appointments
+                    .Where(a => a.ClinicId == currentClinicId && a.DoctorId == currentDoctorId.Value)
+                    .Select(a => a.PatientId)
+                    .Union(_context.MedicalRecords
+                        .Where(m => m.DoctorId == currentDoctorId.Value)
+                        .Select(m => m.PatientId))
+                    .Distinct()
+                    .ToListAsync();
+                ViewBag.AllPatients = await _context.Patients.Where(p => p.ClinicId == currentClinicId && myAssignedPatients.Contains(p.PatientId)).OrderBy(p => p.PatientName).ToListAsync();
+            }
+            else
+            {
+                ViewBag.Doctors = new SelectList(await _context.Doctors.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DoctorName).ToListAsync(), "DoctorId", "DoctorName", doctorFilter);
+                ViewBag.AllDoctors = await _context.Doctors.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DoctorName).ToListAsync();
+                ViewBag.AllPatients = await _context.Patients.Where(p => p.ClinicId == currentClinicId).OrderBy(p => p.PatientName).ToListAsync();
+            }
 
             var cfg = await _settingsService.GetSettingsAsync();
             ViewBag.WorkingHoursStart = cfg.WorkingHoursStart ?? "08:00";
@@ -249,17 +287,28 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> GetCalendarEvents(string? statusFilter, int? doctorFilter)
         {
             var currentClinicId = User.GetClinicId();
+            var isDoctor = User.IsDoctor();
             var query = _context.Appointments
                 .Where(a => a.ClinicId == currentClinicId)
                 .Include(a => a.Patient)
                 .Include(a => a.Doctor)
                 .AsQueryable();
 
+            if (isDoctor)
+            {
+                var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                if (currentDoctorId.HasValue)
+                {
+                    query = query.Where(a => a.DoctorId == currentDoctorId.Value);
+                }
+            }
+            else if (doctorFilter.HasValue && doctorFilter.Value > 0)
+            {
+                query = query.Where(a => a.DoctorId == doctorFilter.Value);
+            }
+
             if (!string.IsNullOrEmpty(statusFilter))
                 query = query.Where(a => a.Status == statusFilter);
-
-            if (doctorFilter.HasValue && doctorFilter.Value > 0)
-                query = query.Where(a => a.DoctorId == doctorFilter.Value);
 
             var appointments = await query.ToListAsync();
 
@@ -308,14 +357,43 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Create()
         {
             var currentClinicId = User.GetClinicId();
-            // جلب قائمة الأطباء والمرضى للعيادة الحالية لتعبئة القوائم المنسدلة في الواجهة
-            ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId), "DoctorId", "DoctorName");
-            ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId), "PatientId", "PatientName");
+            var isDoctor = User.IsDoctor();
+
+            if (isDoctor)
+            {
+                var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                if (currentDoctorId.HasValue)
+                {
+                    ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId && d.DoctorId == currentDoctorId.Value), "DoctorId", "DoctorName", currentDoctorId.Value);
+
+                    var myPatientIds = await _context.Appointments
+                        .Where(a => a.ClinicId == currentClinicId && a.DoctorId == currentDoctorId.Value)
+                        .Select(a => a.PatientId)
+                        .Union(_context.MedicalRecords
+                            .Where(m => m.DoctorId == currentDoctorId.Value)
+                            .Select(m => m.PatientId))
+                        .Distinct()
+                        .ToListAsync();
+
+                    ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId && myPatientIds.Contains(p.PatientId)).OrderBy(p => p.PatientName), "PatientId", "PatientName");
+                }
+                else
+                {
+                    ViewData["DoctorId"] = new SelectList(Enumerable.Empty<Doctor>(), "DoctorId", "DoctorName");
+                    ViewData["PatientId"] = new SelectList(Enumerable.Empty<Patient>(), "PatientId", "PatientName");
+                }
+            }
+            else
+            {
+                ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DoctorName), "DoctorId", "DoctorName");
+                ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId).OrderBy(p => p.PatientName), "PatientId", "PatientName");
+            }
 
             var cfg = await _settingsService.GetSettingsAsync();
             ViewBag.WorkingHoursStart = cfg.WorkingHoursStart ?? "08:00";
             ViewBag.WorkingHoursEnd = cfg.WorkingHoursEnd ?? "20:00";
             ViewBag.SlotDurationMinutes = cfg.DefaultSlotDurationMinutes > 0 ? cfg.DefaultSlotDurationMinutes : 15;
+            ViewBag.IsDoctor = isDoctor;
 
             return View();
         }
@@ -326,10 +404,36 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Create([Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,Notes,IsWeekendOverride,IsOutsideHoursException")] Appointment appointment, bool isException = false)
         {
             var currentClinicId = User.GetClinicId();
+            var isDoctor = User.IsDoctor();
             var cfg = await _settingsService.GetSettingsAsync();
             ViewBag.WorkingHoursStart = cfg.WorkingHoursStart ?? "08:00";
             ViewBag.WorkingHoursEnd = cfg.WorkingHoursEnd ?? "20:00";
             ViewBag.SlotDurationMinutes = cfg.DefaultSlotDurationMinutes > 0 ? cfg.DefaultSlotDurationMinutes : 15;
+            ViewBag.IsDoctor = isDoctor;
+
+            if (isDoctor)
+            {
+                var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                if (currentDoctorId.HasValue)
+                {
+                    appointment.DoctorId = currentDoctorId.Value;
+
+                    var isAssignedPatient = await _context.Appointments.AnyAsync(a => a.ClinicId == currentClinicId && a.DoctorId == currentDoctorId.Value && a.PatientId == appointment.PatientId)
+                        || await _context.MedicalRecords.AnyAsync(m => m.DoctorId == currentDoctorId.Value && m.PatientId == appointment.PatientId);
+
+                    if (!isAssignedPatient)
+                    {
+                        var isAr = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar";
+                        ModelState.AddModelError("PatientId", isAr
+                            ? "يمكن للطبيب حجز مواعيد متابعة لمرضاه المسجلين لديه فقط."
+                            : "Doctors can only request/book follow-up appointments for their own assigned patients.");
+                    }
+                }
+                else
+                {
+                    return Forbid();
+                }
+            }
 
             var eval = EvaluateWorkingHours(appointment.AppointmentTime, cfg);
             if (eval.isException && (isException || appointment.IsOutsideHoursException))
@@ -344,8 +448,7 @@ namespace WebApplication1.Controllers
                     ? "لا يمكن حجز موعد في تاريخ سابق لليوم (يجب أن يكون الموعد اليوم أو في تاريخ مستقبلي)."
                     : "Appointment date must be today or in the future.";
                 ModelState.AddModelError(nameof(appointment.AppointmentDate), error);
-                ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId), "DoctorId", "DoctorName", appointment.DoctorId);
-                ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId), "PatientId", "PatientName", appointment.PatientId);
+                PopulateAppointmentDropdowns(appointment);
                 return View(appointment);
             }
 
@@ -357,8 +460,7 @@ namespace WebApplication1.Controllers
                     ? "لا يمكن حجز موعد في تاريخ أو وقت سابق عن الوقت الحالي."
                     : "Cannot schedule an appointment in the past.";
                 ModelState.AddModelError("AppointmentTime", error);
-                ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId), "DoctorId", "DoctorName", appointment.DoctorId);
-                ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId), "PatientId", "PatientName", appointment.PatientId);
+                PopulateAppointmentDropdowns(appointment);
                 return View(appointment);
             }
 
@@ -375,16 +477,15 @@ namespace WebApplication1.Controllers
 
             if (ModelState.IsValid)
             {
-                // تعيين الحالة الافتراضية والعيادة عند الإنشاء
                 appointment.ClinicId = currentClinicId;
-                appointment.Status = "Pending";
+                // للأطباء: يُحجز الموعد كطلب متابعة "Pending Confirmation" لتقوم الاستقبال بتأكيده
+                appointment.Status = isDoctor ? "Pending Confirmation" : "Pending";
                 appointment.AppointmentDate = DateTime.SpecifyKind(appointment.AppointmentDate.Date, DateTimeKind.Utc);
 
                 _context.Add(appointment);
                 await _context.SaveChangesAsync();
 
                 // ── Trigger WhatsApp reminder automatically after booking ────────
-                // Wrapped in try/catch: a broken/offline n8n webhook must NEVER fail the booking.
                 try
                 {
                     var patient = await _context.Patients.FindAsync(appointment.PatientId);
@@ -408,20 +509,18 @@ namespace WebApplication1.Controllers
                 }
                 catch (Exception whatsAppEx)
                 {
-                    // Log warning — do NOT rethrow. The appointment was already saved successfully.
                     _logger?.LogWarning(whatsAppEx,
                         "[WhatsApp] Auto-reminder skipped for appointment #{Id} — webhook unreachable or misconfigured. Booking was still saved.",
                         appointment.AppointmentId);
                 }
-                // ────────────────────────────────────────────────────────────────
 
-                TempData["Success"] = "Appointment booked successfully.";
+                TempData["Success"] = isDoctor
+                    ? "Follow-up appointment requested successfully (Pending Confirmation by Reception)."
+                    : "Appointment booked successfully.";
                 return RedirectToAction(nameof(Index));
             }
 
-            // إعادة بناء القوائم المنسدلة في حال وجود خطأ في البيانات لمنع الـ Crash
-            ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId), "DoctorId", "DoctorName", appointment.DoctorId);
-            ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId), "PatientId", "PatientName", appointment.PatientId);
+            PopulateAppointmentDropdowns(appointment);
             return View(appointment);
         }
 
@@ -443,6 +542,15 @@ namespace WebApplication1.Controllers
             if (appointment == null)
             {
                 return NotFound();
+            }
+
+            if (User.IsDoctor())
+            {
+                var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                if (!currentDoctorId.HasValue || appointment.DoctorId != currentDoctorId.Value)
+                {
+                    return Forbid();
+                }
             }
 
             // Disallow editing Completed or Cancelled appointments
@@ -481,6 +589,16 @@ namespace WebApplication1.Controllers
             if (existing == null)
             {
                 return NotFound();
+            }
+
+            if (User.IsDoctor())
+            {
+                var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                if (!currentDoctorId.HasValue || existing.DoctorId != currentDoctorId.Value)
+                {
+                    return Forbid();
+                }
+                appointment.DoctorId = currentDoctorId.Value;
             }
 
             // Disallow editing Completed or Cancelled appointments
@@ -599,12 +717,34 @@ namespace WebApplication1.Controllers
         private void PopulateAppointmentDropdowns(Appointment? appointment = null)
         {
             var currentClinicId = User.GetClinicId();
-            ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DoctorName), "DoctorId", "DoctorName", appointment?.DoctorId);
-            ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId).OrderBy(p => p.PatientName), "PatientId", "PatientName", appointment?.PatientId);
+            var isDoctor = User.IsDoctor();
+            int? currentDoctorId = User.GetDoctorId();
+
+            if (isDoctor && currentDoctorId.HasValue)
+            {
+                ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId && d.DoctorId == currentDoctorId.Value), "DoctorId", "DoctorName", currentDoctorId.Value);
+
+                var myPatientIds = _context.Appointments
+                    .Where(a => a.ClinicId == currentClinicId && a.DoctorId == currentDoctorId.Value)
+                    .Select(a => a.PatientId)
+                    .Union(_context.MedicalRecords
+                        .Where(m => m.DoctorId == currentDoctorId.Value)
+                        .Select(m => m.PatientId))
+                    .Distinct()
+                    .ToList();
+
+                ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId && myPatientIds.Contains(p.PatientId)).OrderBy(p => p.PatientName), "PatientId", "PatientName", appointment?.PatientId);
+            }
+            else
+            {
+                ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DoctorName), "DoctorId", "DoctorName", appointment?.DoctorId);
+                ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId).OrderBy(p => p.PatientName), "PatientId", "PatientName", appointment?.PatientId);
+            }
 
             var statusItems = new List<SelectListItem>
             {
                 new SelectListItem { Value = "Pending",   Text = "Pending" },
+                new SelectListItem { Value = "Pending Confirmation", Text = "Pending Confirmation" },
                 new SelectListItem { Value = "Confirmed", Text = "Confirmed" },
                 new SelectListItem { Value = "Completed", Text = "Completed" },
                 new SelectListItem { Value = "Cancelled", Text = "Cancelled" }
@@ -726,7 +866,25 @@ namespace WebApplication1.Controllers
             if (ModelState.IsValid)
             {
                 appointment.ClinicId = User.GetClinicId();
-                appointment.Status = "Pending";
+
+                if (User.IsDoctor())
+                {
+                    var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                    if (currentDoctorId.HasValue)
+                    {
+                        appointment.DoctorId = currentDoctorId.Value;
+                        appointment.Status = "Pending Confirmation";
+                    }
+                    else
+                    {
+                        return Forbid();
+                    }
+                }
+                else
+                {
+                    appointment.Status = "Pending";
+                }
+
                 appointment.AppointmentDate = DateTime.SpecifyKind(appointment.AppointmentDate.Date, DateTimeKind.Utc);
                 _context.Add(appointment);
                 await _context.SaveChangesAsync();
@@ -747,6 +905,15 @@ namespace WebApplication1.Controllers
             if (appointment == null)
             {
                 return NotFound();
+            }
+
+            if (User.IsDoctor())
+            {
+                var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                if (!currentDoctorId.HasValue || appointment.DoctorId != currentDoctorId.Value)
+                {
+                    return Forbid();
+                }
             }
 
             // تحديث الحالة فقط
@@ -771,6 +938,15 @@ namespace WebApplication1.Controllers
 
             if (appointment == null) return NotFound();
 
+            if (User.IsDoctor())
+            {
+                var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                if (!currentDoctorId.HasValue || appointment.DoctorId != currentDoctorId.Value)
+                {
+                    return Forbid();
+                }
+            }
+
             return View(appointment);
         }
 
@@ -788,6 +964,15 @@ namespace WebApplication1.Controllers
 
             if (appointment == null) return NotFound();
 
+            if (User.IsDoctor())
+            {
+                var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                if (!currentDoctorId.HasValue || appointment.DoctorId != currentDoctorId.Value)
+                {
+                    return Forbid();
+                }
+            }
+
             return View(appointment);
         }
 
@@ -803,6 +988,15 @@ namespace WebApplication1.Controllers
                 .FirstOrDefaultAsync(m => m.AppointmentId == id && m.ClinicId == currentClinicId);
 
             if (appointment == null) return NotFound();
+
+            if (User.IsDoctor())
+            {
+                var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                if (!currentDoctorId.HasValue || appointment.DoctorId != currentDoctorId.Value)
+                {
+                    return Forbid();
+                }
+            }
 
             // تمرير قيمة كشفية الدكتور لعرضها في الفاتورة
             ViewBag.ConsultationFee = appointment.Doctor != null ? appointment.Doctor.ConsultationFee : 0;
@@ -821,6 +1015,15 @@ namespace WebApplication1.Controllers
                 .FirstOrDefaultAsync(m => m.AppointmentId == id);
 
             if (appointment == null) return NotFound();
+
+            if (User.IsDoctor())
+            {
+                var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                if (!currentDoctorId.HasValue || appointment.DoctorId != currentDoctorId.Value)
+                {
+                    return Forbid();
+                }
+            }
 
             // 1. تحديث حالة الموعد إلى مكتمل
             appointment.Status = "Completed";

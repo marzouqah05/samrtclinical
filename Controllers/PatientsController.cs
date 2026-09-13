@@ -111,6 +111,28 @@ namespace WebApplication1.Controllers
             var currentClinicId = User.GetClinicId();
             var query = _context.Patients.Where(p => p.ClinicId == currentClinicId).AsQueryable();
 
+            if (User.IsDoctor())
+            {
+                var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                if (currentDoctorId.HasValue)
+                {
+                    var assignedPatientIds = await _context.Appointments
+                        .Where(a => a.ClinicId == currentClinicId && a.DoctorId == currentDoctorId.Value)
+                        .Select(a => a.PatientId)
+                        .Union(_context.MedicalRecords
+                            .Where(m => m.DoctorId == currentDoctorId.Value)
+                            .Select(m => m.PatientId))
+                        .Distinct()
+                        .ToListAsync();
+
+                    query = query.Where(p => assignedPatientIds.Contains(p.PatientId));
+                }
+                else
+                {
+                    query = query.Where(p => false);
+                }
+            }
+
             if (!string.IsNullOrEmpty(search))
             {
                 var all = await query.ToListAsync();
@@ -129,6 +151,20 @@ namespace WebApplication1.Controllers
         {
             if (id == null) return NotFound();
             var currentClinicId = User.GetClinicId();
+
+            if (User.IsDoctor())
+            {
+                var currentDoctorId = await User.GetDoctorIdAsync(_context);
+                var isAssigned = currentDoctorId.HasValue && (
+                    await _context.Appointments.AnyAsync(a => a.ClinicId == currentClinicId && a.DoctorId == currentDoctorId.Value && a.PatientId == id.Value) ||
+                    await _context.MedicalRecords.AnyAsync(m => m.DoctorId == currentDoctorId.Value && m.PatientId == id.Value)
+                );
+
+                if (!isAssigned)
+                {
+                    return Forbid();
+                }
+            }
 
             var patient = await _context.Patients
                 .Include(p => p.Appointments).ThenInclude(a => a.Doctor)

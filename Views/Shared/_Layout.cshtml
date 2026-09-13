@@ -467,13 +467,19 @@
                         <span>@T("العلاجات والخدمات", "Treatments")</span>
                     </a>
 
-                    <!-- 9. Settings: Visible only to Owner & Admin -->
+                    <!-- 9. Settings & Staff: Visible only to Owner & Admin -->
                     @if (User.IsAdminOrOwner())
                     {
                         <a asp-controller="Settings" asp-action="Index"
                            class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors @(currentController == "Settings" ? "bg-[#49665A] text-white shadow-sm font-semibold" : "text-[#727A76] dark:text-[#9CA8A3] hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] hover:text-[#202725] dark:hover:text-[#EAEFEA]")">
                             <i class="fa-solid fa-sliders w-5 text-center text-sm"></i>
-                            <span>@T("الإعدادات والنسخ السحابي", "Settings")</span>
+                            <span>@T("مركز الإعدادات", "Settings Hub")</span>
+                        </a>
+
+                        <a asp-controller="Staff" asp-action="Index"
+                           class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors @(currentController == "Staff" || (currentController == "Account" && currentAction == "StaffList") ? "bg-[#49665A] text-white shadow-sm font-semibold" : "text-[#727A76] dark:text-[#9CA8A3] hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] hover:text-[#202725] dark:hover:text-[#EAEFEA]")">
+                            <i class="fa-solid fa-users-gear w-5 text-center text-sm"></i>
+                            <span>@T("إدارة الكادر والمستخدمين", "Staff Management")</span>
                         </a>
 
                         <div class="my-1.5 border-t border-[#DDE3DF] dark:border-[#2B3833]"></div>
@@ -633,7 +639,12 @@
                                     <a asp-controller="Settings" asp-action="Index"
                                        class="flex items-center gap-2 px-3 py-1.5 text-xs text-[#202725] dark:text-[#EAEFEA] hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] transition-colors">
                                         <i class="fa-solid fa-sliders text-[#727A76] dark:text-[#9CA8A3] w-4"></i>
-                                        <span>@T("الإعدادات", "Settings")</span>
+                                        <span>@T("مركز الإعدادات", "Settings Hub")</span>
+                                    </a>
+                                    <a asp-controller="Staff" asp-action="Index"
+                                       class="flex items-center gap-2 px-3 py-1.5 text-xs text-[#202725] dark:text-[#EAEFEA] hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] transition-colors">
+                                        <i class="fa-solid fa-users-gear text-[#727A76] dark:text-[#9CA8A3] w-4"></i>
+                                        <span>@T("إدارة الكادر", "Staff Management")</span>
                                     </a>
                                 }
 
