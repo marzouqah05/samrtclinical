@@ -1663,12 +1663,32 @@
                 }
             }
 
+            // Confirmed Consultation Action Box for Doctor (under STATUS / Referral section)
+            const consultationBox = document.getElementById('ep-confirmed-consultation-box');
+            const isConfirmed = (p.status === 'Confirmed' || p.status === 'confirmed');
+            const isDoctorOrAdminOrOwner = @((User.IsInRole("Doctor") || User.IsDoctor() || User.IsInRole("Admin") || User.IsOwner()) ? "true" : "false");
+            if (consultationBox) {
+                if (isDoctorOrAdminOrOwner && isConfirmed) {
+                    consultationBox.style.display = 'flex';
+                    const consultLink = document.getElementById('ep-consultation-link');
+                    if (consultLink) {
+                        consultLink.href = `/Treatments/Consultation?appointmentId=${id}&patientId=${p.patientId || 0}`;
+                    }
+                    const medRecordLink = document.getElementById('ep-medical-record-link');
+                    if (medRecordLink) {
+                        medRecordLink.href = p.patientId ? `/Patients/Details/${p.patientId}` : `/Appointments/Details/${id}`;
+                    }
+                } else {
+                    consultationBox.style.display = 'none';
+                }
+            }
+
             // Build action buttons (d-grid gap-2 mt-4 with Bootstrap 5 button classes)
             const actionsDiv = document.getElementById('ep-actions');
             actionsDiv.className = 'd-grid gap-2 mt-4';
             actionsDiv.innerHTML = '';
 
-            const isDoctor = @(User.IsInRole("Doctor") ? "true" : "false");
+            const isDoctor = @((User.IsInRole("Doctor") || User.IsDoctor()) ? "true" : "false");
 
             if (isDoctor) {
                 // Doctor actions: strictly NO "Complete & Bill" and NO "Cancel Appointment"
@@ -1676,12 +1696,29 @@
                 const isActive = p.status !== 'Completed' && p.status !== 'Cancelled';
                 if (isActive) {
                     const emrUrl = p.patientId ? `/Patients/Details/${p.patientId}` : `/Appointments/Details/${id}`;
-                    const emrText = isAr ? 'ابدأ الكشف / Open Medical Record' : 'Open Medical Record / ابدأ الكشف';
+                    const emrText = isAr ? 'الملف الطبي / View Medical Record' : 'View Medical Record / الملف الطبي';
                     const refText = isAr ? 'إحالة لعيادة أخرى' : 'Refer to Another Department / إحالة لعيادة أخرى';
+                    const consultUrl = `/Treatments/Consultation?appointmentId=${id}&patientId=${p.patientId || 0}`;
+                    const consultText = isAr ? 'ابدأ المعاينة / Start Consultation' : 'Start Consultation / ابدأ المعاينة';
+
+                    if (isConfirmed) {
+                        actionsDiv.innerHTML += `
+                            <a href="${consultUrl}" class="btn btn-success fw-bold py-2.5 shadow-sm d-inline-flex align-items-center justify-content-center text-decoration-none">
+                                <svg class="me-1.5" style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                ${consultText}
+                            </a>
+                            <a href="${emrUrl}" class="btn btn-outline-secondary fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center text-decoration-none">
+                                <i class="fa-solid fa-folder-open me-1.5"></i> ${emrText}
+                            </a>`;
+                    } else {
+                        actionsDiv.innerHTML += `
+                            <a href="${emrUrl}" class="btn btn-primary fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center text-decoration-none">
+                                <i class="fa-solid fa-notes-medical me-1"></i> ${emrText}
+                            </a>`;
+                    }
                     actionsDiv.innerHTML += `
-                        <a href="${emrUrl}" class="btn btn-primary fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center text-decoration-none">
-                            <i class="fa-solid fa-notes-medical me-1"></i> ${emrText}
-                        </a>
                         <button type="button" onclick="closeEventPanel(); openReferralModal(${p.patientId || 0}, '${escapeJs(p.patientName || '')}')" class="btn btn-outline-success fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center">
                             <i class="fa-solid fa-share-from-square me-1"></i> ${refText}
                         </button>`;

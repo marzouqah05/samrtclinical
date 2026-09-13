@@ -238,6 +238,31 @@
                     </button>
                 </form>
 
+                @if ((User.IsInRole("Doctor") || User.IsDoctor() || User.IsInRole("Admin") || User.IsOwner()) && Model.Status == "Confirmed")
+                {
+                    <a asp-controller="Treatments" 
+                       asp-action="Consultation" 
+                       asp-route-appointmentId="@Model.AppointmentId" 
+                       asp-route-patientId="@Model.PatientId"
+                       class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-sm transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span>@T("ابدأ المعاينة / Start Consultation", "Start Consultation / ابدأ المعاينة")</span>
+                    </a>
+
+                    @if (Model.PatientId > 0)
+                    {
+                        <a asp-controller="Patients" 
+                           asp-action="Details" 
+                           asp-route-id="@Model.PatientId"
+                           class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-xl transition text-sm">
+                            <i class="fa-solid fa-folder-open text-xs"></i>
+                            <span>@T("الملف الطبي / View Medical Record", "View Medical Record / الملف الطبي")</span>
+                        </a>
+                    }
+                }
+
                 @if (Model.Status == "Pending" || Model.Status == "Confirmed")
                 {
                     <a asp-action="Edit" asp-route-id="@Model.AppointmentId"

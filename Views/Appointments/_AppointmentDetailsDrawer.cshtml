@@ -1,8 +1,10 @@
 @using System.Globalization
+@using WebApplication1.Services
 @{
     var _isAr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar";
     Func<string, string, string> T = (ar, en) => _isAr ? ar : en;
-    var isDoctor = User.IsInRole("Doctor");
+    var isDoctor = User.IsInRole("Doctor") || User.IsDoctor();
+    var canConsult = isDoctor || User.IsInRole("Admin") || User.IsOwner();
 }
 
 @* ══════════════════════════════════════════════════════
@@ -55,13 +57,32 @@
             <div id="ep-referral-reason" class="p-2 rounded-lg bg-white dark:bg-slate-900 border border-teal-100 dark:border-teal-900 text-xs text-slate-800 dark:text-slate-200 fst-italic">
             </div>
         </div>
+
+        <!-- Doctor Confirmed Consultation Action Box (under STATUS / Referral section) -->
+        <div id="ep-confirmed-consultation-box" class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-3" style="display:none;">
+            <a id="ep-consultation-link" href="#"
+               class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-sm transition text-decoration-none">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:20px;height:20px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>@T("ابدأ المعاينة / Start Consultation", "Start Consultation / ابدأ المعاينة")</span>
+            </a>
+
+            <a id="ep-medical-record-link" href="#"
+               class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-xl transition text-sm text-decoration-none">
+                <span>@T("الملف الطبي / View Medical Record", "View Medical Record / الملف الطبي")</span>
+            </a>
+        </div>
     </div>
     <div class="px-4 pb-4">
         <div class="d-grid gap-2 mt-4" id="ep-actions">
-            @if (isDoctor)
+            @if (canConsult)
             {
-                <a id="ep-doctor-emr" href="#" class="btn btn-primary fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center text-decoration-none">
-                    <i class="fa-solid fa-notes-medical me-1"></i> @T("ابدأ الكشف / فتح الملف الطبي", "Open Medical Record / ابدأ الكشف")
+                <a id="ep-doctor-consult-btn" href="#" class="btn btn-success fw-bold py-2.5 shadow-sm d-inline-flex align-items-center justify-content-center text-decoration-none">
+                    <i class="fa-solid fa-notes-medical me-1.5"></i> @T("ابدأ المعاينة / Start Consultation", "Start Consultation / ابدأ المعاينة")
+                </a>
+                <a id="ep-doctor-emr" href="#" class="btn btn-outline-secondary fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center text-decoration-none">
+                    <i class="fa-solid fa-folder-open me-1.5"></i> @T("الملف الطبي / View Medical Record", "View Medical Record / الملف الطبي")
                 </a>
                 <button type="button" id="ep-doctor-refer-btn" class="btn btn-outline-success fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center" onclick="triggerDrawerReferral()">
                     <i class="fa-solid fa-share-from-square me-1"></i> @T("إحالة لعيادة أخرى", "Refer to Another Department")

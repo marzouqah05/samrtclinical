@@ -89,6 +89,23 @@ namespace WebApplication1.Controllers
             return View(treatment);
         }
 
+        // GET: Treatments/Consultation
+        [HttpGet]
+        public IActionResult Consultation(int? appointmentId, int? patientId)
+        {
+            if (appointmentId.HasValue && appointmentId.Value > 0)
+            {
+                return RedirectToAction(nameof(Create), new { appointmentId = appointmentId.Value });
+            }
+
+            if (patientId.HasValue && patientId.Value > 0)
+            {
+                return RedirectToAction("Details", "Patients", new { id = patientId.Value });
+            }
+
+            return RedirectToAction(nameof(Create));
+        }
+
         // GET: Treatments/Create
         public IActionResult Create(int? appointmentId)
         {
