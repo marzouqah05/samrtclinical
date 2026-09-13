@@ -1,0 +1,199 @@
+@model WebApplication1.Models.Department
+@using System.Globalization
+@using System.Text.Json
+
+@{
+    var _isAr = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ar";
+    string T(string ar, string en) => _isAr ? ar : en;
+    var allDoctors = ViewBag.AllDoctors as List<WebApplication1.Models.Doctor> ?? new List<WebApplication1.Models.Doctor>();
+}
+
+<div id="assignDoctorModal" class="cf-modal-overlay" style="display:none;" onclick="if(event.target===this) closeAssignDoctorModal();">
+    <div class="cf-modal max-w-lg w-full bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl shadow-xl overflow-hidden p-0" dir="@(_isAr ? "rtl" : "ltr")">
+        <div class="px-6 py-4 bg-[#F8FAF9] dark:bg-[#161F1C] border-b border-[#DDE3DF] dark:border-[#2B3833] flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-[#49665A]/15 text-[#49665A] flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-user-plus"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA] m-0">
+                        @T("تعيين طبيب للقسم والتخصص الفرعي", "Assign Doctor to Department")
+                    </h3>
+                    <span class="text-[11px] text-[#727A76] dark:text-[#9CA8A3]">@Model.DepartmentName</span>
+                </div>
+            </div>
+            <button type="button" class="w-7 h-7 rounded-lg hover:bg-slate-200 dark:hover:bg-[#202B27] text-slate-500 text-sm flex items-center justify-center transition cursor-pointer" onclick="closeAssignDoctorModal()">&times;</button>
+        </div>
+
+        <form asp-action="AssignDoctor" method="post" id="assignDoctorForm" onsubmit="return onAssignDoctorSubmit(event);">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+
+            <div class="p-6 space-y-4">
+                <!-- Doctor Selector (All active clinic doctors) -->
+                <div>
+                    <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1.5">
+                        @T("اختر الطبيب", "Select Doctor") <span class="text-rose-500">*</span>
+                    </label>
+                    <select id="assignDoctorSelect" name="doctorId" required onchange="handleDoctorSelectionChange(this)"
+                            class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-[#F6F7F5] dark:bg-[#151E1B] text-[#202725] dark:text-[#EAEFEA] focus:outline-none focus:ring-1 focus:ring-[#49665A] transition">
+                        <option value="">@T("-- اختر طبيباً من الكادر الطبي --", "-- Select a Doctor --")</option>
+                        @foreach (var doc in allDoctors)
+                        {
+                            bool isCurrentInThisDept = doc.DepartmentId == Model.DepartmentId;
+                            bool isUnassigned = doc.DepartmentId <= 0 || doc.Department == null;
+                            string currentDeptName = doc.Department?.DepartmentName ?? "";
+                            string deptLabel = isCurrentInThisDept 
+                                ? T("معين حالياً في هذا القسم", "Currently in this department")
+                                : (isUnassigned ? T("غير مخصص لقسم", "Unassigned") : currentDeptName);
+
+                            <option value="@doc.DoctorId" 
+                                    data-name="@doc.DoctorName"
+                                    data-current-dept="@currentDeptName"
+                                    data-is-other-dept="@(!isCurrentInThisDept && !isUnassigned ? "true" : "false")"
+                                    class="@(isCurrentInThisDept ? "text-emerald-600 font-semibold" : "")">
+                                Dr. @doc.DoctorName — @doc.Specialization (@deptLabel)
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Amber Transfer Warning Alert (Shown dynamically when doctor belongs to another department) -->
+                <div id="transferWarningBox" class="hidden p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs transition-all">
+                    <div class="flex items-start gap-2.5">
+                        <span class="text-base text-amber-600 dark:text-amber-400 shrink-0">⚠️</span>
+                        <div class="flex-1">
+                            <div class="font-bold text-amber-900 dark:text-amber-300 mb-1">
+                                @T("تحذير نقل الطبيب بين الأقسام", "Physician Department Transfer Warning")
+                            </div>
+                            <p id="transferWarningMessage" class="m-0 leading-relaxed text-[11px] text-amber-800 dark:text-amber-200">
+                                <!-- Populated dynamically -->
+                            </p>
+                            <div class="mt-2.5 pt-2 border-t border-amber-500/20 flex items-center gap-2">
+                                <input type="checkbox" id="confirmTransferCheck" onchange="handleTransferConfirmation(this.checked)" class="rounded text-amber-600 focus:ring-amber-500 cursor-pointer" />
+                                <label for="confirmTransferCheck" class="text-[11px] font-semibold text-amber-900 dark:text-amber-200 cursor-pointer select-none">
+                                    @T("أؤكد نقل هذا الطبيب إلى هذا القسم وتحديث جدوله", "I confirm transferring this doctor to this department and updating their schedule.")
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Specialty Selector (Cascaded to THIS Department's sub-specialties) -->
+                <div>
+                    <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1.5">
+                        @T("التخصص الفرعي في هذا القسم", "Sub-Specialty in this Department")
+                    </label>
+                    <select name="specialtyId"
+                            class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-[#F6F7F5] dark:bg-[#151E1B] text-[#202725] dark:text-[#EAEFEA] focus:outline-none focus:ring-1 focus:ring-[#49665A] transition">
+                        <option value="">@T("-- بدون تخصص فرعي (طبيب عام بالقسم) --", "-- General (No Sub-Specialty) --")</option>
+                        @if (Model.Specialties != null)
+                        {
+                            @foreach (var spec in Model.Specialties)
+                            {
+                                <option value="@spec.Id">@spec.Name</option>
+                            }
+                        }
+                    </select>
+                    <p class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] mt-1 mb-0">
+                        @T("تقتصر التخصصات المعروضة على الفروع التابعة لقسم", "Specialties listed strictly belong to") @Model.DepartmentName
+                    </p>
+                </div>
+            </div>
+
+            <!-- Clean action buttons: "Cancel" (closes modal) and "Assign Doctor" -->
+            <div class="px-6 py-3.5 bg-[#F8FAF9] dark:bg-[#161F1C] border-t border-[#DDE3DF] dark:border-[#2B3833] flex items-center justify-end gap-2.5">
+                <button type="button" class="px-4 py-2 text-xs font-semibold rounded-xl border border-[#D5DDD8] dark:border-[#2B3833] bg-transparent text-[#727A76] hover:bg-slate-100 dark:hover:bg-[#202B27] transition" onclick="closeAssignDoctorModal()">
+                    @T("إلغاء", "Cancel")
+                </button>
+                <button type="submit" id="assignDoctorSubmitBtn" class="px-5 py-2 text-xs font-semibold rounded-xl bg-[#49665A] hover:bg-[#3D574D] text-white shadow-xs transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-check text-[10px]"></i>
+                    <span>@T("تعيين الطبيب", "Assign Doctor")</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const targetDeptName = @Html.Raw(JsonSerializer.Serialize(Model.DepartmentName));
+    const isArCulture = @(_isAr ? "true" : "false");
+
+    function handleDoctorSelectionChange(selectEl) {
+        const warningBox = document.getElementById('transferWarningBox');
+        const warningMsg = document.getElementById('transferWarningMessage');
+        const confirmCheck = document.getElementById('confirmTransferCheck');
+        const submitBtn = document.getElementById('assignDoctorSubmitBtn');
+
+        if (!selectEl || !selectEl.value) {
+            if (warningBox) warningBox.classList.add('hidden');
+            if (confirmCheck) confirmCheck.checked = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            return;
+        }
+
+        const selectedOpt = selectEl.options[selectEl.selectedIndex];
+        const isOtherDept = selectedOpt.getAttribute('data-is-other-dept') === 'true';
+        const currentDept = selectedOpt.getAttribute('data-current-dept') || '';
+        const docName = selectedOpt.getAttribute('data-name') || '';
+
+        if (isOtherDept) {
+            if (warningBox) warningBox.classList.remove('hidden');
+            if (warningMsg) {
+                if (isArCulture) {
+                    warningMsg.innerHTML = `⚠️ تنبيه: د. <strong>${docName}</strong> معين حالياً في قسم '<strong>${currentDept}</strong>'. تعيينه هنا سيؤدي لنقله رسمياً إلى قسم '<strong>${targetDeptName}</strong>' وتحديث جدوله.`;
+                } else {
+                    warningMsg.innerHTML = `⚠️ Warning: Dr. <strong>${docName}</strong> is currently assigned to the '<strong>${currentDept}</strong>' department. Assigning them here will transfer them to '<strong>${targetDeptName}</strong>' and update their schedule.`;
+                }
+            }
+            if (confirmCheck) confirmCheck.checked = false;
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        } else {
+            if (warningBox) warningBox.classList.add('hidden');
+            if (confirmCheck) confirmCheck.checked = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+    }
+
+    function handleTransferConfirmation(isChecked) {
+        const submitBtn = document.getElementById('assignDoctorSubmitBtn');
+        if (!submitBtn) return;
+        if (isChecked) {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    function onAssignDoctorSubmit(e) {
+        const selectEl = document.getElementById('assignDoctorSelect');
+        if (!selectEl || !selectEl.value) return true;
+        const selectedOpt = selectEl.options[selectEl.selectedIndex];
+        const isOtherDept = selectedOpt.getAttribute('data-is-other-dept') === 'true';
+        if (isOtherDept) {
+            const confirmCheck = document.getElementById('confirmTransferCheck');
+            if (!confirmCheck || !confirmCheck.checked) {
+                const docName = selectedOpt.getAttribute('data-name') || '';
+                const currentDept = selectedOpt.getAttribute('data-current-dept') || '';
+                const alertText = isArCulture
+                    ? `يرجى تأكيد نقل د. ${docName} من قسم '${currentDept}' إلى '${targetDeptName}' بتحديد مربع التأكيد.`
+                    : `Please confirm transferring Dr. ${docName} from '${currentDept}' to '${targetDeptName}' by checking the confirmation box.`;
+                alert(alertText);
+                if (e) e.preventDefault();
+                return false;
+            }
+        }
+        return true;
+    }
+</script>

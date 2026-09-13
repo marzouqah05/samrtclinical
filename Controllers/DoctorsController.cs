@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -19,11 +20,13 @@ namespace WebApplication1.Controllers
     {
         private readonly ClinicDbContext _context;
         private readonly IDataImportExportService _importExportService;
+        private readonly ILogger<DoctorsController> _logger;
 
-        public DoctorsController(ClinicDbContext context, IDataImportExportService importExportService)
+        public DoctorsController(ClinicDbContext context, IDataImportExportService importExportService, ILogger<DoctorsController> logger)
         {
             _context = context;
             _importExportService = importExportService;
+            _logger = logger;
         }
 
         #region Bulk Import & Export
@@ -287,6 +290,10 @@ namespace WebApplication1.Controllers
 
             try
             {
+                bool isTransfer = dbDoctor.DepartmentId > 0 && dbDoctor.DepartmentId != doctor.DepartmentId;
+                var oldDept = await _context.Departments.FirstOrDefaultAsync(d => d.DepartmentId == dbDoctor.DepartmentId && d.ClinicId == currentClinicId);
+                var newDept = await _context.Departments.FirstOrDefaultAsync(d => d.DepartmentId == doctor.DepartmentId && d.ClinicId == currentClinicId);
+
                 // تحديث القيم يدوياً لضمان عدم حدوث تعارض
                 dbDoctor.DoctorNumber = doctor.DoctorNumber;
                 dbDoctor.DoctorName = doctor.DoctorName;
@@ -298,7 +305,17 @@ namespace WebApplication1.Controllers
                 _context.Update(dbDoctor);
                 await _context.SaveChangesAsync();
 
-                TempData["Success"] = "Doctor updated successfully.";
+                if (isTransfer && newDept != null)
+                {
+                    _logger.LogInformation("Doctor {DoctorId} ({DoctorName}) was transferred from department '{OldDept}' to '{NewDept}'",
+                        dbDoctor.DoctorId, dbDoctor.DoctorName, oldDept?.DepartmentName ?? "None", newDept.DepartmentName);
+                    TempData["Success"] = $"Dr. {dbDoctor.DoctorName} was successfully transferred to {newDept.DepartmentName}.";
+                }
+                else
+                {
+                    TempData["Success"] = "Doctor updated successfully.";
+                }
+
                 return RedirectToAction(nameof(Index));
             }
             catch (DbUpdateConcurrencyException)

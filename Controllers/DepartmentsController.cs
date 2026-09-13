@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -19,11 +20,13 @@ namespace WebApplication1.Controllers
     {
         private readonly ClinicDbContext _context;
         private readonly IDataImportExportService _importExportService;
+        private readonly ILogger<DepartmentsController> _logger;
 
-        public DepartmentsController(ClinicDbContext context, IDataImportExportService importExportService)
+        public DepartmentsController(ClinicDbContext context, IDataImportExportService importExportService, ILogger<DepartmentsController> logger)
         {
             _context = context;
             _importExportService = importExportService;
+            _logger = logger;
         }
 
         #region Bulk Import & Template Download
@@ -220,13 +223,19 @@ namespace WebApplication1.Controllers
             var department = await _context.Departments.FirstOrDefaultAsync(d => d.DepartmentId == departmentId && d.ClinicId == currentClinicId);
             if (department == null) return NotFound();
 
-            var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.DoctorId == doctorId && d.ClinicId == currentClinicId);
+            var doctor = await _context.Doctors
+                .Include(d => d.Department)
+                .FirstOrDefaultAsync(d => d.DoctorId == doctorId && d.ClinicId == currentClinicId);
             if (doctor == null)
             {
                 TempData["Error"] = "Doctor not found.";
                 return RedirectToAction(nameof(Details), new { id = departmentId });
             }
 
+            bool isTransfer = doctor.DepartmentId > 0 && doctor.DepartmentId != departmentId;
+            var oldDeptName = doctor.Department?.DepartmentName;
+
+            // Single Department rule: Doctor can belong to strictly ONE Department at any given time
             doctor.DepartmentId = departmentId;
 
             if (specialtyId.HasValue && specialtyId.Value > 0)
@@ -242,7 +251,19 @@ namespace WebApplication1.Controllers
             _context.Update(doctor);
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = $"Dr. {doctor.DoctorName} has been assigned to {department.DepartmentName} successfully.";
+            if (isTransfer)
+            {
+                _logger.LogInformation("Doctor {DoctorId} ({DoctorName}) was transferred from department '{OldDept}' to '{NewDept}' (DepartmentId: {DepartmentId})",
+                    doctor.DoctorId, doctor.DoctorName, oldDeptName ?? "None", department.DepartmentName, departmentId);
+                TempData["Success"] = $"Dr. {doctor.DoctorName} was successfully transferred to {department.DepartmentName}.";
+            }
+            else
+            {
+                _logger.LogInformation("Doctor {DoctorId} ({DoctorName}) was assigned to department '{NewDept}' (DepartmentId: {DepartmentId})",
+                    doctor.DoctorId, doctor.DoctorName, department.DepartmentName, departmentId);
+                TempData["Success"] = $"Dr. {doctor.DoctorName} has been assigned to {department.DepartmentName} successfully.";
+            }
+
             return RedirectToAction(nameof(Details), new { id = departmentId });
         }
 
