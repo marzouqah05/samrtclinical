@@ -444,22 +444,18 @@
         border: none !important;
     }
 
+    /* Base row styling */
     .fc-list-event {
-        background: #ffffff !important;
-        border-radius: 10px !important;
         margin-bottom: 6px !important;
-        border-left-width: 5px !important; /* Color accent strictly on border */
+        border-radius: 8px !important;
+        border-left-width: 5px !important;
         border-left-style: solid !important;
         border-top: none !important;
         border-right: none !important;
         border-bottom: none !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
-        transition: background-color 0.15s ease, transform 0.15s ease !important;
+        transition: all 0.15s ease-in-out !important;
         cursor: pointer !important;
-    }
-
-    .fc-list-event:hover {
-        background-color: #f8fafc !important;
     }
 
     .fc-list-event td {
@@ -467,9 +463,10 @@
         background: transparent !important;
     }
 
-    .fc-list-event-title, .fc-list-event-time {
-        color: #1e293b !important;
-        font-weight: 500 !important;
+    .fc-list-event-time, 
+    .fc-list-event-title {
+        color: #0f172a !important; /* High-contrast dark slate text */
+        font-weight: 600 !important;
         padding: 10px 14px !important;
     }
 
@@ -482,11 +479,49 @@
         width: 0 !important;
     }
 
-    /* Status-specific subtle borders */
-    .fc-event-confirmed { border-left-color: #3b82f6 !important; }
-    .fc-event-pending { border-left-color: #f59e0b !important; }
-    .fc-event-completed { border-left-color: #10b981 !important; }
-    .fc-event-cancelled { border-left-color: #ef4444 !important; }
+    /* CONFIRMED (Soft Sky Blue) */
+    .fc-list-event.fc-event-confirmed,
+    .fc-list-event[data-status="Confirmed"] {
+        background-color: #eff6ff !important; /* Soft blue tint */
+        border-left-color: #2563eb !important; /* Solid blue */
+    }
+    .fc-list-event.fc-event-confirmed:hover,
+    .fc-list-event[data-status="Confirmed"]:hover {
+        background-color: #dbeafe !important;
+    }
+
+    /* PENDING (Soft Amber / Warning) */
+    .fc-list-event.fc-event-pending,
+    .fc-list-event[data-status="Pending"] {
+        background-color: #fffbeb !important; /* Soft amber tint */
+        border-left-color: #d97706 !important; /* Solid amber */
+    }
+    .fc-list-event.fc-event-pending:hover,
+    .fc-list-event[data-status="Pending"]:hover {
+        background-color: #fef3c7 !important;
+    }
+
+    /* COMPLETED (Soft Emerald Green) */
+    .fc-list-event.fc-event-completed,
+    .fc-list-event[data-status="Completed"] {
+        background-color: #ecfdf5 !important; /* Soft emerald tint */
+        border-left-color: #059669 !important; /* Solid emerald */
+    }
+    .fc-list-event.fc-event-completed:hover,
+    .fc-list-event[data-status="Completed"]:hover {
+        background-color: #d1fae5 !important;
+    }
+
+    /* CANCELLED (Soft Rose Red) */
+    .fc-list-event.fc-event-cancelled,
+    .fc-list-event[data-status="Cancelled"] {
+        background-color: #fef2f2 !important; /* Soft rose tint */
+        border-left-color: #dc2626 !important; /* Solid red */
+    }
+    .fc-list-event.fc-event-cancelled:hover,
+    .fc-list-event[data-status="Cancelled"]:hover {
+        background-color: #fee2e2 !important;
+    }
 
     /* RTL support for list view */
     [dir="rtl"] .fc-list-event,
@@ -495,14 +530,22 @@
         border-right-width: 5px !important;
         border-right-style: solid !important;
     }
-    [dir="rtl"] .fc-event-confirmed,
-    html[dir="rtl"] .fc-event-confirmed { border-right-color: #3b82f6 !important; }
-    [dir="rtl"] .fc-event-pending,
-    html[dir="rtl"] .fc-event-pending { border-right-color: #f59e0b !important; }
-    [dir="rtl"] .fc-event-completed,
-    html[dir="rtl"] .fc-event-completed { border-right-color: #10b981 !important; }
-    [dir="rtl"] .fc-event-cancelled,
-    html[dir="rtl"] .fc-event-cancelled { border-right-color: #ef4444 !important; }
+    [dir="rtl"] .fc-list-event.fc-event-confirmed,
+    [dir="rtl"] .fc-list-event[data-status="Confirmed"],
+    html[dir="rtl"] .fc-list-event.fc-event-confirmed,
+    html[dir="rtl"] .fc-list-event[data-status="Confirmed"] { border-right-color: #2563eb !important; }
+    [dir="rtl"] .fc-list-event.fc-event-pending,
+    [dir="rtl"] .fc-list-event[data-status="Pending"],
+    html[dir="rtl"] .fc-list-event.fc-event-pending,
+    html[dir="rtl"] .fc-list-event[data-status="Pending"] { border-right-color: #d97706 !important; }
+    [dir="rtl"] .fc-list-event.fc-event-completed,
+    [dir="rtl"] .fc-list-event[data-status="Completed"],
+    html[dir="rtl"] .fc-list-event.fc-event-completed,
+    html[dir="rtl"] .fc-list-event[data-status="Completed"] { border-right-color: #059669 !important; }
+    [dir="rtl"] .fc-list-event.fc-event-cancelled,
+    [dir="rtl"] .fc-list-event[data-status="Cancelled"],
+    html[dir="rtl"] .fc-list-event.fc-event-cancelled,
+    html[dir="rtl"] .fc-list-event[data-status="Cancelled"] { border-right-color: #dc2626 !important; }
     .fc-theme-standard td.fc-day-today,
     .fc .fc-daygrid-day.fc-day-today {
         background-color: transparent !important;
@@ -521,6 +564,90 @@
     html.dark .fc td, html.dark .fc th { border-color: #2B3833 !important; }
     html.dark .fc-theme-standard .fc-scrollgrid { border-color: #2B3833 !important; }
     html.dark .cal-legend { color: #9CA8A3 !important; border-top-color: #2B3833 !important; }
+    html.dark .fc-list-day-cushion,
+    [data-bs-theme="dark"] .fc-list-day-cushion {
+        background: #151E1B !important;
+        color: #EAEFEA !important;
+    }
+    html.dark .fc-list-event-time, 
+    html.dark .fc-list-event-title,
+    [data-bs-theme="dark"] .fc-list-event-time, 
+    [data-bs-theme="dark"] .fc-list-event-title {
+        color: #f8fafc !important;
+    }
+
+    html.dark .fc-list-event.fc-event-confirmed,
+    html.dark .fc-list-event[data-status="Confirmed"],
+    [data-bs-theme="dark"] .fc-list-event.fc-event-confirmed,
+    [data-bs-theme="dark"] .fc-list-event[data-status="Confirmed"] {
+        background-color: rgba(37, 99, 235, 0.18) !important;
+        border-left-color: #3b82f6 !important;
+    }
+    html.dark .fc-list-event.fc-event-confirmed:hover,
+    html.dark .fc-list-event[data-status="Confirmed"]:hover,
+    [data-bs-theme="dark"] .fc-list-event.fc-event-confirmed:hover,
+    [data-bs-theme="dark"] .fc-list-event[data-status="Confirmed"]:hover {
+        background-color: rgba(37, 99, 235, 0.28) !important;
+    }
+
+    html.dark .fc-list-event.fc-event-pending,
+    html.dark .fc-list-event[data-status="Pending"],
+    [data-bs-theme="dark"] .fc-list-event.fc-event-pending,
+    [data-bs-theme="dark"] .fc-list-event[data-status="Pending"] {
+        background-color: rgba(217, 119, 6, 0.18) !important;
+        border-left-color: #f59e0b !important;
+    }
+    html.dark .fc-list-event.fc-event-pending:hover,
+    html.dark .fc-list-event[data-status="Pending"]:hover,
+    [data-bs-theme="dark"] .fc-list-event.fc-event-pending:hover,
+    [data-bs-theme="dark"] .fc-list-event[data-status="Pending"]:hover {
+        background-color: rgba(217, 119, 6, 0.28) !important;
+    }
+
+    html.dark .fc-list-event.fc-event-completed,
+    html.dark .fc-list-event[data-status="Completed"],
+    [data-bs-theme="dark"] .fc-list-event.fc-event-completed,
+    [data-bs-theme="dark"] .fc-list-event[data-status="Completed"] {
+        background-color: rgba(5, 150, 105, 0.18) !important;
+        border-left-color: #10b981 !important;
+    }
+    html.dark .fc-list-event.fc-event-completed:hover,
+    html.dark .fc-list-event[data-status="Completed"]:hover,
+    [data-bs-theme="dark"] .fc-list-event.fc-event-completed:hover,
+    [data-bs-theme="dark"] .fc-list-event[data-status="Completed"]:hover {
+        background-color: rgba(5, 150, 105, 0.28) !important;
+    }
+
+    html.dark .fc-list-event.fc-event-cancelled,
+    html.dark .fc-list-event[data-status="Cancelled"],
+    [data-bs-theme="dark"] .fc-list-event.fc-event-cancelled,
+    [data-bs-theme="dark"] .fc-list-event[data-status="Cancelled"] {
+        background-color: rgba(220, 38, 38, 0.18) !important;
+        border-left-color: #ef4444 !important;
+    }
+    html.dark .fc-list-event.fc-event-cancelled:hover,
+    html.dark .fc-list-event[data-status="Cancelled"]:hover,
+    [data-bs-theme="dark"] .fc-list-event.fc-event-cancelled:hover,
+    [data-bs-theme="dark"] .fc-list-event[data-status="Cancelled"]:hover {
+        background-color: rgba(220, 38, 38, 0.28) !important;
+    }
+
+    html.dark [dir="rtl"] .fc-list-event.fc-event-confirmed,
+    html.dark [dir="rtl"] .fc-list-event[data-status="Confirmed"],
+    [data-bs-theme="dark"] [dir="rtl"] .fc-list-event.fc-event-confirmed,
+    [data-bs-theme="dark"] [dir="rtl"] .fc-list-event[data-status="Confirmed"] { border-right-color: #3b82f6 !important; }
+    html.dark [dir="rtl"] .fc-list-event.fc-event-pending,
+    html.dark [dir="rtl"] .fc-list-event[data-status="Pending"],
+    [data-bs-theme="dark"] [dir="rtl"] .fc-list-event.fc-event-pending,
+    [data-bs-theme="dark"] [dir="rtl"] .fc-list-event[data-status="Pending"] { border-right-color: #f59e0b !important; }
+    html.dark [dir="rtl"] .fc-list-event.fc-event-completed,
+    html.dark [dir="rtl"] .fc-list-event[data-status="Completed"],
+    [data-bs-theme="dark"] [dir="rtl"] .fc-list-event.fc-event-completed,
+    [data-bs-theme="dark"] [dir="rtl"] .fc-list-event[data-status="Completed"] { border-right-color: #10b981 !important; }
+    html.dark [dir="rtl"] .fc-list-event.fc-event-cancelled,
+    html.dark [dir="rtl"] .fc-list-event[data-status="Cancelled"],
+    [data-bs-theme="dark"] [dir="rtl"] .fc-list-event.fc-event-cancelled,
+    [data-bs-theme="dark"] [dir="rtl"] .fc-list-event[data-status="Cancelled"] { border-right-color: #ef4444 !important; }
 
     /* ─── Table Card ─── */
     .table-card {
@@ -1612,7 +1739,12 @@
                     return classes;
                 },
                 eventDidMount: function (info) {
-                    if (info.event.extendedProps && info.event.extendedProps.status === 'Cancelled') {
+                    const status = (info.event.extendedProps && info.event.extendedProps.status) ? info.event.extendedProps.status : 'Confirmed';
+                    info.el.setAttribute('data-status', status);
+                    if (status) {
+                        info.el.classList.add('fc-event-' + status.toLowerCase());
+                    }
+                    if (status === 'Cancelled') {
                         info.el.classList.add('event-cancelled');
                     }
                     if (info.event.extendedProps && info.event.extendedProps.isException) {
