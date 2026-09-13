@@ -106,41 +106,29 @@
 }
 
 /* ── 3. Refined List / Agenda items ── */
+.fc-theme-standard .fc-list-day-cushion {
+    background-color: #f8fafc !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+}
+
 .fc-list-table {
     border: none !important;
 }
-.fc-list-event:hover td {
-    background-color: #f1f5f9 !important;
-}
 
-.fc-list-day-cushion {
-    background: #f1f5f9 !important;
-    font-weight: 700 !important;
-    color: #334155 !important;
-    border-radius: 8px !important;
-    padding: 8px 14px !important;
+.fc-list-event {
+    background: transparent !important;
     border: none !important;
 }
 
-/* Base row styling */
-.fc-list-event {
-    background: #ffffff !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 8px !important;
-    margin-bottom: 6px !important;
-    transition: all 0.15s ease-in-out !important;
-    cursor: pointer !important;
+.fc-list-event td {
+    border: none !important;
+    padding: 3px 0 !important;
+    background: transparent !important;
 }
 
-.fc-list-event:hover {
+.fc-list-event:hover td div {
     background-color: #f8fafc !important;
-    border-color: #cbd5e1 !important;
-    transform: translateX(2px);
-}
-
-[dir="rtl"] .fc-list-event:hover,
-html[dir="rtl"] .fc-list-event:hover {
-    transform: translateX(-2px);
 }
 
 .fc-list-event-dot {

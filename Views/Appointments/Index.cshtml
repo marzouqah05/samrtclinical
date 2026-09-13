@@ -435,41 +435,29 @@
     }
 
     /* ─── 3. Refined List / Agenda View Items ─── */
+    .fc-theme-standard .fc-list-day-cushion {
+        background-color: #f8fafc !important;
+        font-weight: 700 !important;
+        color: #1e293b !important;
+    }
+
     .fc-list-table {
         border: none !important;
     }
-    .fc-list-event:hover td {
-        background-color: #f1f5f9 !important;
-    }
 
-    .fc-list-day-cushion {
-        background: #f1f5f9 !important;
-        font-weight: 700 !important;
-        color: #334155 !important;
-        border-radius: 8px !important;
-        padding: 8px 14px !important;
+    .fc-list-event {
+        background: transparent !important;
         border: none !important;
     }
 
-    /* Base row styling */
-    .fc-list-event {
-        background: #ffffff !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 8px !important;
-        margin-bottom: 6px !important;
-        transition: all 0.15s ease-in-out !important;
-        cursor: pointer !important;
+    .fc-list-event td {
+        border: none !important;
+        padding: 3px 0 !important;
+        background: transparent !important;
     }
 
-    .fc-list-event:hover {
+    .fc-list-event:hover td div {
         background-color: #f8fafc !important;
-        border-color: #cbd5e1 !important;
-        transform: translateX(2px);
-    }
-
-    [dir="rtl"] .fc-list-event:hover,
-    html[dir="rtl"] .fc-list-event:hover {
-        transform: translateX(-2px);
     }
 
     .fc-list-event-dot {
@@ -1604,31 +1592,53 @@
                     hideTooltip();
                 },
                 eventContent: function (arg) {
-                    // If it's the Agenda/List view, render with clean text & badge:
                     if (arg.view.type.includes('list')) {
                         const status = (arg.event.extendedProps.status || 'Confirmed').toUpperCase();
                         const title = arg.event.title || 'Appointment';
-                        const timeText = arg.timeText || '';
                         
-                        let colorClass = "bg-blue-100 text-blue-800 border-blue-300";
-                        if (status.includes("PENDING")) colorClass = "bg-amber-100 text-amber-800 border-amber-300";
-                        if (status.includes("COMPLETED")) colorClass = "bg-emerald-100 text-emerald-800 border-emerald-300";
-                        if (status.includes("CANCEL")) colorClass = "bg-rose-100 text-rose-800 border-rose-300";
+                        // Accurate Time Extraction
+                        let timeStr = arg.timeText;
+                        if (!timeStr && arg.event.start) {
+                            timeStr = new Intl.DateTimeFormat('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                            }).format(new Date(arg.event.start));
+                        }
+
+                        // Distinct colors per status
+                        let badgeStyle = "background-color: #dbeafe; color: #1e40af; border-color: #93c5fd;"; // Blue (Confirmed)
+                        let borderLeftColor = "#3b82f6";
+
+                        if (status.includes("PENDING")) {
+                            badgeStyle = "background-color: #fef3c7; color: #92400e; border-color: #fcd34d;"; // Amber (Pending)
+                            borderLeftColor = "#f59e0b";
+                        } else if (status.includes("COMPLETED")) {
+                            badgeStyle = "background-color: #d1fae5; color: #065f46; border-color: #6ee7b7;"; // Green (Completed)
+                            borderLeftColor = "#10b981";
+                        } else if (status.includes("CANCEL")) {
+                            badgeStyle = "background-color: #fee2e2; color: #991b1b; border-color: #fca5a5;"; // Red (Cancelled)
+                            borderLeftColor = "#ef4444";
+                        }
+
+                        const isException = arg.event.extendedProps.isException;
 
                         return {
                             html: `
-                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 6px 12px;">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <span style="font-weight: 700; font-size: 0.85rem; color: #334155;">${timeText}</span>
+                            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 10px 16px; border-left: 5px solid ${borderLeftColor}; border-radius: 8px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin: 2px 0;">
+                                <div style="display: flex; align-items: center; gap: 14px;">
+                                    <span style="font-weight: 700; font-size: 0.82rem; color: #475569; min-width: 85px;">${timeStr}</span>
                                     <span style="font-weight: 600; font-size: 0.95rem; color: #0f172a;">${title}</span>
+                                    ${isException ? '<span style="padding: 1px 6px; font-size: 10px; font-weight: bold; background: #f59e0b; color: #ffffff; border-radius: 4px;">Exc</span>' : ''}
                                 </div>
-                                <span style="padding: 2px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; border: 1px solid;" class="${colorClass}">
-                                    ${status}
-                                </span>
+                                <div>
+                                    <span style="padding: 4px 12px; border-radius: 9999px; font-size: 0.72rem; font-weight: 800; border: 1px solid; letter-spacing: 0.05em; ${badgeStyle}">
+                                        ${status}
+                                    </span>
+                                </div>
                             </div>`
                         };
                     }
-                    // Return null for Month, Week, Day so FullCalendar uses its native, working title/time layout!
                     return null;
                 },
                 eventClassNames: function (arg) {
