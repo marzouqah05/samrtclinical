@@ -415,23 +415,48 @@
         overflow: visible !important;
     }
 
-    /* Month view events */
+    /* Ensure Month view events display as full visible pill cards */
     .fc-daygrid-event {
+        display: flex !important;
+        align-items: center !important;
+        height: auto !important;
+        min-height: 24px !important;
         padding: 2px 6px !important;
+        margin-bottom: 2px !important;
         border-radius: 4px !important;
-        margin-top: 2px !important;
+        border: none !important;
+        cursor: pointer !important;
     }
 
-    .fc .fc-daygrid-event-dot {
-        border-color: #ffffff !important;
-        background-color: #ffffff !important;
-        margin-inline-end: 6px !important;
-        margin-inline-start: 2px !important;
-        width: 6px !important;
-        height: 6px !important;
-        border-radius: 50% !important;
+    /* Ensure the title and time text are visible and not clipped */
+    .fc-daygrid-event .fc-event-main,
+    .fc-daygrid-event .fc-event-title,
+    .fc-daygrid-event .fc-event-time {
         display: inline-block !important;
-        vertical-align: middle !important;
+        color: #ffffff !important;
+        font-size: 0.75rem !important;
+        font-weight: 600 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    /* Explicit status colors */
+    .fc-daygrid-event.fc-event-confirmed,
+    .fc-daygrid-event[data-status="Confirmed"] {
+        background-color: #2563eb !important; /* Solid Blue */
+    }
+    .fc-daygrid-event.fc-event-pending,
+    .fc-daygrid-event[data-status="Pending"] {
+        background-color: #d97706 !important; /* Solid Amber */
+    }
+    .fc-daygrid-event.fc-event-completed,
+    .fc-daygrid-event[data-status="Completed"] {
+        background-color: #059669 !important; /* Solid Emerald */
+    }
+    .fc-daygrid-event.fc-event-cancelled,
+    .fc-daygrid-event[data-status="Cancelled"] {
+        background-color: #dc2626 !important; /* Solid Red */
     }
 
     /* ─── 3. Refined List / Agenda View Items ─── */
@@ -1581,7 +1606,14 @@
                 nowIndicator: true,
                 navLinks: true,
                 dayMaxEvents: 3,
+                eventDisplay: 'block',
                 events: calEventsUrl(),
+                eventDidMount: function (info) {
+                    var st = (info.event.extendedProps && info.event.extendedProps.status) ? info.event.extendedProps.status : info.event.status;
+                    if (st) {
+                        info.el.setAttribute('data-status', st);
+                    }
+                },
                 eventClick: function (info) {
                     openEventPanel(info.event);
                 },

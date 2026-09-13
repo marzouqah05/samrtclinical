@@ -359,6 +359,15 @@ namespace WebApplication1.Controllers
                 var deptName = a.Department?.DepartmentName ?? a.Doctor?.Department?.DepartmentName ?? "";
                 var refDocName = a.ReferredByDoctor != null ? (a.ReferredByDoctor.DoctorName.StartsWith("Dr.", StringComparison.OrdinalIgnoreCase) || a.ReferredByDoctor.DoctorName.StartsWith("د.", StringComparison.OrdinalIgnoreCase) ? a.ReferredByDoctor.DoctorName : $"Dr. {a.ReferredByDoctor.DoctorName}") : null;
 
+                var statusClass = a.Status switch
+                {
+                    "Confirmed" => "event-confirmed fc-event-confirmed",
+                    "Completed" => "event-completed fc-event-completed",
+                    "Pending"   => "event-pending fc-event-pending",
+                    "Cancelled" => "event-cancelled fc-event-cancelled",
+                    _           => "event-confirmed fc-event-confirmed"
+                };
+
                 return new
                 {
                     id          = a.AppointmentId,
@@ -367,7 +376,7 @@ namespace WebApplication1.Controllers
                     end         = endDt.ToString("yyyy-MM-ddTHH:mm:ss"),
                     status      = a.Status,
                     color,
-                    className   = (a.Status == "Cancelled" ? "event-cancelled " : "") + (isExc ? "event-exception" : ""),
+                    className   = $"{statusClass} {(isExc ? "event-exception" : "")}".Trim(),
                     extendedProps = new
                     {
                         status             = a.Status,
