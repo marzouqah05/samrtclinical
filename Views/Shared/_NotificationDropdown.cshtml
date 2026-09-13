@@ -1,0 +1,632 @@
+@using System.Globalization
+@using WebApplication1.Services
+@{
+    var _culture = CultureInfo.CurrentCulture;
+    var _isAr = _culture.TwoLetterISOLanguageName == "ar";
+    Func<string, string, string> T = (ar, en) => _isAr ? ar : en;
+    var canSeeNotifications = User.Identity != null && User.Identity.IsAuthenticated &&
+                              (User.IsInRole("Receptionist") || User.IsInRole("Admin") || User.IsOwner());
+}
+
+@if (canSeeNotifications)
+{
+    @* ── Notification Bell Container ────────────────────────── *@
+    <div class="relative" id="cf-notification-container">
+        <!-- Notification Bell Button -->
+        <button id="cf-notification-bell-btn" type="button" onclick="toggleNotificationDropdown(event)"
+                class="relative p-2 rounded-lg border border-[#DDE3DF] dark:border-[#2B3833] text-[#727A76] dark:text-[#9CA8A3] hover:bg-gray-100 dark:hover:bg-[#151E1B] transition hover:text-[#202725] dark:hover:text-[#EAEFEA]"
+                title="@T("الإشعارات المعلقة والإحالات", "Pending Notifications & Referrals")"
+                aria-label="@T("الإشعارات", "Notifications")">
+            <i class="fa-solid fa-bell text-sm"></i>
+            <span id="cf-notification-badge"
+                  class="hidden absolute -top-1.5 -end-1.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white font-bold text-[10px] rounded-full flex items-center justify-center shadow-md animate-pulse">
+                0
+            </span>
+        </button>
+
+        <!-- Dropdown Card -->
+        <div id="cf-notification-dropdown"
+             class="hidden absolute top-full mt-2 end-0 w-84 sm:w-96 bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl shadow-2xl z-50 overflow-hidden text-start">
+            
+            <!-- Dropdown Header -->
+            <div class="p-3.5 border-b border-[#DDE3DF] dark:border-[#2B3833] flex items-center justify-between bg-[#F6F7F5] dark:bg-[#151E1B]">
+                <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-lg bg-[#49665A]/10 dark:bg-[#49665A]/20 text-[#49665A] dark:text-emerald-400 flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-bell"></i>
+                    </span>
+                    <div>
+                        <h4 class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA] m-0">@T("إشعارات الاستقبال والمواعيد", "Reception & Appointments")</h4>
+                        <p class="text-[10px] text-[#727A76] dark:text-[#9CA8A3] m-0" id="cf-notification-summary">@T("جاري التحميل...", "Loading...")</p>
+                    </div>
+                </div>
+                <button type="button" onclick="markAllNotificationsAsRead()"
+                        class="text-[11px] font-semibold text-[#49665A] dark:text-emerald-400 hover:underline cursor-pointer">
+                    @T("تحديد الكل كمقروء", "Mark all read")
+                </button>
+            </div>
+
+            <!-- Items List Scroll Area -->
+            <div id="cf-notification-items-list" class="max-h-88 overflow-y-auto divide-y divide-[#DDE3DF] dark:divide-[#2B3833]">
+                <!-- Dynamic Items will be rendered here by JavaScript -->
+                <div class="p-6 text-center text-xs text-[#727A76] dark:text-[#9CA8A3]">
+                    <i class="fa-regular fa-bell-slash text-2xl mb-2 opacity-50 block"></i>
+                    @T("لا توجد إشعارات معلقة حالياً", "No pending notifications or referrals")
+                </div>
+            </div>
+
+            <!-- Dropdown Footer -->
+            <div class="p-2.5 bg-[#F6F7F5] dark:bg-[#151E1B] border-t border-[#DDE3DF] dark:border-[#2B3833] text-center">
+                <a href="/Appointments" class="text-xs font-semibold text-[#49665A] dark:text-emerald-400 hover:underline inline-flex items-center gap-1">
+                    <span>@T("عرض جدول المواعيد الكامل", "Open Full Schedule")</span>
+                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @* ── Modal 1: Interactive Review & Confirm Appointment Modal ─────────── *@
+    <div id="reviewConfirmAppointmentModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 items-center justify-center p-4 hidden flex" style="display:none;">
+        <div class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div class="flex items-start justify-between border-b border-[#DDE3DF] dark:border-[#2B3833] pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm font-bold">
+                        <i class="fa-regular fa-calendar-check"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA] m-0">@T("مراجعة وتأكيد طلب الحجز", "Review & Confirm Appointment")</h3>
+                        <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0">@T("طلب حجز موعد محال من الطبيب", "Doctor Booking Request")</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeReviewConfirmModal()" class="text-[#727A76] hover:text-[#202725] dark:hover:text-[#EAEFEA] text-lg font-bold">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-4 bg-[#F6F7F5] dark:bg-[#151E1B] rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] space-y-2.5 text-xs text-start">
+                <div class="flex items-center justify-between">
+                    <span class="text-[#727A76] dark:text-[#9CA8A3]">@T("المريض:", "Patient:")</span>
+                    <span id="rc-patientName" class="font-bold text-[#202725] dark:text-[#EAEFEA]">—</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-[#727A76] dark:text-[#9CA8A3]">@T("الطبيب المعالج:", "Doctor:")</span>
+                    <span id="rc-doctorName" class="font-bold text-amber-600 dark:text-amber-400">—</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-[#727A76] dark:text-[#9CA8A3]">@T("الوقت والتاريخ:", "Time & Date:")</span>
+                    <span id="rc-timeDate" class="font-semibold text-[#202725] dark:text-[#EAEFEA]">—</span>
+                </div>
+                <div id="rc-notes-box" class="pt-1.5 border-t border-[#DDE3DF] dark:border-[#2B3833]" style="display:none;">
+                    <span class="text-[#727A76] dark:text-[#9CA8A3] block mb-0.5">@T("ملاحظات الطبيب:", "Doctor Notes:")</span>
+                    <p id="rc-notes" class="text-[11px] text-[#202725] dark:text-[#EAEFEA] italic m-0 bg-white/60 dark:bg-[#121A17] p-2 rounded-lg"></p>
+                </div>
+            </div>
+
+            <input type="hidden" id="rc-appointmentId" />
+
+            <div class="flex items-center justify-between gap-2 pt-2 border-t border-[#DDE3DF] dark:border-[#2B3833]">
+                <a id="rc-details-link" href="#" class="px-3 py-2 text-xs font-semibold text-[#727A76] dark:text-[#9CA8A3] hover:text-[#202725] dark:hover:text-[#EAEFEA] hover:underline flex items-center gap-1">
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    <span>@T("فتح التفاصيل", "Full Details")</span>
+                </a>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeReviewConfirmModal()"
+                            class="px-4 py-2 border border-[#DDE3DF] dark:border-[#2B3833] bg-transparent hover:bg-gray-100 dark:hover:bg-[#121A17] text-[#727A76] dark:text-[#EAEFEA] text-xs font-semibold rounded-xl transition">
+                        @T("إلغاء", "Cancel")
+                    </button>
+                    <button type="button" id="rc-confirm-btn" onclick="executeAppointmentConfirmation()"
+                            class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-check"></i>
+                        <span>@T("تأكيد الموعد الآن", "Confirm Appointment")</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ── Modal 2: Interactive Referral Booking Modal for Receptionist ─────────── *@
+    <div id="receptionBookingModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 items-center justify-center p-4 hidden flex" style="display:none;">
+        <div class="bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div class="flex items-start justify-between border-b border-[#DDE3DF] dark:border-[#2B3833] pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm font-bold">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-[#202725] dark:text-[#EAEFEA] m-0">@T("حجز موعد سريري فوري", "Confirm / Book Slot")</h3>
+                        <p class="text-xs text-[#727A76] dark:text-[#9CA8A3] m-0">@T("جدولة موعد الإحالة أو المتابعة الطبية", "Schedule referral or follow-up slot")</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeReceptionBookingModal()" class="text-[#727A76] hover:text-[#202725] dark:hover:text-[#EAEFEA] text-lg font-bold">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="receptionBookingForm" onsubmit="submitReceptionBooking(event)" class="space-y-3.5 text-start">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="rb-patientId" name="patientId" />
+                <input type="hidden" id="rb-referralId" name="referralId" />
+                <input type="hidden" id="rb-notificationId" name="notificationId" />
+
+                <!-- Patient & Department Badges -->
+                <div class="p-3 bg-[#F6F7F5] dark:bg-[#151E1B] rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] space-y-1.5">
+                    <div class="text-xs flex items-center justify-between">
+                        <span class="text-[#727A76] dark:text-[#9CA8A3]">@T("المريض:", "Patient:")</span>
+                        <span id="rb-patientName" class="font-bold text-[#202725] dark:text-[#EAEFEA]">—</span>
+                    </div>
+                    <div class="text-xs flex items-center justify-between">
+                        <span class="text-[#727A76] dark:text-[#9CA8A3]">@T("القسم المستهدف:", "Target Dept:")</span>
+                        <span id="rb-deptName" class="font-bold text-emerald-600 dark:text-emerald-400">—</span>
+                    </div>
+                </div>
+
+                <!-- Select Doctor -->
+                <div>
+                    <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                        @T("الطبيب المعالج", "Select Doctor") *
+                    </label>
+                    <select id="rb-doctorId" name="doctorId" required
+                            class="w-full px-3 py-2 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-white dark:bg-[#121A17] text-[#202725] dark:text-[#EAEFEA] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]">
+                        <option value="">@T("اختر الطبيب...", "Select Doctor...")</option>
+                    </select>
+                </div>
+
+                <!-- Date & Time Grid -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                            @T("تاريخ الموعد", "Date") *
+                        </label>
+                        <input type="date" id="rb-date" name="appointmentDate" required
+                               min="@DateTime.Today.ToString("yyyy-MM-dd")"
+                               value="@DateTime.Today.ToString("yyyy-MM-dd")"
+                               class="w-full px-3 py-2 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-white dark:bg-[#121A17] text-[#202725] dark:text-[#EAEFEA] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                            @T("وقت الموعد", "Time") *
+                        </label>
+                        <input type="time" id="rb-time" name="appointmentTime" required
+                               value="10:00"
+                               class="w-full px-3 py-2 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-white dark:bg-[#121A17] text-[#202725] dark:text-[#EAEFEA] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]" />
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div>
+                    <label class="block text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] mb-1">
+                        @T("ملاحظات الموعد", "Notes")
+                    </label>
+                    <input type="text" id="rb-notes" name="notes"
+                           placeholder="@T("ملاحظات إضافية لحجز الموعد...", "Optional booking notes...")"
+                           class="w-full px-3 py-2 rounded-xl border border-[#DDE3DF] dark:border-[#2B3833] bg-white dark:bg-[#121A17] text-[#202725] dark:text-[#EAEFEA] text-xs focus:outline-none focus:ring-1 focus:ring-[#49665A]" />
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-[#DDE3DF] dark:border-[#2B3833]">
+                    <button type="button" onclick="closeReceptionBookingModal()"
+                            class="px-4 py-2 border border-[#DDE3DF] dark:border-[#2B3833] bg-transparent hover:bg-gray-100 dark:hover:bg-[#121A17] text-[#727A76] dark:text-[#EAEFEA] text-xs font-semibold rounded-xl transition">
+                        @T("إلغاء", "Cancel")
+                    </button>
+                    <button type="submit" id="rb-submit-btn"
+                            class="px-5 py-2 bg-[#49665A] hover:bg-[#3D574D] text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-check"></i>
+                        <span>@T("تأكيد وحجز الموعد", "Confirm & Book Slot")</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @* ── JavaScript Engine for Notification Bell & Dropdown ─────── *@
+    <script>
+        let isNotificationDropdownOpen = false;
+
+        function toggleNotificationDropdown(event) {
+            if (event) event.stopPropagation();
+            const dropdown = document.getElementById('cf-notification-dropdown');
+            if (!dropdown) return;
+
+            isNotificationDropdownOpen = !isNotificationDropdownOpen;
+            if (isNotificationDropdownOpen) {
+                dropdown.classList.remove('hidden');
+                fetchPendingNotifications();
+            } else {
+                dropdown.classList.add('hidden');
+            }
+        }
+
+        document.addEventListener('click', function(event) {
+            const container = document.getElementById('cf-notification-container');
+            const dropdown = document.getElementById('cf-notification-dropdown');
+            if (container && dropdown && !container.contains(event.target)) {
+                dropdown.classList.add('hidden');
+                isNotificationDropdownOpen = false;
+            }
+        });
+
+        async function fetchPendingNotifications() {
+            try {
+                const res = await fetch('/Notifications/GetPending');
+                if (!res.ok) return;
+                const data = await res.json();
+                renderNotificationsUI(data);
+            } catch (err) {
+                console.error('[NotificationBell] Error fetching pending:', err);
+            }
+        }
+
+        function renderNotificationsUI(data) {
+            const badge = document.getElementById('cf-notification-badge');
+            const summary = document.getElementById('cf-notification-summary');
+            const list = document.getElementById('cf-notification-items-list');
+            if (!badge || !list) return;
+
+            const isAr = document.documentElement.getAttribute('dir') === 'rtl';
+
+            // 1. Update Badge
+            if (data.count > 0) {
+                badge.textContent = data.count > 99 ? '99+' : data.count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+
+            // 2. Update Summary
+            if (summary) {
+                const refCount = data.pendingReferrals || 0;
+                const apptCount = data.pendingAppointments || 0;
+                const refText = isAr ? `${refCount} إحالة معلقة` : `${refCount} pending referrals`;
+                const apptText = isAr ? `${apptCount} موعد معلق` : `${apptCount} pending appts`;
+                summary.textContent = `${refText} · ${apptText}`;
+            }
+
+            // 3. Check for Items
+            const hasItems = data.items && data.items.length > 0;
+            if (!hasItems) {
+                list.innerHTML = `
+                    <div class="p-6 text-center text-xs text-[#727A76] dark:text-[#9CA8A3]">
+                        <i class="fa-regular fa-bell-slash text-2xl mb-2 opacity-50 block"></i>
+                        ${isAr ? 'لا توجد إشعارات معلقة حالياً' : 'No pending notifications or referrals'}
+                    </div>`;
+                return;
+            }
+
+            // 4. Render Items (Pending Appointments, Unresolved Referrals, Unread Notifications)
+            let html = '';
+            data.items.forEach(item => {
+                if (item.type === 'Appointment') {
+                    // Pending Doctor Appointment Item
+                    html += `
+                        <div id="notif-appt-${item.appointmentId}" class="p-3.5 hover:bg-[#FDF6EC]/40 dark:hover:bg-[#201D16]/40 transition-colors space-y-2 text-start">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <span class="w-6 h-6 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs shrink-0">
+                                        <i class="fa-regular fa-calendar-check"></i>
+                                    </span>
+                                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 truncate">
+                                        ${isAr ? 'طلب حجز موعد' : 'Doctor Booking Request'}
+                                    </span>
+                                </div>
+                                <span class="text-[10px] text-[#727A76] dark:text-[#9CA8A3] shrink-0 flex items-center gap-1">
+                                    <i class="fa-regular fa-clock text-[9px]"></i>
+                                    <span>${escapeHtml(item.timeAgo)}</span>
+                                </span>
+                            </div>
+
+                            <div class="p-2.5 rounded-xl bg-white dark:bg-[#121A17] border border-[#DDE3DF]/80 dark:border-[#2B3833]/80 space-y-1.5 text-xs">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[#727A76] dark:text-[#9CA8A3]">${isAr ? 'المريض:' : 'Patient:'}</span>
+                                    <span class="font-bold text-[#202725] dark:text-[#EAEFEA]">${escapeHtml(item.patientName)}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[#727A76] dark:text-[#9CA8A3]">${isAr ? 'الطبيب:' : 'Doctor:'}</span>
+                                    <span class="font-medium text-[#202725] dark:text-[#EAEFEA]">${escapeHtml(item.doctorName)}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[#727A76] dark:text-[#9CA8A3]">${isAr ? 'الوقت والتاريخ:' : 'Time:'}</span>
+                                    <span class="font-bold text-amber-600 dark:text-amber-400">${item.time} ${item.date ? `(${item.date})` : ''}</span>
+                                </div>
+                                ${item.notes ? `
+                                    <div class="pt-1 border-t border-[#DDE3DF]/40 dark:border-[#2B3833]/40">
+                                        <p class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] italic m-0 line-clamp-2">
+                                            <span class="font-semibold">${isAr ? 'ملاحظة:' : 'Note:'}</span> ${escapeHtml(item.notes)}
+                                        </p>
+                                    </div>` : ''}
+                            </div>
+
+                            <!-- Quick Action Button -->
+                            <div class="flex items-center justify-end gap-2 pt-1">
+                                <a href="/Appointments/Details/${item.appointmentId}"
+                                   class="px-2.5 py-1 text-[11px] font-medium text-[#727A76] hover:text-[#202725] dark:text-[#9CA8A3] dark:hover:text-[#EAEFEA] hover:underline inline-flex items-center gap-1">
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                    <span>${isAr ? 'التفاصيل' : 'Details'}</span>
+                                </a>
+                                <button type="button"
+                                        onclick="openReviewConfirmModal(${item.appointmentId}, '${escapeJs(item.patientName)}', '${escapeJs(item.doctorName)}', '${escapeJs(item.time)}', '${escapeJs(item.date || '')}', '${escapeJs(item.notes || '')}')"
+                                        class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                                    <i class="fa-solid fa-check text-[11px]"></i>
+                                    <span>${isAr ? 'مراجعة وتأكيد' : 'Review & Confirm'}</span>
+                                </button>
+                            </div>
+                        </div>`;
+                } else if (item.type === 'Referral') {
+                    // Unresolved Referral Item
+                    html += `
+                        <div id="notif-ref-${item.id}" class="p-3.5 hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] transition-colors space-y-2 text-start">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <span class="w-6 h-6 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs shrink-0">
+                                        <i class="fa-solid fa-share-from-square"></i>
+                                    </span>
+                                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 truncate">
+                                        ${isAr ? 'إحالة سريرية داخلية' : 'Internal Referral'}
+                                    </span>
+                                </div>
+                                <span class="text-[10px] text-[#727A76] dark:text-[#9CA8A3] shrink-0 flex items-center gap-1">
+                                    <i class="fa-regular fa-clock text-[9px]"></i>
+                                    <span>${escapeHtml(item.timeAgo)}</span>
+                                </span>
+                            </div>
+
+                            <div class="p-2.5 rounded-xl bg-white dark:bg-[#121A17] border border-[#DDE3DF]/80 dark:border-[#2B3833]/80 space-y-1.5 text-xs">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[#727A76] dark:text-[#9CA8A3]">${isAr ? 'المريض:' : 'Patient:'}</span>
+                                    <span class="font-bold text-[#202725] dark:text-[#EAEFEA]">${escapeHtml(item.patientName)}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[#727A76] dark:text-[#9CA8A3]">${isAr ? 'من الطبيب:' : 'From:'}</span>
+                                    <span class="font-medium text-[#202725] dark:text-[#EAEFEA]">${escapeHtml(item.doctorName)}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[#727A76] dark:text-[#9CA8A3]">${isAr ? 'القسم المستهدف:' : 'Target Dept:'}</span>
+                                    <span class="font-semibold text-emerald-600 dark:text-emerald-400">${escapeHtml(item.departmentName || '—')}</span>
+                                </div>
+                                ${item.notes ? `
+                                    <div class="pt-1 border-t border-[#DDE3DF]/40 dark:border-[#2B3833]/40">
+                                        <p class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] italic m-0 line-clamp-2">
+                                            <span class="font-semibold">${isAr ? 'السبب:' : 'Reason:'}</span> ${escapeHtml(item.notes)}
+                                        </p>
+                                    </div>` : ''}
+                            </div>
+
+                            <div class="flex items-center justify-end gap-1.5 pt-1">
+                                <button type="button"
+                                        onclick="openReceptionBookingModalFromNotif(${item.id}, ${item.patientId || 0}, '${escapeJs(item.patientName || '')}', ${item.targetDepartmentId || 0}, '${escapeJs(item.departmentName || '')}', ${item.targetDoctorId || 0}, ${item.referralId || item.id})"
+                                        class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#49665A] hover:bg-[#3D574D] text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                                    <i class="fa-solid fa-calendar-plus text-[11px]"></i>
+                                    <span>${isAr ? 'تأكيد / حجز موعد' : 'Confirm / Book Slot'}</span>
+                                </button>
+                            </div>
+                        </div>`;
+                } else {
+                    // Generic Notification Item
+                    html += `
+                        <div id="notif-item-${item.id}" class="p-3.5 hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] transition-colors space-y-2 text-start">
+                            <div class="flex items-start gap-2.5">
+                                <div class="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0 mt-0.5 text-xs text-blue-500">
+                                    <i class="fa-solid fa-bell"></i>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-xs font-semibold text-[#202725] dark:text-[#EAEFEA] leading-snug m-0">
+                                        ${escapeHtml(item.message)}
+                                    </p>
+                                    <span class="text-[10px] text-[#727A76] dark:text-[#9CA8A3] flex items-center gap-1 mt-1">
+                                        <i class="fa-regular fa-clock text-[9px]"></i>
+                                        <span>${item.timeAgo}</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-end gap-1.5 pt-1">
+                                <button type="button"
+                                        onclick="dismissNotification(${item.id})"
+                                        class="px-2.5 py-1 rounded-lg text-[11px] font-medium text-[#727A76] hover:text-rose-600 dark:text-[#9CA8A3] dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition flex items-center gap-1">
+                                    <i class="fa-solid fa-check-double text-[10px]"></i>
+                                    <span>${isAr ? 'تحديد كمقروء' : 'Dismiss'}</span>
+                                </button>
+                            </div>
+                        </div>`;
+                }
+            });
+
+            list.innerHTML = html;
+        }
+
+        // Modal: Review & Confirm Appointment Handlers
+        function openReviewConfirmModal(appointmentId, patientName, doctorName, time, date, notes) {
+            document.getElementById('rc-appointmentId').value = appointmentId;
+            document.getElementById('rc-patientName').textContent = patientName || '—';
+            document.getElementById('rc-doctorName').textContent = doctorName || '—';
+            document.getElementById('rc-timeDate').textContent = `${time || ''} ${date ? '(' + date + ')' : ''}`;
+            
+            const notesBox = document.getElementById('rc-notes-box');
+            const notesEl = document.getElementById('rc-notes');
+            if (notes && notes.trim().length > 0) {
+                notesEl.textContent = notes;
+                notesBox.style.display = 'block';
+            } else {
+                notesBox.style.display = 'none';
+            }
+
+            const detailsLink = document.getElementById('rc-details-link');
+            if (detailsLink) {
+                detailsLink.href = `/Appointments/Details/${appointmentId}`;
+            }
+
+            const modal = document.getElementById('reviewConfirmAppointmentModal');
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closeReviewConfirmModal() {
+            const modal = document.getElementById('reviewConfirmAppointmentModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function executeAppointmentConfirmation() {
+            const appointmentId = document.getElementById('rc-appointmentId').value;
+            if (!appointmentId) return;
+
+            const btn = document.getElementById('rc-confirm-btn');
+            if (btn) btn.disabled = true;
+
+            try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+                const form = new FormData();
+                form.append('__RequestVerificationToken', token);
+                form.append('id', appointmentId);
+
+                const res = await fetch(`/Notifications/ConfirmAppointment/${appointmentId}`, {
+                    method: 'POST',
+                    body: form
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    closeReviewConfirmModal();
+                    fetchPendingNotifications();
+                    if (typeof showToast === 'function') {
+                        showToast(data.message || 'Appointment confirmed successfully!');
+                    } else {
+                        alert(data.message || 'Appointment confirmed successfully!');
+                    }
+                } else {
+                    alert(data.message || 'Could not confirm appointment.');
+                }
+            } catch (err) {
+                console.error('[ConfirmAppointment] Error:', err);
+                alert('An error occurred while confirming appointment.');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        async function dismissNotification(id) {
+            try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+                const form = new FormData();
+                form.append('__RequestVerificationToken', token);
+
+                const res = await fetch(`/Notifications/Dismiss/${id}`, {
+                    method: 'POST',
+                    body: form
+                });
+
+                if (res.ok) {
+                    const el = document.getElementById(`notif-item-${id}`);
+                    if (el) {
+                        el.style.opacity = '0';
+                        setTimeout(() => {
+                            el.remove();
+                            fetchPendingNotifications();
+                        }, 200);
+                    }
+                }
+            } catch (err) {
+                console.error('[NotificationBell] Dismiss error:', err);
+            }
+        }
+
+        async function markAllNotificationsAsRead() {
+            try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+                const form = new FormData();
+                form.append('__RequestVerificationToken', token);
+
+                const res = await fetch('/Notifications/MarkAllAsRead', {
+                    method: 'POST',
+                    body: form
+                });
+
+                if (res.ok) {
+                    fetchPendingNotifications();
+                }
+            } catch (err) {
+                console.error('[NotificationBell] Mark all read error:', err);
+            }
+        }
+
+        async function openReceptionBookingModalFromNotif(notifId, patientId, patientName, deptId, deptName, docId, referralId) {
+            document.getElementById('rb-notificationId').value = notifId || '';
+            document.getElementById('rb-patientId').value = patientId || '';
+            document.getElementById('rb-referralId').value = referralId || '';
+            document.getElementById('rb-patientName').textContent = patientName || 'Patient';
+            document.getElementById('rb-deptName').textContent = deptName || 'General Practice';
+
+            // Load doctors for this department
+            const docSelect = document.getElementById('rb-doctorId');
+            docSelect.innerHTML = '<option value="">Loading doctors...</option>';
+
+            try {
+                const url = deptId > 0 ? `/Referrals/GetDoctorsByDepartment?departmentId=${deptId}` : '/Referrals/GetDoctorsByDepartment?departmentId=0';
+                const res = await fetch(url);
+                const docs = await res.json();
+
+                docSelect.innerHTML = '<option value="">Select Doctor...</option>';
+                docs.forEach(d => {
+                    const isSelected = (docId > 0 && d.id === docId) ? 'selected' : '';
+                    docSelect.innerHTML += `<option value="${d.id}" ${isSelected}>${escapeHtml(d.name)}</option>`;
+                });
+            } catch (e) {
+                docSelect.innerHTML = '<option value="">Select Doctor...</option>';
+            }
+
+            const modal = document.getElementById('receptionBookingModal');
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closeReceptionBookingModal() {
+            const modal = document.getElementById('receptionBookingModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function submitReceptionBooking(event) {
+            event.preventDefault();
+            const btn = document.getElementById('rb-submit-btn');
+            if (btn) btn.disabled = true;
+
+            const form = document.getElementById('receptionBookingForm');
+            const formData = new FormData(form);
+
+            try {
+                const res = await fetch('/Notifications/BookSlot', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    closeReceptionBookingModal();
+                    fetchPendingNotifications();
+                    if (typeof showToast === 'function') {
+                        showToast(data.message || 'Appointment booked successfully!');
+                    } else {
+                        alert(data.message || 'Appointment booked successfully!');
+                    }
+                } else {
+                    alert(data.message || 'Could not schedule appointment.');
+                }
+            } catch (err) {
+                console.error('[BookingSlot] Error:', err);
+                alert('An error occurred while booking.');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function escapeJs(str) {
+            if (!str) return '';
+            return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+
+        // Initialize polling every 20 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchPendingNotifications();
+            setInterval(fetchPendingNotifications, 20000);
+        });
+    </script>
+}

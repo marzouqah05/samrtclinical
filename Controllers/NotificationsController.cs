@@ -27,93 +27,169 @@ namespace WebApplication1.Controllers
         {
             var currentClinicId = User.GetClinicId();
 
-            // 1. Fetch unread notifications
-            var notifQuery = _context.Notifications
-                .Where(n => !n.IsRead)
-                .AsQueryable();
+            // 1. Fetch unconfirmed doctor appointments (Status == Pending or Pending Confirmation)
+            var pendingApptsQuery = _context.Appointments
+                .Include(a => a.Patient)
+                .Include(a => a.Doctor)
+                .Where(a => (a.Status == "Pending" || a.Status == "Pending Confirmation" || a.Status == AppointmentStatus.Pending) &&
+                            (currentClinicId == Guid.Empty || a.ClinicId == currentClinicId));
 
-            if (currentClinicId != Guid.Empty && !User.IsSuperAdmin())
-            {
-                notifQuery = notifQuery.Where(n => n.ClinicId == currentClinicId);
-            }
+            var pendingAppointments = await pendingApptsQuery
+                .OrderBy(a => a.AppointmentDate)
+                .ThenBy(a => a.AppointmentTime)
+                .Take(25)
+                .ToListAsync();
+
+            var pendingApptsCount = await _context.Appointments
+                .Where(a => (a.Status == "Pending" || a.Status == "Pending Confirmation" || a.Status == AppointmentStatus.Pending) &&
+                            (currentClinicId == Guid.Empty || a.ClinicId == currentClinicId))
+                .CountAsync();
+
+            // 2. Fetch unresolved referrals (Status == Pending)
+            var pendingReferralsQuery = _context.ReferralRequests
+                .Include(r => r.Patient)
+                .Include(r => r.FromDoctor)
+                .Include(r => r.TargetDepartment)
+                .Include(r => r.TargetDoctor)
+                .Where(r => r.Status == ReferralStatus.Pending &&
+                            (currentClinicId == Guid.Empty || r.ClinicId == currentClinicId));
+
+            var pendingReferrals = await pendingReferralsQuery
+                .OrderByDescending(r => r.CreatedAt)
+                .Take(25)
+                .ToListAsync();
+
+            var pendingReferralsCount = await _context.ReferralRequests
+                .Where(r => r.Status == ReferralStatus.Pending &&
+                            (currentClinicId == Guid.Empty || r.ClinicId == currentClinicId))
+                .CountAsync();
+
+            // 3. Fetch unread notifications
+            var notifQuery = _context.Notifications
+                .Where(n => !n.IsRead && (currentClinicId == Guid.Empty || n.ClinicId == currentClinicId));
 
             var notifications = await notifQuery
                 .OrderByDescending(n => n.CreatedAt)
                 .Take(25)
-                .Select(n => new
-                {
-                    id = n.Id,
-                    type = n.Type,
-                    title = n.Title,
-                    message = n.Message,
-                    doctorName = n.DoctorName,
-                    patientName = n.PatientName,
-                    departmentName = n.DepartmentName,
-                    patientId = n.PatientId,
-                    referralId = n.ReferralRequestId,
-                    appointmentId = n.AppointmentId,
-                    createdAt = n.CreatedAt,
-                    timeAgo = GetTimeAgo(n.CreatedAt)
-                })
                 .ToListAsync();
 
-            // Also retrieve target department IDs for referrals if present
-            var referralIds = notifications.Where(n => n.referralId.HasValue).Select(n => n.referralId!.Value).ToList();
-            var referralDict = await _context.ReferralRequests
-                .Where(r => referralIds.Contains(r.Id))
-                .Select(r => new { r.Id, r.TargetDepartmentId, r.TargetDoctorId })
-                .ToDictionaryAsync(r => r.Id);
+            // Build unified items list for dropdown rendering
+            var items = new List<object>();
+            var trackedApptIds = new HashSet<int>();
+            var trackedRefIds = new HashSet<int>();
 
-            var enrichedList = notifications.Select(n =>
+            // A) Add unconfirmed doctor appointments
+            foreach (var a in pendingAppointments)
             {
-                int targetDeptId = 0;
-                int? targetDocId = null;
-                if (n.referralId.HasValue && referralDict.TryGetValue(n.referralId.Value, out var refInfo))
+                trackedApptIds.Add(a.AppointmentId);
+                var docName = a.Doctor?.DoctorName ?? "Doctor";
+                if (!docName.StartsWith("Dr.", StringComparison.OrdinalIgnoreCase) && !docName.StartsWith("د.", StringComparison.OrdinalIgnoreCase))
                 {
-                    targetDeptId = refInfo.TargetDepartmentId;
-                    targetDocId = refInfo.TargetDoctorId;
+                    docName = "Dr. " + docName;
                 }
 
-                return new
+                var timeFormatted = a.AppointmentTime.ToString(@"hh\:mm");
+                var dateFormatted = a.AppointmentDate.ToString("yyyy-MM-dd");
+                var pName = a.Patient?.PatientName ?? "Patient";
+
+                items.Add(new
                 {
-                    n.id,
-                    n.type,
-                    n.title,
-                    n.message,
-                    n.doctorName,
-                    n.patientName,
-                    n.departmentName,
-                    n.patientId,
-                    n.referralId,
-                    n.appointmentId,
-                    targetDepartmentId = targetDeptId,
-                    targetDoctorId = targetDocId,
-                    n.timeAgo,
-                    n.createdAt
-                };
-            }).ToList();
+                    id = a.AppointmentId,
+                    appointmentId = a.AppointmentId,
+                    type = "Appointment",
+                    title = "Doctor Booking Request",
+                    badgeText = "Doctor Booking Request",
+                    badgeClass = "amber",
+                    patientName = pName,
+                    patientId = a.PatientId,
+                    doctorName = docName,
+                    doctorId = a.DoctorId,
+                    date = dateFormatted,
+                    time = timeFormatted,
+                    notes = a.Notes ?? "",
+                    message = $"{docName} requested booking for {pName} at {timeFormatted} on {dateFormatted}.",
+                    status = a.Status,
+                    timeAgo = a.AppointmentDate.Date == DateTime.Today ? $"Today at {timeFormatted}" : $"{dateFormatted} {timeFormatted}",
+                    createdAt = a.AppointmentDate.Date.Add(a.AppointmentTime)
+                });
+            }
 
-            // 2. Count Pending Referrals
-            var pendingReferralsCount = await _context.ReferralRequests
-                .Where(r => r.Status == ReferralStatus.Pending && (currentClinicId == Guid.Empty || r.ClinicId == currentClinicId))
-                .CountAsync();
+            // B) Add unresolved referrals
+            foreach (var r in pendingReferrals)
+            {
+                trackedRefIds.Add(r.Id);
+                var fromDoc = r.FromDoctor?.DoctorName ?? "Doctor";
+                if (!fromDoc.StartsWith("Dr.", StringComparison.OrdinalIgnoreCase) && !fromDoc.StartsWith("د.", StringComparison.OrdinalIgnoreCase))
+                {
+                    fromDoc = "Dr. " + fromDoc;
+                }
+                var deptName = r.TargetDepartment?.DepartmentName ?? "Specialty";
+                var pName = r.Patient?.PatientName ?? "Patient";
 
-            // 3. Count Pending Doctor Appointments
-            var pendingApptsCount = await _context.Appointments
-                .Where(a => (a.Status == "Pending" || a.Status == "Pending Confirmation") && (currentClinicId == Guid.Empty || a.ClinicId == currentClinicId))
-                .CountAsync();
+                items.Add(new
+                {
+                    id = r.Id,
+                    referralId = r.Id,
+                    type = "Referral",
+                    title = "Internal Referral",
+                    badgeText = "Internal Referral",
+                    badgeClass = "emerald",
+                    patientName = pName,
+                    patientId = r.PatientId,
+                    doctorName = fromDoc,
+                    departmentName = deptName,
+                    targetDepartmentId = r.TargetDepartmentId,
+                    targetDoctorId = r.TargetDoctorId,
+                    notes = r.ReferralReason,
+                    message = $"{fromDoc} referred {pName} to {deptName}: {r.ReferralReason}",
+                    status = r.Status.ToString(),
+                    timeAgo = GetTimeAgo(r.CreatedAt),
+                    createdAt = r.CreatedAt
+                });
+            }
 
-            // Total badge items = unread notifications count or pending referrals + pending appts
-            var unreadCount = enrichedList.Count;
-            var totalBadgeCount = Math.Max(unreadCount, pendingReferralsCount + pendingApptsCount);
+            // C) Add other notifications (avoid duplicates if already added via appointment or referral)
+            foreach (var n in notifications)
+            {
+                if (n.AppointmentId.HasValue && trackedApptIds.Contains(n.AppointmentId.Value))
+                    continue;
+                if (n.ReferralRequestId.HasValue && trackedRefIds.Contains(n.ReferralRequestId.Value))
+                    continue;
+
+                items.Add(new
+                {
+                    id = n.Id,
+                    notificationId = n.Id,
+                    type = n.Type,
+                    title = n.Title,
+                    badgeText = n.Type == "Referral" ? "Internal Referral" : n.Type == "Appointment" ? "Doctor Booking Request" : "Notification",
+                    badgeClass = n.Type == "Referral" ? "emerald" : n.Type == "Appointment" ? "amber" : "blue",
+                    patientName = n.PatientName ?? "",
+                    patientId = n.PatientId,
+                    doctorName = n.DoctorName ?? "",
+                    departmentName = n.DepartmentName ?? "",
+                    referralId = n.ReferralRequestId,
+                    appointmentId = n.AppointmentId,
+                    targetDepartmentId = 0,
+                    targetDoctorId = (int?)null,
+                    notes = "",
+                    message = n.Message,
+                    status = "Unread",
+                    timeAgo = GetTimeAgo(n.CreatedAt),
+                    createdAt = n.CreatedAt
+                });
+            }
+
+            var unreadNotifCount = notifications.Count(n => !n.AppointmentId.HasValue && !n.ReferralRequestId.HasValue);
+            var totalBadgeCount = pendingApptsCount + pendingReferralsCount + unreadNotifCount;
 
             return Json(new
             {
                 count = totalBadgeCount,
-                unreadCount = unreadCount,
+                unreadCount = notifications.Count,
                 pendingReferrals = pendingReferralsCount,
                 pendingAppointments = pendingApptsCount,
-                items = enrichedList
+                items = items
             });
         }
 
@@ -205,6 +281,43 @@ namespace WebApplication1.Controllers
                 success = true,
                 message = "Appointment booked and referral scheduled successfully!",
                 appointmentId = appointment.AppointmentId
+            });
+        }
+
+        // POST: Notifications/ConfirmAppointment/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ConfirmAppointment(int id)
+        {
+            var currentClinicId = User.GetClinicId();
+            var appointment = await _context.Appointments
+                .Include(a => a.Patient)
+                .Include(a => a.Doctor)
+                .FirstOrDefaultAsync(a => a.AppointmentId == id && (currentClinicId == Guid.Empty || a.ClinicId == currentClinicId));
+
+            if (appointment == null)
+            {
+                return NotFound(new { success = false, message = "Appointment not found." });
+            }
+
+            appointment.Status = AppointmentStatus.Confirmed;
+
+            // Also mark any associated notification as read
+            var relatedNotifs = await _context.Notifications
+                .Where(n => n.AppointmentId == id && !n.IsRead)
+                .ToListAsync();
+            foreach (var n in relatedNotifs)
+            {
+                n.IsRead = true;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Json(new
+            {
+                success = true,
+                message = "Appointment confirmed successfully!",
+                appointmentId = id
             });
         }
 
