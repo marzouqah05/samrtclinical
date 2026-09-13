@@ -805,6 +805,14 @@ namespace WebApplication1.Controllers
             return View();
         }
 
+        // ── GET: Index (Alias for StaffList) ────────────────────────────────
+        [HttpGet]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
+        public IActionResult Index()
+        {
+            return RedirectToAction(nameof(StaffList));
+        }
+
         // ── GET: Staff & User Management List ───────────────────────────────
         [HttpGet]
         [Authorize(Roles = "Owner,Admin,SuperAdmin")]
