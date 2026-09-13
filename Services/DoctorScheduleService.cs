@@ -238,16 +238,16 @@ namespace WebApplication1.Services
         {
             try
             {
-                var smtpHost     = _config["Email:SmtpHost"] ?? "smtp.gmail.com";
-                var smtpPortStr  = _config["Email:SmtpPort"] ?? "587";
-                var smtpUser     = _config["Email:SmtpUser"] ?? clinicSettings.ClinicEmail;
-                var smtpPass     = _config["Email:SmtpPassword"] ?? "";
-                var fromAddress  = _config["Email:FromAddress"] ?? clinicSettings.ClinicEmail;
+                var smtpHost     = _config["Smtp:Host"] ?? _config["Email:SmtpHost"] ?? "smtp.gmail.com";
+                var smtpPortStr  = _config["Smtp:Port"] ?? _config["Email:SmtpPort"] ?? "587";
+                var smtpUser     = _config["Smtp:UserName"] ?? _config["Email:SmtpUser"] ?? clinicSettings.ClinicEmail;
+                var smtpPass     = _config["Smtp:Password"] ?? _config["Email:SmtpPassword"] ?? "";
+                var fromAddress  = _config["Email:FromAddress"] ?? _config["Smtp:UserName"] ?? clinicSettings.ClinicEmail;
                 var fromName     = _config["Email:FromName"] ?? clinicSettings.ClinicName;
 
-                if (string.IsNullOrWhiteSpace(smtpPass))
+                if (string.IsNullOrWhiteSpace(smtpPass) || string.IsNullOrWhiteSpace(smtpUser))
                 {
-                    _logger.LogWarning("[WeeklyDigest] SMTP password is not configured. Email not sent.");
+                    _logger.LogWarning("[WeeklyDigest] SMTP credentials are not configured. Email not sent.");
                     return false;
                 }
 

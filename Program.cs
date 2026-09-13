@@ -16,6 +16,11 @@ internal class Program
 
         var builder = WebApplication.CreateBuilder(args);
 
+        // Point configuration builder to explicitly load User Secrets and Environment Variables
+        builder.Configuration
+            .AddUserSecrets<Program>(optional: true)
+            .AddEnvironmentVariables();
+
         // Add services to the container.
         // PropertyNameCaseInsensitive = true ensures Telegram's snake_case JSON payload
         // (update_id, callback_query, etc.) is correctly deserialized by [ApiController]

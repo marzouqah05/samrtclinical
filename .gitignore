@@ -30,6 +30,13 @@ artifacts/
 .DS_Store
 Thumbs.db
 
-# Secrets (never commit these)
+# Secrets and local override config files (never commit these)
 appsettings.Production.json
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+*.local.json
 secrets.json
+.env
+.env.*
+

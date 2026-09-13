@@ -98,13 +98,20 @@ namespace WebApplication1.Services
             // ── 2. Fallback to SMTP if RESEND_API_KEY is not configured ───
             try
             {
-                var smtpHost = _config["SmtpSettings:Server"] ?? "smtp.gmail.com";
-                var smtpPortStr = _config["SmtpSettings:Port"] ?? "587";
-                var smtpUser = _config["SmtpSettings:SenderEmail"] ?? "hadihaitham777@gmail.com";
-                var smtpPass = _config["SmtpSettings:Password"] ?? "rzflzwnilhozdtwp";
-                var fromAddress = _config["SmtpSettings:SenderEmail"] ?? "hadihaitham777@gmail.com";
-                var fromName = _config["SmtpSettings:SenderName"] ?? "ClinicFlow";
-                var enableSsl = !bool.TryParse(_config["SmtpSettings:EnableSsl"], out var ssl) || ssl;
+                var smtpHost = _config["Smtp:Host"] ?? _config["SmtpSettings:Server"] ?? _config["Email:SmtpHost"] ?? "smtp.gmail.com";
+                var smtpPortStr = _config["Smtp:Port"] ?? _config["SmtpSettings:Port"] ?? _config["Email:SmtpPort"] ?? "587";
+                var smtpUser = _config["Smtp:UserName"] ?? _config["SmtpSettings:SenderEmail"] ?? _config["Email:SmtpUser"] ?? "";
+                var smtpPass = _config["Smtp:Password"] ?? _config["SmtpSettings:Password"] ?? _config["Email:SmtpPassword"] ?? "";
+                var fromAddress = _config["Email:FromAddress"] ?? _config["SmtpSettings:SenderEmail"] ?? _config["Smtp:UserName"] ?? "noreply@clinicflow.local";
+                var fromName = _config["Email:FromName"] ?? _config["SmtpSettings:SenderName"] ?? "ClinicFlow";
+                var enableSslStr = _config["Smtp:EnableSsl"] ?? _config["SmtpSettings:EnableSsl"];
+                var enableSsl = !bool.TryParse(enableSslStr, out var ssl) || ssl;
+
+                if (string.IsNullOrWhiteSpace(smtpPass) || string.IsNullOrWhiteSpace(smtpUser))
+                {
+                    _logger.LogWarning("[EmailService] SMTP credentials (UserName/Password) are not configured. Email dispatch skipped.");
+                    return false;
+                }
 
                 int.TryParse(smtpPortStr, out int smtpPort);
                 if (smtpPort == 0) smtpPort = 587;
