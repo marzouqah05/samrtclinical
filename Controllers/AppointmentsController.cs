@@ -263,6 +263,8 @@ namespace WebApplication1.Controllers
                 var myDocs = await _context.Doctors.Where(d => d.ClinicId == currentClinicId && d.DoctorId == currentDoctorId.Value).ToListAsync();
                 ViewBag.Doctors = new SelectList(myDocs, "DoctorId", "DoctorName", currentDoctorId);
                 ViewBag.AllDoctors = myDocs;
+                ViewBag.CurrentDoctorId = currentDoctorId.Value;
+                ViewBag.CurrentDoctorName = myDocs.FirstOrDefault()?.DoctorName;
 
                 var myAssignedPatients = await _context.Appointments
                     .Where(a => a.ClinicId == currentClinicId && a.DoctorId == currentDoctorId.Value)
@@ -375,7 +377,10 @@ namespace WebApplication1.Controllers
                 var currentDoctorId = await User.GetDoctorIdAsync(_context);
                 if (currentDoctorId.HasValue)
                 {
-                    ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId && d.DoctorId == currentDoctorId.Value), "DoctorId", "DoctorName", currentDoctorId.Value);
+                    var myDocs = await _context.Doctors.Where(d => d.ClinicId == currentClinicId && d.DoctorId == currentDoctorId.Value).ToListAsync();
+                    ViewBag.CurrentDoctorId = currentDoctorId.Value;
+                    ViewBag.CurrentDoctorName = myDocs.FirstOrDefault()?.DoctorName;
+                    ViewData["DoctorId"] = new SelectList(myDocs, "DoctorId", "DoctorName", currentDoctorId.Value);
 
                     var myPatientIds = await _context.Appointments
                         .Where(a => a.ClinicId == currentClinicId && a.DoctorId == currentDoctorId.Value)
@@ -737,9 +742,18 @@ namespace WebApplication1.Controllers
             var isDoctor = User.IsDoctor();
             int? currentDoctorId = User.GetDoctorId();
 
+            if (isDoctor && !currentDoctorId.HasValue)
+            {
+                var userEmail = User.Identity?.Name;
+                currentDoctorId = _context.Doctors.FirstOrDefault(d => d.ClinicId == currentClinicId && (d.DoctorEmail == userEmail || d.DoctorName == userEmail || d.DoctorNumber == userEmail))?.DoctorId;
+            }
+
             if (isDoctor && currentDoctorId.HasValue)
             {
-                ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId && d.DoctorId == currentDoctorId.Value), "DoctorId", "DoctorName", currentDoctorId.Value);
+                var myDocs = _context.Doctors.Where(d => d.ClinicId == currentClinicId && d.DoctorId == currentDoctorId.Value).ToList();
+                ViewBag.CurrentDoctorId = currentDoctorId.Value;
+                ViewBag.CurrentDoctorName = myDocs.FirstOrDefault()?.DoctorName;
+                ViewData["DoctorId"] = new SelectList(myDocs, "DoctorId", "DoctorName", currentDoctorId.Value);
 
                 var myPatientIds = _context.Appointments
                     .Where(a => a.ClinicId == currentClinicId && a.DoctorId == currentDoctorId.Value)

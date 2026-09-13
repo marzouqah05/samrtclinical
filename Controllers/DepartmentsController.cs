@@ -43,6 +43,7 @@ namespace WebApplication1.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> Import(IFormFile? file)
         {
             if (file == null || file.Length == 0)
@@ -97,6 +98,7 @@ namespace WebApplication1.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> ImportSpecialties(IFormFile? file)
         {
             if (file == null || file.Length == 0)
@@ -166,6 +168,7 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Departments/Create
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public IActionResult Create()
         {
             return View();
@@ -174,6 +177,7 @@ namespace WebApplication1.Controllers
         // POST: Departments/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> Create([Bind("DepartmentId,DepartmentName,DepartmentAbbr")] Department department)
         {
             if (ModelState.IsValid)
@@ -188,6 +192,7 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Departments/Edit/5
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -208,6 +213,7 @@ namespace WebApplication1.Controllers
         // POST: Departments/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> Edit(int id, [Bind("DepartmentId,DepartmentName,DepartmentAbbr")] Department department)
         {
             if (id != department.DepartmentId)
@@ -250,6 +256,7 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Departments/Delete/5
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -273,6 +280,7 @@ namespace WebApplication1.Controllers
         // POST: Departments/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var currentClinicId = User.GetClinicId();

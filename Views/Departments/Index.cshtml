@@ -29,29 +29,32 @@
                 <span class="text-xs text-[#6B7D75] dark:text-[#9CA8A3]">@T("قسم", "Departments")</span>
             </div>
 
-            <!-- 📥 Import Departments Button -->
-            <button type="button"
-                    class="inline-flex items-center gap-2 px-3.5 py-2 bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] text-[#49665A] dark:text-[#EAEFEA] text-xs font-semibold rounded-xl hover:bg-[#F6F7F5] dark:hover:bg-[#202B27] transition shadow-sm"
-                    data-bs-toggle="modal" data-bs-target="#importDepartmentsModal"
-                    title="@T("استيراد بيانات الأقسام من CSV أو Excel", "Bulk import departments from CSV or Excel")">
-                <i class="fa-solid fa-file-import text-xs"></i>
-                <span>@T("استيراد الأقسام", "Import Departments")</span>
-            </button>
+            @if (!User.IsInRole("Doctor"))
+            {
+                <!-- 📥 Import Departments Button -->
+                <button type="button"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] text-[#49665A] dark:text-[#EAEFEA] text-xs font-semibold rounded-xl hover:bg-[#F6F7F5] dark:hover:bg-[#202B27] transition shadow-sm"
+                        data-bs-toggle="modal" data-bs-target="#importDepartmentsModal"
+                        title="@T("استيراد بيانات الأقسام من CSV أو Excel", "Bulk import departments from CSV or Excel")">
+                    <i class="fa-solid fa-file-import text-xs"></i>
+                    <span>@T("استيراد الأقسام", "Import Departments")</span>
+                </button>
 
-            <!-- 📥 Import Specialties Button -->
-            <button type="button"
-                    class="inline-flex items-center gap-2 px-3.5 py-2 bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] text-[#2E7D5B] dark:text-[#A7D7C5] text-xs font-semibold rounded-xl hover:bg-[#F6F7F5] dark:hover:bg-[#202B27] transition shadow-sm"
-                    data-bs-toggle="modal" data-bs-target="#importSpecialtiesModal"
-                    title="@T("استيراد بيانات التخصصات من CSV أو Excel", "Bulk import specialties from CSV or Excel")">
-                <i class="fa-solid fa-tags text-xs"></i>
-                <span>@T("استيراد التخصصات", "Import Specialties")</span>
-            </button>
+                <!-- 📥 Import Specialties Button -->
+                <button type="button"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] text-[#2E7D5B] dark:text-[#A7D7C5] text-xs font-semibold rounded-xl hover:bg-[#F6F7F5] dark:hover:bg-[#202B27] transition shadow-sm"
+                        data-bs-toggle="modal" data-bs-target="#importSpecialtiesModal"
+                        title="@T("استيراد بيانات التخصصات من CSV أو Excel", "Bulk import specialties from CSV or Excel")">
+                    <i class="fa-solid fa-tags text-xs"></i>
+                    <span>@T("استيراد التخصصات", "Import Specialties")</span>
+                </button>
 
-            <a asp-action="Create"
-               class="inline-flex items-center gap-2 px-4 py-2 bg-[#49665A] text-white text-xs font-semibold rounded-xl hover:bg-[#3D574D] transition-colors shadow-sm">
-                <i class="fa-solid fa-plus text-xs"></i>
-                @T("إضافة قسم جديد", "Add New Department")
-            </a>
+                <a asp-action="Create"
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-[#49665A] text-white text-xs font-semibold rounded-xl hover:bg-[#3D574D] transition-colors shadow-sm">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    @T("إضافة قسم جديد", "Add New Department")
+                </a>
+            }
         </div>
     </div>
 
@@ -145,20 +148,26 @@
                                             <i class="fa-solid fa-eye text-[#49665A] text-[10px]"></i>
                                             @T("تفاصيل", "Details")
                                         </a>
-                                        <a asp-action="Edit" asp-route-id="@item.DepartmentId"
-                                           class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-xs font-medium transition"
-                                           title="@T("تعديل", "Edit")">
-                                            <i class="fa-solid fa-pen text-[#49665A] text-[10px]"></i>
-                                            @T("تعديل", "Edit")
-                                        </a>
-                                        <form asp-action="Delete" asp-route-id="@item.DepartmentId" method="post" class="inline m-0 d-inline" onsubmit="return confirm('@T($"هل أنت متأكد من رغبتك في حذف قسم {item.DepartmentName} بشكل نهائي؟", $"Are you sure you want to permanently delete {item.DepartmentName}?")');">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit"
-                                                    class="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-rose-300 dark:border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs transition"
-                                                    title="@T("حذف", "Delete")">
-                                                <i class="fa-solid fa-trash text-[10px]"></i>
-                                            </button>
-                                        </form>
+                                        @if (!User.IsInRole("Doctor"))
+                                        {
+                                            <a asp-action="Edit" asp-route-id="@item.DepartmentId"
+                                               class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F4F7F5] hover:bg-[#EAEFEA] dark:bg-[#151E1B] dark:hover:bg-[#202B27] border border-[#D5DDD8] dark:border-[#2B3833] text-[#1A2621] dark:text-[#EAEFEA] text-xs font-medium transition"
+                                               title="@T("تعديل", "Edit")">
+                                                <i class="fa-solid fa-pen text-[#49665A] text-[10px]"></i>
+                                                @T("تعديل", "Edit")
+                                            </a>
+                                            @if (User.IsAdminOrOwner())
+                                            {
+                                                <form asp-action="Delete" asp-route-id="@item.DepartmentId" method="post" class="inline m-0 d-inline" onsubmit="return confirm('@T($"هل أنت متأكد من رغبتك في حذف قسم {item.DepartmentName} بشكل نهائي؟", $"Are you sure you want to permanently delete {item.DepartmentName}?")');">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit"
+                                                            class="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-rose-300 dark:border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs transition"
+                                                            title="@T("حذف", "Delete")">
+                                                        <i class="fa-solid fa-trash text-[10px]"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -173,11 +182,14 @@
                 <i class="fa-solid fa-building-circle-xmark text-3xl block mb-3 text-[#6B7D75]/40 dark:text-[#9CA8A3]/40"></i>
                 <p class="text-sm font-semibold text-[#1A2621] dark:text-[#EAEFEA] m-0">@T("لا توجد أقسام طبية", "No Medical Departments Found")</p>
                 <p class="text-xs text-[#6B7D75] dark:text-[#9CA8A3] mt-1 mb-4">@T("يبدو أنه لا توجد أقسام نشطة حالياً.", "It looks like there are no active departments right now.")</p>
-                <a asp-action="Create"
-                   class="inline-flex items-center gap-2 px-4 py-2 bg-[#49665A] text-white text-xs font-semibold rounded-xl hover:bg-[#3D574D] transition shadow-sm">
-                    <i class="fa-solid fa-plus text-xs"></i>
-                    @T("إنشاء أول قسم", "Create First Department")
-                </a>
+                @if (!User.IsInRole("Doctor"))
+                {
+                    <a asp-action="Create"
+                       class="inline-flex items-center gap-2 px-4 py-2 bg-[#49665A] text-white text-xs font-semibold rounded-xl hover:bg-[#3D574D] transition shadow-sm">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                        @T("إنشاء أول قسم", "Create First Department")
+                    </a>
+                }
             </div>
         }
     </div>
