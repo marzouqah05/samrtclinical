@@ -10,7 +10,48 @@ namespace WebApplication1.Services
         public static bool IsSuperAdmin(this ClaimsPrincipal user)
         {
             if (user == null) return false;
-            return user.IsInRole("SuperAdmin");
+            return user.IsInRole("SuperAdmin") || user.IsInRole("Owner");
+        }
+
+        public static bool IsOwner(this ClaimsPrincipal user)
+        {
+            if (user == null) return false;
+            return user.IsInRole("Owner") || user.IsInRole("SuperAdmin");
+        }
+
+        public static bool IsAdmin(this ClaimsPrincipal user)
+        {
+            if (user == null) return false;
+            return user.IsInRole("Admin");
+        }
+
+        public static bool IsAdminOrOwner(this ClaimsPrincipal user)
+        {
+            if (user == null) return false;
+            return user.IsOwner() || user.IsInRole("Admin");
+        }
+
+        public static bool IsDoctor(this ClaimsPrincipal user)
+        {
+            if (user == null) return false;
+            return user.IsInRole("Doctor");
+        }
+
+        public static bool IsReceptionist(this ClaimsPrincipal user)
+        {
+            if (user == null) return false;
+            return user.IsInRole("Receptionist");
+        }
+
+        public static int? GetDoctorId(this ClaimsPrincipal user)
+        {
+            if (user == null) return null;
+            var claimValue = user.FindFirst("DoctorId")?.Value;
+            if (int.TryParse(claimValue, out var docId))
+            {
+                return docId;
+            }
+            return null;
         }
 
         public static Guid GetClinicId(this ClaimsPrincipal user)

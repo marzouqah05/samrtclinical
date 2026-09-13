@@ -14,7 +14,7 @@ using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {
-    [Authorize(Roles = "Admin,Receptionist,Doctor")]
+    [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist,Doctor")]
     public class PatientsController : Controller
     {
         private readonly ClinicDbContext _context;
@@ -274,7 +274,7 @@ namespace WebApplication1.Controllers
             }
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
@@ -286,7 +286,7 @@ namespace WebApplication1.Controllers
 
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var currentClinicId = User.GetClinicId();

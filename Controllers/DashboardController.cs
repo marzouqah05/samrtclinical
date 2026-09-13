@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using WebApplication1.Models;
 using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {
-    [Authorize(Roles = "Admin,Receptionist")]
+    [Authorize(Roles = "Owner,Admin,SuperAdmin,Doctor,Receptionist")]
     public class DashboardController : Controller
     {
         private readonly ClinicDbContext _context;
@@ -21,14 +22,51 @@ namespace WebApplication1.Controllers
         {
             var today = DateTime.UtcNow.Date;
             var currentClinicId = User.GetClinicId();
+            var isDoctor = User.IsDoctor();
+            int? currentDoctorId = User.GetDoctorId();
+            Doctor? doctorProfile = null;
 
-            // ── Upcoming / Active Appointments for Dashboard ─────────────────
-            // Explicitly exclude Cancelled and Completed appointments and only include upcoming / active appointments
+            if (isDoctor)
+            {
+                if (!currentDoctorId.HasValue)
+                {
+                    var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? User.Identity?.Name;
+                    var doc = await _context.Doctors.Include(d => d.Department).FirstOrDefaultAsync(d => 
+                        (currentClinicId == Guid.Empty || d.ClinicId == currentClinicId) && 
+                        (d.DoctorEmail == userEmail || d.DoctorName == User.Identity!.Name));
+                    if (doc != null)
+                    {
+                        currentDoctorId = doc.DoctorId;
+                        doctorProfile = doc;
+                    }
+                }
+                else
+                {
+                    doctorProfile = await _context.Doctors.Include(d => d.Department).FirstOrDefaultAsync(d => d.DoctorId == currentDoctorId.Value);
+                }
+            }
+
+            ViewBag.IsDoctor = isDoctor;
+            ViewBag.DoctorProfile = doctorProfile;
+
+            // ── Active Appointments Query ──────────────────────────────────
             var appointments = _context.Appointments
                 .Include(a => a.Doctor)
                     .ThenInclude(d => d!.Department)
                 .Include(a => a.Patient)
-                .Where(a => a.ClinicId == currentClinicId && a.Status != "Cancelled" && a.Status != "Completed" && a.AppointmentDate >= today)
+                .Where(a => a.ClinicId == currentClinicId && a.Status != "Cancelled");
+
+            if (isDoctor && currentDoctorId.HasValue)
+            {
+                // Doctor dashboard strictly filtered: Appointments.Where(a => a.DoctorId == currentDoctorId && a.Date == Today)
+                appointments = appointments.Where(a => a.DoctorId == currentDoctorId.Value && a.AppointmentDate.Date == today);
+            }
+            else
+            {
+                appointments = appointments.Where(a => a.Status != "Completed" && a.AppointmentDate >= today);
+            }
+
+            appointments = appointments
                 .OrderBy(a => a.AppointmentDate)
                 .ThenBy(a => a.AppointmentTime)
                 .AsQueryable();
@@ -41,29 +79,62 @@ namespace WebApplication1.Controllers
                     (a.Doctor != null && a.Doctor.Department != null && a.Doctor.Department.DepartmentName.Contains(search)));
             }
 
-            // ── Core Statistics (Strictly Sequential Execution) ──────────────
-            ViewBag.TotalPatients     = await _context.Patients.Where(p => p.ClinicId == currentClinicId).CountAsync();
-            ViewBag.TotalDoctors      = await _context.Doctors.Where(d => d.ClinicId == currentClinicId).CountAsync();
-            ViewBag.TotalDepartments  = await _context.Departments.Where(d => d.ClinicId == currentClinicId).CountAsync();
+            if (isDoctor && currentDoctorId.HasValue)
+            {
+                // ── Doctor-Scoped Clinical KPIs (No financial metrics exposed) ──
+                ViewBag.DoctorTodayAppointments = await _context.Appointments
+                    .Where(a => a.ClinicId == currentClinicId && a.DoctorId == currentDoctorId.Value && a.AppointmentDate.Date == today && a.Status != "Cancelled")
+                    .CountAsync();
 
-            ViewBag.TodayAppointments = await _context.Appointments
-                .Where(a => a.ClinicId == currentClinicId && a.AppointmentDate.Date == today && a.Status != "Cancelled")
-                .CountAsync();
+                ViewBag.DoctorPatientsCount = await _context.Appointments
+                    .Where(a => a.ClinicId == currentClinicId && a.DoctorId == currentDoctorId.Value)
+                    .Select(a => a.PatientId)
+                    .Distinct()
+                    .CountAsync();
 
-            // ── Financial Analytics (Strictly Sequential Execution) ──────────
-            ViewBag.TotalInvoicesCount = await _context.Invoices.Where(i => i.ClinicId == currentClinicId).CountAsync();
+                ViewBag.DoctorCompletedCount = await _context.Appointments
+                    .Where(a => a.ClinicId == currentClinicId && a.DoctorId == currentDoctorId.Value && a.Status == "Completed")
+                    .CountAsync();
 
-            ViewBag.TotalRevenue = await _context.Invoices
-                .Where(i => i.ClinicId == currentClinicId && i.Status == "Paid")
-                .SumAsync(i => (decimal?)i.NetAmount) ?? 0.00m;
+                ViewBag.DoctorSpecialization = doctorProfile?.Specialization ?? "General Practice";
+                ViewBag.DoctorDepartment = doctorProfile?.Department?.DepartmentName ?? "Clinic";
 
-            ViewBag.PendingRevenue = await _context.Invoices
-                .Where(i => i.ClinicId == currentClinicId && i.Status == "Unpaid")
-                .SumAsync(i => (decimal?)i.NetAmount) ?? 0.00m;
+                ViewBag.TotalPatients     = ViewBag.DoctorPatientsCount;
+                ViewBag.TotalDoctors      = 1;
+                ViewBag.TotalDepartments  = 1;
+                ViewBag.TodayAppointments = ViewBag.DoctorTodayAppointments;
 
-            ViewBag.TotalExpenses = await _context.Expenses
-                .Where(e => e.ClinicId == currentClinicId)
-                .SumAsync(e => (decimal?)e.Amount) ?? 0.00m;
+                ViewBag.TotalInvoicesCount = 0;
+                ViewBag.TotalRevenue       = 0.00m;
+                ViewBag.PendingRevenue     = 0.00m;
+                ViewBag.TotalExpenses      = 0.00m;
+            }
+            else
+            {
+                // ── Admin / Receptionist Core Statistics ─────────────────────────
+                ViewBag.TotalPatients     = await _context.Patients.Where(p => p.ClinicId == currentClinicId).CountAsync();
+                ViewBag.TotalDoctors      = await _context.Doctors.Where(d => d.ClinicId == currentClinicId).CountAsync();
+                ViewBag.TotalDepartments  = await _context.Departments.Where(d => d.ClinicId == currentClinicId).CountAsync();
+
+                ViewBag.TodayAppointments = await _context.Appointments
+                    .Where(a => a.ClinicId == currentClinicId && a.AppointmentDate.Date == today && a.Status != "Cancelled")
+                    .CountAsync();
+
+                // Financial Analytics (Forbidden for doctors)
+                ViewBag.TotalInvoicesCount = await _context.Invoices.Where(i => i.ClinicId == currentClinicId).CountAsync();
+
+                ViewBag.TotalRevenue = await _context.Invoices
+                    .Where(i => i.ClinicId == currentClinicId && i.Status == "Paid")
+                    .SumAsync(i => (decimal?)i.NetAmount) ?? 0.00m;
+
+                ViewBag.PendingRevenue = await _context.Invoices
+                    .Where(i => i.ClinicId == currentClinicId && i.Status == "Unpaid")
+                    .SumAsync(i => (decimal?)i.NetAmount) ?? 0.00m;
+
+                ViewBag.TotalExpenses = await _context.Expenses
+                    .Where(e => e.ClinicId == currentClinicId)
+                    .SumAsync(e => (decimal?)e.Amount) ?? 0.00m;
+            }
 
             ViewBag.SearchVal = search;
 
@@ -75,8 +146,17 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> GetAppointments()
         {
             var currentClinicId = User.GetClinicId();
-            var appointments = await _context.Appointments
-                .Where(a => a.ClinicId == currentClinicId)
+            var isDoctor = User.IsDoctor();
+            var currentDoctorId = User.GetDoctorId();
+
+            var query = _context.Appointments.Where(a => a.ClinicId == currentClinicId);
+
+            if (isDoctor && currentDoctorId.HasValue)
+            {
+                query = query.Where(a => a.DoctorId == currentDoctorId.Value);
+            }
+
+            var appointments = await query
                 .Include(a => a.Doctor)
                 .Include(a => a.Patient)
                 .Select(a => new
@@ -95,9 +175,17 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> GetAppointmentsChart()
         {
             var currentClinicId = User.GetClinicId();
-            var list = await _context.Appointments
-                .Where(a => a.ClinicId == currentClinicId)
-                .ToListAsync();
+            var isDoctor = User.IsDoctor();
+            var currentDoctorId = User.GetDoctorId();
+
+            var query = _context.Appointments.Where(a => a.ClinicId == currentClinicId);
+
+            if (isDoctor && currentDoctorId.HasValue)
+            {
+                query = query.Where(a => a.DoctorId == currentDoctorId.Value);
+            }
+
+            var list = await query.ToListAsync();
 
             var data = list
                 .GroupBy(a => a.AppointmentDate.ToString("ddd"))
@@ -108,12 +196,15 @@ namespace WebApplication1.Controllers
         }
 
         // ── 4. Revenue Chart API (Last 7 Days) ────────────────────────────────
+        [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist")]
         public async Task<IActionResult> GetRevenueChart()
         {
+            if (User.IsDoctor()) return Forbid();
+
             var currentClinicId = User.GetClinicId();
             var sevenDaysAgo = DateTime.UtcNow.Date.AddDays(-7);
 
-            var invoicesData = await _context.Invoices
+            var list = await _context.Invoices
                 .Where(i => i.ClinicId == currentClinicId && i.InvoiceDate >= sevenDaysAgo && i.Status == "Paid")
                 .ToListAsync();
 
@@ -123,7 +214,7 @@ namespace WebApplication1.Controllers
                 .Select(date => new
                 {
                     date    = date.ToString("MM/dd"),
-                    revenue = invoicesData
+                    revenue = list
                                 .Where(i => i.InvoiceDate.Date == date)
                                 .Sum(i => i.NetAmount)
                 })

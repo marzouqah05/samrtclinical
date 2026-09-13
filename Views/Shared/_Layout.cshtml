@@ -430,25 +430,29 @@
                         <span>@T("الأقسام والتخصصات", "Departments")</span>
                     </a>
 
-                    <!-- Divider -->
-                    <div class="my-1.5 border-t border-[#DDE3DF] dark:border-[#2B3833]"></div>
-                    <div class="text-[10px] font-bold uppercase tracking-widest text-[#727A76] dark:text-[#9CA8A3] px-3 py-1 mb-0.5">
-                        @T("المالية", "Finance")
-                    </div>
+                    <!-- Finance section: Visible to Owner, Admin, Receptionist (Forbidden for Doctor) -->
+                    @if (!User.IsDoctor())
+                    {
+                        <!-- Divider -->
+                        <div class="my-1.5 border-t border-[#DDE3DF] dark:border-[#2B3833]"></div>
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-[#727A76] dark:text-[#9CA8A3] px-3 py-1 mb-0.5">
+                            @T("المالية", "Finance")
+                        </div>
 
-                    <!-- 6. Invoices -->
-                    <a asp-controller="Invoices" asp-action="Index"
-                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors @(currentController == "Invoices" ? "bg-[#49665A] text-white shadow-sm font-semibold" : "text-[#727A76] dark:text-[#9CA8A3] hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] hover:text-[#202725] dark:hover:text-[#EAEFEA]")">
-                        <i class="fa-solid fa-file-invoice-dollar w-5 text-center text-sm"></i>
-                        <span>@T("الفوترة والمدفوعات", "Invoices")</span>
-                    </a>
+                        <!-- 6. Invoices -->
+                        <a asp-controller="Invoices" asp-action="Index"
+                           class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors @(currentController == "Invoices" ? "bg-[#49665A] text-white shadow-sm font-semibold" : "text-[#727A76] dark:text-[#9CA8A3] hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] hover:text-[#202725] dark:hover:text-[#EAEFEA]")">
+                            <i class="fa-solid fa-file-invoice-dollar w-5 text-center text-sm"></i>
+                            <span>@T("الفوترة والمدفوعات", "Invoices")</span>
+                        </a>
 
-                    <!-- 7. Expenses -->
-                    <a asp-controller="Expenses" asp-action="Index"
-                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors @(currentController == "Expenses" ? "bg-[#49665A] text-white shadow-sm font-semibold" : "text-[#727A76] dark:text-[#9CA8A3] hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] hover:text-[#202725] dark:hover:text-[#EAEFEA]")">
-                        <i class="fa-solid fa-receipt w-5 text-center text-sm"></i>
-                        <span>@T("المصروفات التشغيلية", "Expenses")</span>
-                    </a>
+                        <!-- 7. Expenses -->
+                        <a asp-controller="Expenses" asp-action="Index"
+                           class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors @(currentController == "Expenses" ? "bg-[#49665A] text-white shadow-sm font-semibold" : "text-[#727A76] dark:text-[#9CA8A3] hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] hover:text-[#202725] dark:hover:text-[#EAEFEA]")">
+                            <i class="fa-solid fa-receipt w-5 text-center text-sm"></i>
+                            <span>@T("المصروفات التشغيلية", "Expenses")</span>
+                        </a>
+                    }
 
                     <!-- Divider -->
                     <div class="my-1.5 border-t border-[#DDE3DF] dark:border-[#2B3833]"></div>
@@ -463,15 +467,15 @@
                         <span>@T("العلاجات والخدمات", "Treatments")</span>
                     </a>
 
-                    <!-- 9. Settings -->
-                    <a asp-controller="Settings" asp-action="Index"
-                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors @(currentController == "Settings" ? "bg-[#49665A] text-white shadow-sm font-semibold" : "text-[#727A76] dark:text-[#9CA8A3] hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] hover:text-[#202725] dark:hover:text-[#EAEFEA]")">
-                        <i class="fa-solid fa-sliders w-5 text-center text-sm"></i>
-                        <span>@T("الإعدادات والنسخ السحابي", "Settings")</span>
-                    </a>
-
-                    @if (User.IsInRole("Admin"))
+                    <!-- 9. Settings: Visible only to Owner & Admin -->
+                    @if (User.IsAdminOrOwner())
                     {
+                        <a asp-controller="Settings" asp-action="Index"
+                           class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors @(currentController == "Settings" ? "bg-[#49665A] text-white shadow-sm font-semibold" : "text-[#727A76] dark:text-[#9CA8A3] hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] hover:text-[#202725] dark:hover:text-[#EAEFEA]")">
+                            <i class="fa-solid fa-sliders w-5 text-center text-sm"></i>
+                            <span>@T("الإعدادات والنسخ السحابي", "Settings")</span>
+                        </a>
+
                         <div class="my-1.5 border-t border-[#DDE3DF] dark:border-[#2B3833]"></div>
                         <div class="text-[10px] font-bold uppercase tracking-widest text-[#727A76] dark:text-[#9CA8A3] px-3 py-1 mb-0.5">
                             @T("الإدارة الإضافية", "Management")
@@ -588,17 +592,17 @@
                     <!-- User Profile Dropdown -->
                     @if (User.Identity != null && User.Identity.IsAuthenticated)
                     {
-                        var initials = (User.Identity.Name?.Length > 0 ? User.Identity.Name.Substring(0, 1).ToUpper() : "U");
+                        var initials = (User.Identity.Name?.Length > 0) ? User.Identity.Name.Substring(0, 1).ToUpper() : "U";
                         <div class="relative">
-                            <div class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] cursor-pointer transition-colors border border-transparent hover:border-[#DDE3DF] dark:hover:border-[#2B3833]"
-                                 onclick="toggleDropdown('cf-user-dropdown')">
-                                <div class="w-8 h-8 rounded-full bg-[#49665A]/10 border border-[#49665A]/20 text-[#49665A] font-bold text-xs flex items-center justify-center shrink-0">
+                            <div class="flex items-center gap-2 cursor-pointer p-1 rounded-xl hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] transition-colors"
+                                 onclick="toggleUserDropdown(event)">
+                                <div class="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-bold text-xs">
                                     @initials
                                 </div>
                                 <div class="hidden sm:block text-start leading-tight">
                                     <span class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA] block truncate max-w-[120px]">@User.Identity.Name</span>
-                                    <span class="text-[10px] font-semibold text-[#727A76] dark:text-[#9CA8A3] uppercase tracking-wider">
-                                        @(User.IsInRole("Admin") ? "Admin" : User.IsInRole("Doctor") ? "Doctor" : "Reception")
+                                    <span class="text-[10px] font-semibold uppercase tracking-wider @(User.IsOwner() ? "text-amber-600 dark:text-amber-400 font-bold" : "text-[#727A76] dark:text-[#9CA8A3]")">
+                                        @(User.IsOwner() ? "Owner / SuperAdmin" : User.IsInRole("Admin") ? "Admin" : User.IsInRole("Doctor") ? "Doctor" : "Reception")
                                     </span>
                                 </div>
                                 <i class="fa-solid fa-chevron-down text-[10px] text-[#727A76] dark:text-[#9CA8A3] ms-0.5"></i>
@@ -608,14 +612,19 @@
                                  class="hidden absolute top-full mt-2 end-0 w-52 bg-white dark:bg-[#1B2421] border border-[#DDE3DF] dark:border-[#2B3833] rounded-xl shadow-lg py-1.5 z-50">
                                 <div class="px-3 py-2 border-b border-[#DDE3DF] dark:border-[#2B3833] mb-1">
                                     <p class="text-xs font-bold text-[#202725] dark:text-[#EAEFEA] truncate m-0">@User.Identity.Name</p>
-                                    <p class="text-[11px] text-[#727A76] dark:text-[#9CA8A3] truncate m-0">@(User.IsInRole("Admin") ? T("مسؤول النظام", "System Administrator") : "Staff")</p>
+                                    <p class="text-[11px] font-semibold text-[#727A76] dark:text-[#9CA8A3] truncate m-0">
+                                        @(User.IsOwner() ? T("المالك / مدير رئيسي", "Owner / SuperAdmin") : User.IsInRole("Admin") ? T("مسؤول النظام", "System Administrator") : User.IsInRole("Doctor") ? T("طبيب ممارس", "Medical Doctor") : T("موظف استقبال", "Receptionist"))
+                                    </p>
                                 </div>
 
-                                <a asp-controller="Settings" asp-action="Index"
-                                   class="flex items-center gap-2 px-3 py-1.5 text-xs text-[#202725] dark:text-[#EAEFEA] hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] transition-colors">
-                                    <i class="fa-solid fa-sliders text-[#727A76] dark:text-[#9CA8A3] w-4"></i>
-                                    <span>@T("الإعدادات", "Settings")</span>
-                                </a>
+                                @if (User.IsAdminOrOwner())
+                                {
+                                    <a asp-controller="Settings" asp-action="Index"
+                                       class="flex items-center gap-2 px-3 py-1.5 text-xs text-[#202725] dark:text-[#EAEFEA] hover:bg-[#F6F7F5] dark:hover:bg-[#151E1B] transition-colors">
+                                        <i class="fa-solid fa-sliders text-[#727A76] dark:text-[#9CA8A3] w-4"></i>
+                                        <span>@T("الإعدادات", "Settings")</span>
+                                    </a>
+                                }
 
                                 <div class="border-t border-[#DDE3DF] dark:border-[#2B3833] my-1"></div>
 

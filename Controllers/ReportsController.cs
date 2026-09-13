@@ -9,7 +9,7 @@ using WebApplication1.Models;
 
 namespace WebApplication1.Controllers
 {
-    [Authorize(Roles = "Admin,Receptionist")]
+    [Authorize(Roles = "Owner,Admin,SuperAdmin")]
     public class ReportsController : Controller
     {
         private readonly ClinicDbContext _context;

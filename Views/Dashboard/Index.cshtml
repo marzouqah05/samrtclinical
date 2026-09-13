@@ -13,6 +13,12 @@
     var pendingRevenue     = ViewBag.PendingRevenue     ?? 0.00m;
     var totalInvoicesCount = ViewBag.TotalInvoicesCount ?? 0;
     var totalExpenses      = ViewBag.TotalExpenses      ?? 0.00m;
+    var isDoctor           = ViewBag.IsDoctor == true;
+    var doctorTodayAppts   = ViewBag.DoctorTodayAppointments ?? todayAppointments;
+    var doctorPatients     = ViewBag.DoctorPatientsCount     ?? totalPatients;
+    var doctorCompleted    = ViewBag.DoctorCompletedCount    ?? 0;
+    var doctorSpec         = ViewBag.DoctorSpecialization    ?? "General Practice";
+    var doctorDept         = ViewBag.DoctorDepartment        ?? "Clinic";
 }
 
 <div class="space-y-6">
@@ -20,90 +26,204 @@
     <!-- ── 1. Top 4 KPI Metric Cards ── -->
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
 
-        <!-- Card 1: Today's Appointments -->
-        <div class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("مواعيد اليوم", "Today's Appointments")</span>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]" dir="ltr">
-                    <i class="fa-solid fa-arrow-trend-up text-[9px]"></i> +12%
-                </span>
-            </div>
-            <div class="flex items-end justify-between mt-4">
-                <div class="text-2xl font-bold text-[#202725] tracking-tight">@todayAppointments</div>
-                <div class="w-9 h-9 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-calendar-check"></i>
+        @if (isDoctor)
+        {
+            <!-- Doctor Card 1: Today's Appointments -->
+            <div class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("مواعيدي لليوم", "Today's Appointments")</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]">
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#2E7D5B] inline-block"></span>
+                        @T("اليوم", "Today")
+                    </span>
+                </div>
+                <div class="flex items-end justify-between mt-4">
+                    <div class="text-2xl font-bold text-[#202725] tracking-tight">@doctorTodayAppts</div>
+                    <div class="w-9 h-9 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                </div>
+                <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
+                    <i class="fa-regular fa-clock text-[10px]"></i>
+                    <span>@T("محدث للمرضى القادمين اليوم", "Live patient schedule")</span>
                 </div>
             </div>
-            <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
-                <span class="w-1.5 h-1.5 rounded-full bg-[#49665A] inline-block"></span>
-                <span>@T("محدث في الوقت الفعلي", "Live updated slots")</span>
-            </div>
-        </div>
 
-        <!-- Card 2: Collected Revenue -->
-        <div class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("الإيرادات المحصلة", "Collected Revenue")</span>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]">
-                    @totalInvoicesCount @T("فاتورة", "bills")
-                </span>
-            </div>
-            <div class="flex items-end justify-between mt-4">
-                <div class="text-2xl font-bold text-[#202725] tracking-tight">
-                    @totalRevenue.ToString("N0") <span class="text-xs font-semibold text-[#727A76]">JOD</span>
+            <!-- Doctor Card 2: My Treated Patients -->
+            <div class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("مرضاي المسجلون", "My Patients")</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-600">
+                        <i class="fa-solid fa-user-check text-[9px]"></i> @T("سريري", "Clinical")
+                    </span>
                 </div>
-                <div class="w-9 h-9 rounded-lg bg-[#EAF5F0] text-[#2E7D5B] flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                <div class="flex items-end justify-between mt-4">
+                    <div class="text-2xl font-bold text-[#202725] tracking-tight">@doctorPatients</div>
+                    <div class="w-9 h-9 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                </div>
+                <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block"></span>
+                    <span>@T("إجمالي الحالات المتابعة", "Unique patients under care")</span>
                 </div>
             </div>
-            <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
-                <span class="w-1.5 h-1.5 rounded-full bg-[#2E7D5B] inline-block"></span>
-                <span>@T("تحصيلات مسددة", "Cleared revenue")</span>
-            </div>
-        </div>
 
-        <!-- Card 3: Active Patients -->
-        <a asp-controller="Patients" asp-action="Index"
-           class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between hover:border-[#49665A]/30 hover:shadow-[0_1px_6px_rgba(73,102,90,0.08)] transition-all group no-underline">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76] group-hover:text-[#49665A]">@T("المرضى المسجلون", "Active Patients")</span>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]">
+            <!-- Doctor Card 3: Completed Consultations -->
+            <div class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("الاستشارات المكتملة", "Completed Consultations")</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]">
+                        <i class="fa-solid fa-check-double text-[9px]"></i> @T("ناجحة", "Done")
+                    </span>
+                </div>
+                <div class="flex items-end justify-between mt-4">
+                    <div class="text-2xl font-bold text-[#202725] tracking-tight">@doctorCompleted</div>
+                    <div class="w-9 h-9 rounded-lg bg-[#EAF5F0] text-[#2E7D5B] flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                    </div>
+                </div>
+                <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
                     <span class="w-1.5 h-1.5 rounded-full bg-[#2E7D5B] inline-block"></span>
-                    @T("سجل", "Active")
-                </span>
-            </div>
-            <div class="flex items-end justify-between mt-4">
-                <div class="text-2xl font-bold text-[#202725] tracking-tight">@totalPatients</div>
-                <div class="w-9 h-9 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-users"></i>
+                    <span>@T("جلسات علاجية مكتملة", "Finished visits")</span>
                 </div>
             </div>
-            <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
-                <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
-                <span>@T("سجلات المرضى (EMR)", "View all patients")</span>
-            </div>
-        </a>
 
-        <!-- Card 4: Cloud Backup Status -->
-        <a asp-controller="Settings" asp-action="Index"
-           class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between hover:border-[#49665A]/30 hover:shadow-[0_1px_6px_rgba(73,102,90,0.08)] transition-all group no-underline">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76] group-hover:text-[#49665A]">@T("النسخ السحابي", "Cloud Backup Status")</span>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]">
-                    <i class="fa-solid fa-cloud-check text-[9px]"></i> @T("سليم", "Secure")
-                </span>
-            </div>
-            <div class="flex items-end justify-between mt-4">
-                <div class="text-base font-bold text-[#202725] tracking-tight">@T("متصل وسليم", "Synced & Secure")</div>
-                <div class="w-9 h-9 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-cloud-arrow-up"></i>
+            <!-- Doctor Card 4: Assigned Department & Specialization -->
+            <div class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("التخصص والقسم", "Specialty & Unit")</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-500/10 text-purple-600">
+                        <i class="fa-solid fa-stethoscope text-[9px]"></i> @T("نشط", "Active")
+                    </span>
+                </div>
+                <div class="flex items-end justify-between mt-4">
+                    <div class="text-base font-bold text-[#202725] tracking-tight truncate max-w-[160px]" title="@doctorSpec">
+                        @doctorSpec
+                    </div>
+                    <div class="w-9 h-9 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center text-sm shrink-0">
+                        <i class="fa-solid fa-hospital-user"></i>
+                    </div>
+                </div>
+                <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-purple-500 inline-block"></span>
+                    <span class="truncate">@doctorDept</span>
                 </div>
             </div>
-            <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
-                <span class="w-1.5 h-1.5 rounded-full bg-[#2E7D5B] inline-block"></span>
-                <span>@T("تشفير سحابي بنجاح", "AES-256 encrypted")</span>
+        }
+        else
+        {
+            <!-- Card 1: Today's Appointments -->
+            <div class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("مواعيد اليوم", "Today's Appointments")</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]" dir="ltr">
+                        <i class="fa-solid fa-arrow-trend-up text-[9px]"></i> +12%
+                    </span>
+                </div>
+                <div class="flex items-end justify-between mt-4">
+                    <div class="text-2xl font-bold text-[#202725] tracking-tight">@todayAppointments</div>
+                    <div class="w-9 h-9 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                </div>
+                <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#49665A] inline-block"></span>
+                    <span>@T("محدث في الوقت الفعلي", "Live updated slots")</span>
+                </div>
             </div>
-        </a>
+
+            <!-- Card 2: Collected Revenue -->
+            <div class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76]">@T("الإيرادات المحصلة", "Collected Revenue")</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]">
+                        @totalInvoicesCount @T("فاتورة", "bills")
+                    </span>
+                </div>
+                <div class="flex items-end justify-between mt-4">
+                    <div class="text-2xl font-bold text-[#202725] tracking-tight">
+                        @totalRevenue.ToString("N0") <span class="text-xs font-semibold text-[#727A76]">JOD</span>
+                    </div>
+                    <div class="w-9 h-9 rounded-lg bg-[#EAF5F0] text-[#2E7D5B] flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </div>
+                </div>
+                <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#2E7D5B] inline-block"></span>
+                    <span>@T("تحصيلات مسددة", "Cleared revenue")</span>
+                </div>
+            </div>
+
+            <!-- Card 3: Active Patients -->
+            <a asp-controller="Patients" asp-action="Index"
+               class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between hover:border-[#49665A]/30 hover:shadow-[0_1px_6px_rgba(73,102,90,0.08)] transition-all group no-underline">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76] group-hover:text-[#49665A]">@T("المرضى المسجلون", "Active Patients")</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]">
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#2E7D5B] inline-block"></span>
+                        @T("سجل", "Active")
+                    </span>
+                </div>
+                <div class="flex items-end justify-between mt-4">
+                    <div class="text-2xl font-bold text-[#202725] tracking-tight">@totalPatients</div>
+                    <div class="w-9 h-9 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                </div>
+                <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                    <span>@T("سجلات المرضى (EMR)", "View all patients")</span>
+                </div>
+            </a>
+
+            <!-- Card 4: Cloud Backup Status -->
+            @if (User.IsAdminOrOwner())
+            {
+                <a asp-controller="Settings" asp-action="Index"
+                   class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between hover:border-[#49665A]/30 hover:shadow-[0_1px_6px_rgba(73,102,90,0.08)] transition-all group no-underline">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76] group-hover:text-[#49665A]">@T("النسخ السحابي", "Cloud Backup Status")</span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]">
+                            <i class="fa-solid fa-cloud-check text-[9px]"></i> @T("سليم", "Secure")
+                        </span>
+                    </div>
+                    <div class="flex items-end justify-between mt-4">
+                        <div class="text-base font-bold text-[#202725] tracking-tight">@T("متصل وسليم", "Synced & Secure")</div>
+                        <div class="w-9 h-9 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                    </div>
+                    <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#2E7D5B] inline-block"></span>
+                        <span>@T("تشفير سحابي بنجاح", "AES-256 encrypted")</span>
+                    </div>
+                </a>
+            }
+            else
+            {
+                <!-- Card 4 (Receptionist): Total Doctors Overview -->
+                <a asp-controller="Doctors" asp-action="Index"
+                   class="bg-white rounded-xl border border-[#DDE3DF] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between hover:border-[#49665A]/30 hover:shadow-[0_1px_6px_rgba(73,102,90,0.08)] transition-all group no-underline">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-[#727A76] group-hover:text-[#49665A]">@T("الأطباء المناوبون", "On-Duty Doctors")</span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF5F0] text-[#2E7D5B]">
+                            <i class="fa-solid fa-user-doctor text-[9px]"></i> @T("العيادات", "Clinics")
+                        </span>
+                    </div>
+                    <div class="flex items-end justify-between mt-4">
+                        <div class="text-2xl font-bold text-[#202725] tracking-tight">@totalDoctors</div>
+                        <div class="w-9 h-9 rounded-lg bg-[#49665A]/10 text-[#49665A] flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-user-doctor"></i>
+                        </div>
+                    </div>
+                    <div class="text-[11px] text-[#727A76] mt-2.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                        <span>@T("استعراض جدول الأطباء", "View doctors list")</span>
+                    </div>
+                </a>
+            }
+        }
     </div>
 
     <!-- ── 2. Appointments Schedule Table Card ── -->

@@ -45,6 +45,16 @@ namespace WebApplication1.Data
                     logger.LogWarning(ex, "[DbInitializer] Notice checking/adding ClinicId to AspNetUsers.");
                 }
 
+                // Ensure FullName column exists on AspNetUsers
+                try
+                {
+                    await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""FullName"" varchar(150) NULL;");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "[DbInitializer] Notice checking/adding FullName to AspNetUsers.");
+                }
+
                 // Ensure Gender column exists on Patients
                 try
                 {
@@ -60,7 +70,7 @@ namespace WebApplication1.Data
                 catch { }
 
                 // 3. Ensure default Identity Roles exist
-                string[] roleNames = { "SuperAdmin", "Admin", "Doctor", "Receptionist" };
+                string[] roleNames = { "Owner", "SuperAdmin", "Admin", "Doctor", "Receptionist" };
                 foreach (var roleName in roleNames)
                 {
                     if (!await roleManager.RoleExistsAsync(roleName))
@@ -68,6 +78,46 @@ namespace WebApplication1.Data
                         await roleManager.CreateAsync(new IdentityRole(roleName));
                         logger.LogInformation("[DbInitializer] Created default identity role: {Role}", roleName);
                     }
+                }
+
+                // 4. Ensure Primary Clinic Creator Accounts have Owner role
+                try
+                {
+                    var clinics = await context.Clinics.ToListAsync();
+                    foreach (var clinic in clinics)
+                    {
+                        if (!string.IsNullOrEmpty(clinic.OwnerEmail))
+                        {
+                            var ownerUser = await userManager.FindByEmailAsync(clinic.OwnerEmail) 
+                                           ?? await userManager.FindByNameAsync(clinic.OwnerEmail);
+                            if (ownerUser != null && !await userManager.IsInRoleAsync(ownerUser, "Owner"))
+                            {
+                                await userManager.AddToRoleAsync(ownerUser, "Owner");
+                                logger.LogInformation("[DbInitializer] Upgraded clinic owner {Email} to 'Owner' role.", clinic.OwnerEmail);
+                            }
+                        }
+                    }
+
+                    // Fallback: If no Owner user exists in database, promote the first Admin or user named Admin/SuperAdmin
+                    var allOwners = await userManager.GetUsersInRoleAsync("Owner");
+                    if (allOwners.Count == 0)
+                    {
+                        var adminUser = await userManager.FindByNameAsync("Admin") 
+                                       ?? await userManager.FindByEmailAsync("admin@clinicflow.com")
+                                       ?? await userManager.Users.FirstOrDefaultAsync();
+                        if (adminUser != null)
+                        {
+                            if (!await userManager.IsInRoleAsync(adminUser, "Owner"))
+                            {
+                                await userManager.AddToRoleAsync(adminUser, "Owner");
+                                logger.LogInformation("[DbInitializer] Designated primary user {UserName} as 'Owner'.", adminUser.UserName);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "[DbInitializer] Notice during Owner role assignment.");
                 }
 
                 int userCount = 0;

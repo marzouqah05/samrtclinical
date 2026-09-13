@@ -14,8 +14,8 @@ using System.Threading.Tasks;
 
 namespace WebApplication1.Controllers
 {
-    // Secure the controller: Only Admin and Receptionist can access financial billing data
-    [Authorize(Roles = "Admin,Receptionist")]
+    // Secure the controller: Only Owner, Admin and Receptionist can access financial billing data (Doctors strictly forbidden)
+    [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist")]
     public class InvoicesController : Controller
     {
         private readonly ClinicDbContext _context;
@@ -278,6 +278,7 @@ namespace WebApplication1.Controllers
         }
 
         // 6. GET: Invoices/Delete/5
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
@@ -294,6 +295,7 @@ namespace WebApplication1.Controllers
 
         // POST: Invoices/Delete/5
         [HttpPost, ActionName("Delete")]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {

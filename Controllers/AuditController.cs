@@ -11,7 +11,7 @@ namespace WebApplication1.Controllers
     /// <summary>
     /// Admin-only controller for the User Activity &amp; Session Monitoring dashboard.
     /// </summary>
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Owner,Admin,SuperAdmin")]
     public class AuditController : Controller
     {
         private readonly ClinicDbContext _db;

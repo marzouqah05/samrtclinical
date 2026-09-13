@@ -56,7 +56,10 @@
                 </label>
                 <select class="clinic-input" id="role" name="role" required>
                     <option value="" disabled selected>@T("اختر صلاحية الحساب...", "Select system role...")</option>
-                    <option value="Admin">@T("مدير النظام (Admin)", "System Administrator (Admin)")</option>
+                    @if (ViewBag.IsOwner == true)
+                    {
+                        <option value="Admin">@T("مدير النظام (Admin)", "System Administrator (Admin)")</option>
+                    }
                     <option value="Doctor">@T("طبيب ممارس (Doctor)", "Doctor (Doctor)")</option>
                     <option value="Receptionist">@T("موظف استقبال (Receptionist)", "Receptionist (Receptionist)")</option>
                 </select>
@@ -90,7 +93,7 @@
                 </p>
             </div>
 
-            @* ── Username + Email (2 cols) ── *@
+            @* ── Username + FullName + Email ── *@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
                     <label for="username" class="clinic-label">
@@ -104,13 +107,28 @@
                     </p>
                 </div>
                 <div>
-                    <label for="email" class="clinic-label">
-                        @T("البريد الإلكتروني", "Email Address")
+                    <label for="fullName" class="clinic-label">
+                        @T("الاسم الكامل للموظف", "Staff Full Name")
                     </label>
-                    <input type="email" class="clinic-input" id="email" name="email"
-                           placeholder="ahmed@@clinic.com"
-                           autocomplete="email" />
+                    <input type="text" class="clinic-input" id="fullName" name="fullName"
+                           placeholder="@T("مثال: د. أحمد الشريف", "e.g. Dr. Ahmad")" />
+                    <p class="text-[11px] mt-1 mb-0" style="color:var(--clinic-muted)">
+                        @T("يظهر في التقارير والفواتير.", "Displayed on reports and slips.")
+                    </p>
                 </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="email" class="clinic-label">
+                    @T("البريد الإلكتروني المهني (اختياري)", "Professional Email Address (Optional)")
+                </label>
+                <input type="email" class="clinic-input" id="email" name="email"
+                       placeholder="alias@clinic.local"
+                       autocomplete="email" />
+                <p class="text-[11px] mt-1 mb-0" style="color:var(--clinic-muted)">
+                    @T("إذا تُرك فارغاً، سيتم تعيين بريد افتراضي تلقائياً: username@clinic.local",
+                       "If omitted, a default alias is auto-assigned: username@clinic.local")
+                </p>
             </div>
 
             @* ── Password ── *@

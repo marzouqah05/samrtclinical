@@ -6,5 +6,6 @@ namespace WebApplication1.Models
     public class ApplicationUser : IdentityUser
     {
         public Guid? ClinicId { get; set; }
+        public string? FullName { get; set; }
     }
 }

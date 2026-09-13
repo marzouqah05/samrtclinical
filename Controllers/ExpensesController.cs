@@ -13,7 +13,7 @@ using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist")]
     public class ExpensesController : Controller
     {
         private readonly ClinicDbContext _context;
@@ -135,7 +135,7 @@ namespace WebApplication1.Controllers
         // ── POST /Expenses/Create ─────────────────────────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,Receptionist")]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist")]
         public async Task<IActionResult> Create(Expense model, IFormFile? receiptFile)
         {
             // Clear nav-property validation errors (none here, but defensive)
@@ -185,7 +185,7 @@ namespace WebApplication1.Controllers
         // ── POST /Expenses/Edit ───────────────────────────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> Edit(Expense model, IFormFile? receiptFile)
         {
             ModelState.Remove("ReceiptAttachmentPath");
@@ -204,39 +204,38 @@ namespace WebApplication1.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // ── Handle receipt upload ────────────────────────────────────────
+            existing.Title       = model.Title;
+            existing.Amount      = model.Amount;
+            existing.ExpenseDate = model.ExpenseDate;
+            existing.Category    = model.Category;
+            existing.Notes       = model.Notes;
+
             if (receiptFile != null && receiptFile.Length > 0)
             {
                 var allowed = new[] { ".pdf", ".png", ".jpg", ".jpeg", ".webp" };
                 var ext = Path.GetExtension(receiptFile.FileName).ToLowerInvariant();
                 if (!allowed.Contains(ext))
                 {
-                    TempData["Error"] = "Invalid receipt file type.";
+                    TempData["Error"] = "Invalid receipt file type. Allowed: PDF, PNG, JPG, WEBP.";
                     return RedirectToAction(nameof(Index));
                 }
+                if (receiptFile.Length > 5 * 1024 * 1024)
+                {
+                    TempData["Error"] = "Receipt file too large. Maximum size is 5 MB.";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 var dir = Path.Combine(_env.WebRootPath, "uploads", "receipts");
                 Directory.CreateDirectory(dir);
                 var fileName = $"receipt_{DateTime.UtcNow:yyyyMMddHHmmssfff}{ext}";
-                using (var fs = new FileStream(Path.Combine(dir, fileName), FileMode.Create))
+                var path = Path.Combine(dir, fileName);
+                using (var fs = new FileStream(path, FileMode.Create))
                     await receiptFile.CopyToAsync(fs);
+
                 existing.ReceiptAttachmentPath = $"/uploads/receipts/{fileName}";
             }
-            // If keepReceipt is false and no new file, clear the receipt path
-            else if (model.ReceiptAttachmentPath == null)
-            {
-                existing.ReceiptAttachmentPath = null;
-            }
-
-            existing.Title          = model.Title;
-            existing.Category       = model.Category;
-            existing.Amount         = model.Amount;
-            existing.ExpenseDate    = model.ExpenseDate;
-            existing.PaymentMethod  = model.PaymentMethod;
-            existing.VendorOrPayee  = model.VendorOrPayee;
-            existing.Notes          = model.Notes;
 
             await _context.SaveChangesAsync();
-
             TempData["Success"] = $"Expense \"{existing.Title}\" updated successfully.";
             return RedirectToAction(nameof(Index));
         }
@@ -244,7 +243,7 @@ namespace WebApplication1.Controllers
         // ── POST /Expenses/Delete ─────────────────────────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> Delete(int id)
         {
             var currentClinicId = User.GetClinicId();
@@ -272,7 +271,7 @@ namespace WebApplication1.Controllers
 
         // ── GET /Expenses/ExportExcel ─────────────────────────────────────────
         [HttpGet]
-        [Authorize(Roles = "Admin,Receptionist")]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist")]
         public async Task<IActionResult> ExportExcel(
             string?   search    = null,
             string?   category  = null,

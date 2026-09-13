@@ -14,7 +14,7 @@ using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {
-    [Authorize(Roles = "Admin,Receptionist,Doctor")]
+    [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist,Doctor")]
     public class AppointmentsController : Controller
     {
         private readonly ClinicDbContext _context;

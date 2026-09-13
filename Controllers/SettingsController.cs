@@ -14,7 +14,7 @@ using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Owner,Admin,SuperAdmin")]
     public class SettingsController : Controller
     {
         private readonly ISettingsService _settingsService;

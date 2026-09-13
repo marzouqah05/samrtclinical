@@ -14,7 +14,7 @@ using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {
-    [Authorize(Roles = "Admin,Receptionist,Doctor")]
+    [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist,Doctor")]
     public class DoctorsController : Controller
     {
         private readonly ClinicDbContext _context;
@@ -154,7 +154,7 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Doctors/Create
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public IActionResult Create()
         {
             var currentClinicId = User.GetClinicId();
@@ -165,6 +165,7 @@ namespace WebApplication1.Controllers
         // POST: Doctors/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> Create([Bind("DoctorId,DoctorNumber,DoctorName,Specialization,ConsultationFee,DepartmentId")] Doctor doctor)
         {
             // مسح أخطاء العلاقات لتجنب فشل الإضافة
@@ -186,7 +187,7 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Doctors/Edit/5
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
@@ -202,6 +203,7 @@ namespace WebApplication1.Controllers
         // POST: Doctors/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> Edit(int id, [Bind("DoctorId,DoctorNumber,DoctorName,Specialization,ConsultationFee,DepartmentId")] Doctor doctor)
         {
             if (id != doctor.DoctorId) return NotFound();
@@ -236,7 +238,7 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Doctors/Delete/5
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();

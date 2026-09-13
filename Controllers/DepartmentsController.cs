@@ -14,7 +14,7 @@ using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Owner,Admin,SuperAdmin,Receptionist,Doctor")]
     public class DepartmentsController : Controller
     {
         private readonly ClinicDbContext _context;

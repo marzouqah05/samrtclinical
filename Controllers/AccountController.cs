@@ -81,9 +81,18 @@ namespace WebApplication1.Controllers
 
             var cleanIdentifier = identifier.Trim();
 
-            // 1. Find user by email first:
-            var user = await _userManager.FindByEmailAsync(cleanIdentifier) 
+            // 1. Dual authentication: Find user by Username or Email seamlessly
+            ApplicationUser? user = null;
+            if (cleanIdentifier.Contains("@"))
+            {
+                user = await _userManager.FindByEmailAsync(cleanIdentifier) 
                        ?? await _userManager.FindByNameAsync(cleanIdentifier);
+            }
+            else
+            {
+                user = await _userManager.FindByNameAsync(cleanIdentifier) 
+                       ?? await _userManager.FindByEmailAsync(cleanIdentifier);
+            }
 
             if (user == null)
             {
@@ -94,17 +103,40 @@ namespace WebApplication1.Controllers
             }
 
             // 2. If user exists but EmailConfirmed is false, force set it to true:
-            if (user != null && !user.EmailConfirmed)
+            if (!user.EmailConfirmed)
             {
                 user.EmailConfirmed = true;
                 await _userManager.UpdateAsync(user);
             }
 
             // Ensure user is not locked out from prior failed attempts
-            if (user != null && await _userManager.IsLockedOutAsync(user))
+            if (await _userManager.IsLockedOutAsync(user))
             {
                 await _userManager.SetLockoutEndDateAsync(user, null);
                 await _userManager.ResetAccessFailedCountAsync(user);
+            }
+
+            // If user has Doctor role, ensure DoctorId claim is populated
+            try
+            {
+                if (await _userManager.IsInRoleAsync(user, "Doctor"))
+                {
+                    var claims = await _userManager.GetClaimsAsync(user);
+                    if (!claims.Any(c => c.Type == "DoctorId"))
+                    {
+                        var doc = await _db.Doctors.FirstOrDefaultAsync(d => 
+                            (user.ClinicId == null || d.ClinicId == user.ClinicId) && 
+                            (d.DoctorEmail == user.Email || d.DoctorName == user.UserName || d.DoctorNumber == user.PhoneNumber));
+                        if (doc != null)
+                        {
+                            await _userManager.AddClaimAsync(user, new System.Security.Claims.Claim("DoctorId", doc.DoctorId.ToString()));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Login DoctorId Claim Notice]: {ex.Message}");
             }
 
             // Ensure tenant claim exists
@@ -277,6 +309,7 @@ namespace WebApplication1.Controllers
             var user = new ApplicationUser
             {
                 UserName = cleanEmail,
+                FullName = adminName?.Trim() ?? clinicName.Trim(),
                 Email = cleanEmail,
                 PhoneNumber = phone?.Trim(),
                 ClinicId = newClinicId,
@@ -299,10 +332,13 @@ namespace WebApplication1.Controllers
 
             Console.WriteLine($"--> [REGISTER] ApplicationUser created successfully (ID: {user.Id})");
 
-            // ── 3. Assign Admin Role & Tenant Claim ────────────────────────
+            // ── 3. Assign Owner & Admin Role & Tenant Claim ────────────────────────
+            if (!await _roleManager.RoleExistsAsync("Owner"))
+                await _roleManager.CreateAsync(new IdentityRole("Owner"));
             if (!await _roleManager.RoleExistsAsync("Admin"))
                 await _roleManager.CreateAsync(new IdentityRole("Admin"));
 
+            await _userManager.AddToRoleAsync(user, "Owner");
             await _userManager.AddToRoleAsync(user, "Admin");
             await _userManager.AddClaimAsync(user, new System.Security.Claims.Claim("ClinicId", newClinicId.ToString()));
 
@@ -464,9 +500,15 @@ namespace WebApplication1.Controllers
                 Console.WriteLine($"[VerifyOtp Non-Fatal] UserManager.UpdateAsync notice: {ex.Message}");
             }
 
-            // Re-verify Admin role assignment
+            // Re-verify Owner and Admin role assignment
             try
             {
+                if (!await _userManager.IsInRoleAsync(user, "Owner"))
+                {
+                    if (!await _roleManager.RoleExistsAsync("Owner"))
+                        await _roleManager.CreateAsync(new IdentityRole("Owner"));
+                    await _userManager.AddToRoleAsync(user, "Owner");
+                }
                 if (!await _userManager.IsInRoleAsync(user, "Admin"))
                 {
                     if (!await _roleManager.RoleExistsAsync("Admin"))
@@ -561,10 +603,11 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Register Page (لإنشاء حسابات الموظفين والأطباء)
-        [Authorize(Roles = "Admin,SuperAdmin")] // فقط الأدمن يستطيع إنشاء حسابات جديدة بالنظام
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")] // فقط الأدمن والمالك يستطيع إنشاء حسابات جديدة بالنظام
         public async Task<IActionResult> Register()
         {
             var isSuperAdmin = User.IsSuperAdmin();
+            var isOwner = User.IsOwner();
             var currentClinicId = User.GetClinicId();
 
             var docQuery = _db.Doctors.AsQueryable();
@@ -579,6 +622,7 @@ namespace WebApplication1.Controllers
                 .ToListAsync();
 
             ViewBag.Doctors = doctors;
+            ViewBag.IsOwner = isOwner;
             return View();
         }
 
@@ -588,7 +632,7 @@ namespace WebApplication1.Controllers
         [IgnoreAntiforgeryToken]
         public async Task<IActionResult> Register(
             [FromForm] RegisterClinicViewModel? model,
-            string? username, string? email, string? password, string? role,
+            string? username, string? fullName, string? email, string? password, string? role,
             int? doctorId)
         {
             if (!User.Identity?.IsAuthenticated ?? true)
@@ -597,19 +641,20 @@ namespace WebApplication1.Controllers
                 var clinicModel = model ?? new RegisterClinicViewModel
                 {
                     ClinicName = username ?? "",
-                    AdminName = username ?? "",
+                    AdminName = fullName ?? username ?? "",
                     Email = email ?? "",
                     Password = password ?? ""
                 };
                 return await RegisterClinic(clinicModel);
             }
 
-            if (!User.IsInRole("Admin") && !User.IsInRole("SuperAdmin"))
+            if (!User.IsAdminOrOwner())
             {
                 return Forbid();
             }
 
             var isSuperAdmin = User.IsSuperAdmin();
+            var isOwner = User.IsOwner();
             var currentClinicId = User.GetClinicId();
 
             // ── Reload doctors list for the view in case we return early ──────
@@ -625,11 +670,21 @@ namespace WebApplication1.Controllers
                     .OrderBy(d => d.DoctorName)
                     .Select(d => new { d.DoctorId, d.DoctorName, d.Specialization })
                     .ToListAsync();
+                ViewBag.IsOwner = isOwner;
             }
 
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(role))
             {
-                ViewBag.Error = T("جميع الحقول مطلوبة.", "All fields are required.");
+                ViewBag.Error = T("جميع الحقول الإلزامية مطلوبة.", "All required fields must be filled.");
+                await ReloadDoctors();
+                return View();
+            }
+
+            // ── Role Hierarchy Rule: Only Owner can create Admin or Owner accounts ──
+            if ((role == "Admin" || role == "Owner") && !isOwner)
+            {
+                ViewBag.Error = T("لا يملك حساب المشرف صلاحية إنشاء حسابات إدارية برتبة مدير أو مالك.",
+                                  "Only the Owner account can create Admin or Owner users.");
                 await ReloadDoctors();
                 return View();
             }
@@ -643,23 +698,45 @@ namespace WebApplication1.Controllers
                 return View();
             }
 
-            // ── Backend Duplicate Check for Email Uniqueness ──────────────────
-            if (!string.IsNullOrEmpty(email))
+            var cleanUsername = username.Trim();
+
+            // ── Auto-assign default email alias if omitted ──
+            var cleanEmail = string.IsNullOrWhiteSpace(email) 
+                ? $"{cleanUsername.ToLowerInvariant()}@clinic.local" 
+                : email.Trim().ToLowerInvariant();
+
+            // ── Backend Duplicate Check for Username Uniqueness ──
+            var existingByName = await _userManager.FindByNameAsync(cleanUsername);
+            if (existingByName != null)
             {
-                var existingUser = await _userManager.FindByEmailAsync(email);
-                if (existingUser != null)
-                {
-                    ViewBag.Error = T(
-                        "هذا البريد الإلكتروني مسجل مسبقاً لمستخدم آخر، يرجى استخدام بريد إلكتروني مختلف.",
-                        "This email is already registered to another user. Please use a different email.");
-                    await ReloadDoctors();
-                    return View();
-                }
+                ViewBag.Error = T(
+                    "اسم المستخدم هذا محجوز مسبقاً، يرجى اختيار اسم مستخدم آخر.",
+                    "This username is already taken. Please choose another username.");
+                await ReloadDoctors();
+                return View();
+            }
+
+            // ── Backend Duplicate Check for Email Uniqueness ──
+            var existingByEmail = await _userManager.FindByEmailAsync(cleanEmail);
+            if (existingByEmail != null)
+            {
+                ViewBag.Error = T(
+                    "هذا البريد الإلكتروني مسجل مسبقاً لمستخدم آخر، يرجى استخدام بريد إلكتروني مختلف.",
+                    "This email is already registered to another user. Please use a different email.");
+                await ReloadDoctors();
+                return View();
             }
 
             // ── 1. Create the Identity user ───────────────────────────────────
             var adminClinicId = User.GetClinicId();
-            var user = new ApplicationUser { UserName = username, Email = email, ClinicId = adminClinicId };
+            var user = new ApplicationUser 
+            { 
+                UserName = cleanUsername, 
+                FullName = !string.IsNullOrWhiteSpace(fullName) ? fullName.Trim() : cleanUsername,
+                Email = cleanEmail, 
+                ClinicId = adminClinicId,
+                EmailConfirmed = true
+            };
             var result = await _userManager.CreateAsync(user, password);
 
             if (result.Succeeded)
@@ -671,8 +748,13 @@ namespace WebApplication1.Controllers
                 // 3. Assign role
                 await _userManager.AddToRoleAsync(user, role);
 
-                // 4. If Doctor: store DoctorId claim so the rest of the app can
-                //    correlate Identity user ↔ Doctor record without schema changes.
+                if (role == "Owner")
+                {
+                    if (!await _userManager.IsInRoleAsync(user, "Admin"))
+                        await _userManager.AddToRoleAsync(user, "Admin");
+                }
+
+                // 4. If Doctor: store DoctorId claim so the rest of the app can correlate
                 if (role == "Doctor" && doctorId.HasValue)
                 {
                     await _userManager.AddClaimAsync(user,
@@ -685,8 +767,8 @@ namespace WebApplication1.Controllers
 
                 // ── Bilingual success toast ───────────────────────────────────
                 ViewBag.Success = T(
-                    $"تمت إضافة المستخدم '{username}' بصلاحية {role} بنجاح ✓",
-                    $"User '{username}' added successfully with the '{role}' role ✓");
+                    $"تمت إضافة المستخدم '{cleanUsername}' بصلاحية {role} بنجاح ✓",
+                    $"User '{cleanUsername}' added successfully with the '{role}' role ✓");
 
                 await ReloadDoctors();
                 return View();
@@ -725,36 +807,83 @@ namespace WebApplication1.Controllers
 
         // ── GET: Staff & User Management List ───────────────────────────────
         [HttpGet]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> StaffList()
         {
             var isSuperAdmin = User.IsSuperAdmin();
+            var isOwner = User.IsOwner();
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var currentClinicId = User.GetClinicId();
 
             var allUsers = await _userManager.Users.OrderBy(u => u.UserName).ToListAsync();
-            var staffList = new List<(ApplicationUser User, string Role, string CreatedDate)>();
+            var staffList = new List<StaffUserViewModel>();
 
             foreach (var u in allUsers)
             {
                 var claims = await _userManager.GetClaimsAsync(u);
                 var userClinicClaim = claims.FirstOrDefault(c => c.Type == "ClinicId")?.Value;
 
-                // SuperAdmin sees all staff; Clinic Admin sees only staff belonging to their ClinicId
+                // SuperAdmin/Owner sees staff belonging to clinic
                 if (isSuperAdmin || (Guid.TryParse(userClinicClaim, out var uClinicGuid) && uClinicGuid == currentClinicId))
                 {
                     var roles = await _userManager.GetRolesAsync(u);
-                    var roleLabel = roles.FirstOrDefault() ?? "Unknown";
-                    staffList.Add((u, roleLabel, ""));
+                    string roleLabel;
+                    if (roles.Contains("Owner") || roles.Contains("SuperAdmin")) roleLabel = "Owner";
+                    else if (roles.Contains("Admin")) roleLabel = "Admin";
+                    else if (roles.Contains("Doctor")) roleLabel = "Doctor";
+                    else if (roles.Contains("Receptionist")) roleLabel = "Receptionist";
+                    else roleLabel = roles.FirstOrDefault() ?? "Unknown";
+
+                    var isTargetOwner = roleLabel == "Owner" || roles.Contains("Owner") || roles.Contains("SuperAdmin");
+                    var isCurrent = u.Id == currentUserId;
+
+                    // Immutability & Hierarchy Rules:
+                    // 1. NO user can delete or alter the role of an Owner account
+                    // 2. Self-deletion is forbidden
+                    // 3. Admin cannot delete or edit other Admins or Owners
+                    // 4. Owner can manage all Admins, Doctors, and Receptionists
+                    bool canDelete = false;
+                    bool canEdit = false;
+
+                    if (!isTargetOwner && !isCurrent)
+                    {
+                        if (isOwner)
+                        {
+                            canDelete = true;
+                            canEdit = true;
+                        }
+                        else if (User.IsInRole("Admin"))
+                        {
+                            // Admin can only delete/edit non-admin staff (Doctor, Receptionist)
+                            if (roleLabel != "Admin")
+                            {
+                                canDelete = true;
+                                canEdit = true;
+                            }
+                        }
+                    }
+
+                    staffList.Add(new StaffUserViewModel
+                    {
+                        User = u,
+                        Role = roleLabel,
+                        CreatedDate = "",
+                        FullName = !string.IsNullOrWhiteSpace(u.FullName) ? u.FullName : (u.UserName ?? ""),
+                        CanDelete = canDelete,
+                        CanEdit = canEdit,
+                        IsOwner = isTargetOwner
+                    });
                 }
             }
 
             ViewBag.StaffList = staffList;
+            ViewBag.IsOwner = isOwner;
             return View();
         }
 
         // ── AJAX: Return doctor details by id (for auto-fill) ─────────────────
         [HttpGet]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         public async Task<IActionResult> GetDoctorDetails(int id)
         {
             var currentClinicId = User.GetClinicId();
@@ -779,7 +908,7 @@ namespace WebApplication1.Controllers
 
         // ── POST: Delete a staff user ──────────────────────────────────────────
         [HttpPost]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteUser(string id)
         {
@@ -804,9 +933,27 @@ namespace WebApplication1.Controllers
                 return RedirectToAction(nameof(StaffList));
             }
 
-            // Enforce tenant boundary: non-SuperAdmin can only delete users belonging to their clinic
-            if (!User.IsSuperAdmin())
+            var targetRoles = await _userManager.GetRolesAsync(user);
+
+            // ── PROTECTION GUARD 1: Owner / SuperAdmin cannot be deleted by anyone ──
+            if (targetRoles.Contains("Owner") || targetRoles.Contains("SuperAdmin"))
             {
+                TempData["Error"] = T("حساب المالك الرئيسي (Owner / SuperAdmin) محمي بحصانة النظام ولا يمكن حذفه نهائياً.",
+                                      "The Owner / SuperAdmin account is protected by system immunity and cannot be deleted.");
+                return RedirectToAction(nameof(StaffList));
+            }
+
+            // ── PROTECTION GUARD 2: Admin cannot delete other Admins or Owners ──
+            if (!User.IsOwner())
+            {
+                if (targetRoles.Contains("Admin"))
+                {
+                    TempData["Error"] = T("لا تملك الصلاحية الكافية لحذف حساب مدير نظام آخر.",
+                                          "You do not have permission to delete another Administrator account.");
+                    return RedirectToAction(nameof(StaffList));
+                }
+
+                // Enforce tenant boundary
                 var userClaims = await _userManager.GetClaimsAsync(user);
                 var userClinicClaim = userClaims.FirstOrDefault(c => c.Type == "ClinicId")?.Value;
                 var currentClinicId = User.GetClinicId();
@@ -830,7 +977,6 @@ namespace WebApplication1.Controllers
             }
             catch (Exception ex)
             {
-                // Proceed with deletion attempt even if session cleanup logs an error
                 Console.WriteLine($"[DeleteUser] Session cleanup exception: {ex.Message}");
             }
 
@@ -846,6 +992,69 @@ namespace WebApplication1.Controllers
                 TempData["Error"] = string.Join(" | ", result.Errors.Select(e => e.Description));
             }
 
+            return RedirectToAction(nameof(StaffList));
+        }
+
+        // ── POST: Update staff role / info ─────────────────────────────────────
+        [HttpPost]
+        [Authorize(Roles = "Owner,Admin,SuperAdmin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateStaff(string id, string? fullName, string? role)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                TempData["Error"] = T("معرّف المستخدم غير صالح.", "Invalid user ID.");
+                return RedirectToAction(nameof(StaffList));
+            }
+
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                TempData["Error"] = T("المستخدم غير موجود.", "User not found.");
+                return RedirectToAction(nameof(StaffList));
+            }
+
+            var targetRoles = await _userManager.GetRolesAsync(user);
+
+            // ── PROTECTION GUARD 1: Owner cannot be altered by anyone ──
+            if (targetRoles.Contains("Owner") || targetRoles.Contains("SuperAdmin"))
+            {
+                TempData["Error"] = T("لا يمكن تعديل صلاحيات أو رتبة حساب المالك (Owner).", "Owner account permissions cannot be altered.");
+                return RedirectToAction(nameof(StaffList));
+            }
+
+            // ── PROTECTION GUARD 2: Admin cannot alter Admins or assign Admin/Owner ──
+            if (!User.IsOwner())
+            {
+                if (targetRoles.Contains("Admin") || role == "Admin" || role == "Owner")
+                {
+                    TempData["Error"] = T("لا تملك الصلاحية الكافية لتعديل حسابات المديرين.", "You do not have permission to modify Admin accounts.");
+                    return RedirectToAction(nameof(StaffList));
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(fullName))
+            {
+                user.FullName = fullName.Trim();
+                await _userManager.UpdateAsync(user);
+            }
+
+            if (!string.IsNullOrWhiteSpace(role) && !targetRoles.Contains(role))
+            {
+                var removableRoles = targetRoles.Where(r => r != "Owner" && r != "SuperAdmin").ToList();
+                if (removableRoles.Any())
+                {
+                    await _userManager.RemoveFromRolesAsync(user, removableRoles);
+                }
+
+                if (!await _roleManager.RoleExistsAsync(role))
+                    await _roleManager.CreateAsync(new IdentityRole(role));
+
+                await _userManager.AddToRoleAsync(user, role);
+            }
+
+            TempData["Success"] = T($"تم تحديث بيانات المستخدم '{user.UserName}' بنجاح.",
+                                    $"User '{user.UserName}' updated successfully.");
             return RedirectToAction(nameof(StaffList));
         }
     }
