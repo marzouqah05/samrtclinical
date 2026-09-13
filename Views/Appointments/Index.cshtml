@@ -1047,6 +1047,16 @@
                                         <div class="text-[#6B7D75] dark:text-[#9CA8A3] text-xs mt-0.5 flex items-center gap-1">
                                             <i class="fa-regular fa-clock me-1"></i>@DateTime.Today.Add(item.AppointmentTime).ToString("hh:mm tt")
                                         </div>
+                                        @if (item.IsOutsideHoursException)
+                                        {
+                                            <div class="mt-1">
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30"
+                                                      title="@T("موعد استثنائي خارج ساعات العمل أو ضمن فترات الاحتياط", "Schedule Exception: booked outside hours or in buffer slot")">
+                                                    <i class="fa-solid fa-triangle-exclamation text-[9px]"></i>
+                                                    <span>@T("استثناء", "Exception")</span>
+                                                </span>
+                                            </div>
+                                        }
                                     </td>
                                     <td class="py-3.5 px-4">
                                         @if (item.Status == "Cancelled")
@@ -1228,8 +1238,10 @@
                 <button type="button" class="btn-close dark:filter dark:invert" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body pt-5 px-0 pb-0 text-left">
-                <form asp-action="QuickBook" method="post">
+                <form asp-action="QuickBook" method="post" id="quickBookForm">
                     @Html.AntiForgeryToken()
+                    <input type="hidden" name="isException" id="qbIsException" value="false" />
+                    <input type="hidden" name="IsOutsideHoursException" id="qbIsOutsideHoursException" value="false" />
                     <div class="space-y-4">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
@@ -1464,6 +1476,7 @@
    APPOINTMENT DETAILS DRAWER / OFFCANVAS (slide-over panel)
 ══════════════════════════════════════════════════════ *@
 <partial name="_AppointmentDetailsPartial" />
+@await Html.PartialAsync("_ScheduleExceptionModal")
 
 @* ─── Tooltip element ─── *@
 <div class="fc-event-tooltip" id="eventTooltip">
@@ -1552,6 +1565,13 @@
                 eventDidMount: function (info) {
                     if (info.event.extendedProps && info.event.extendedProps.status === 'Cancelled') {
                         info.el.classList.add('event-cancelled');
+                    }
+                    if (info.event.extendedProps && info.event.extendedProps.isException) {
+                        const badge = document.createElement('span');
+                        badge.className = 'ms-1 px-1 py-0.5 rounded text-[9px] font-bold bg-amber-400 text-amber-950 inline-block shadow-xs';
+                        badge.textContent = isRtl ? 'استثناء' : 'Exc';
+                        const titleEl = info.el.querySelector('.fc-event-title') || info.el;
+                        titleEl.appendChild(badge);
                     }
                 },
                 // Clicking on a blank date opens the modal with pre-filled date (blocked for past dates)
@@ -1687,7 +1707,11 @@
                 document.getElementById('ep-datetime').innerHTML =
                     '<span dir="ltr" class="d-inline-block text-secondary fw-semibold">—</span>';
             }
-            document.getElementById('ep-status').innerHTML = statusBadgeMap[p.status] || p.status;
+            let statusHtml = statusBadgeMap[p.status] || p.status;
+            if (p.isException) {
+                statusHtml += ` <span class="custom-badge bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 ms-1 font-bold text-[11px]"><i class="fa-solid fa-triangle-exclamation text-[10px] me-1"></i>${isAr ? 'استثناء' : 'Exception'}</span>`;
+            }
+            document.getElementById('ep-status').innerHTML = statusHtml;
 
             const notesSection = document.getElementById('ep-notes-section');
             if (p.notes) {
@@ -1850,6 +1874,18 @@
                     dismissFlashAlert('flashSuccessAlert');
                 }, 6000);
             }
+
+            initScheduleExceptionGuard({
+                formSelector: '#quickBookForm',
+                timeInputSelector: '#qbTime',
+                exceptionInputSelector: '#qbIsException',
+                dateInputSelector: '#qbDate',
+                doctorSelectSelector: '#qbDoctor',
+                shiftStart: '@(ViewBag.WorkingHoursStart ?? "08:00")',
+                shiftEnd: '@(ViewBag.WorkingHoursEnd ?? "20:00")',
+                slotDurationMinutes: @(ViewBag.SlotDurationMinutes ?? 15)
+            });
         });
     </script>
+    <script src="~/js/schedule-exception.js"></script>
 }

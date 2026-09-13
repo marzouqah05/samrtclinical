@@ -52,6 +52,13 @@ namespace WebApplication1.Data
                 }
                 catch { }
 
+                // Ensure IsOutsideHoursException column exists on Appointments
+                try
+                {
+                    await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""Appointments"" ADD COLUMN IF NOT EXISTS ""IsOutsideHoursException"" boolean NOT NULL DEFAULT FALSE;");
+                }
+                catch { }
+
                 // 3. Ensure default Identity Roles exist
                 string[] roleNames = { "SuperAdmin", "Admin", "Doctor", "Receptionist" };
                 foreach (var roleName in roleNames)

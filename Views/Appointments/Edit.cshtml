@@ -26,9 +26,11 @@
             </div>
         </div>
 
-        <form asp-action="Edit" method="post" class="space-y-6">
+        <form asp-action="Edit" method="post" id="editAppointmentForm" class="space-y-6">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="AppointmentId" />
+            <input type="hidden" name="isException" id="editIsExceptionInput" value="@(Model.IsOutsideHoursException ? "true" : "false")" />
+            <input type="hidden" asp-for="IsOutsideHoursException" id="IsOutsideHoursException" />
 
             <div asp-validation-summary="ModelOnly" class="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs"></div>
 
@@ -162,6 +164,8 @@
         </form>
     </div>
 </div>
+
+@await Html.PartialAsync("_ScheduleExceptionModal")
 
 @section Scripts {
     @{
@@ -306,6 +310,18 @@
                     warningBanner.classList.add('hidden');
                 });
             }
+
+            initScheduleExceptionGuard({
+                formSelector: '#editAppointmentForm',
+                timeInputSelector: '#AppointmentTime',
+                exceptionInputSelector: '#editIsExceptionInput',
+                dateInputSelector: 'input[name="AppointmentDate"]',
+                doctorSelectSelector: 'select[name="DoctorId"]',
+                shiftStart: '@(ViewBag.WorkingHoursStart ?? "08:00")',
+                shiftEnd: '@(ViewBag.WorkingHoursEnd ?? "20:00")',
+                slotDurationMinutes: @(ViewBag.SlotDurationMinutes ?? 15)
+            });
         });
     </script>
+    <script src="~/js/schedule-exception.js"></script>
 }

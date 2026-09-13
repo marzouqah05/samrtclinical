@@ -44,6 +44,10 @@ namespace WebApplication1.Models
         [NotMapped]
         public bool IsWeekendOverride { get; set; } = false;
 
+        // ── Schedule Exception (Outside Hours / Buffer Slots) ───────────────
+        /// <summary>True if the appointment was authorized as an exception (outside working hours or inside opening/closing buffer slots).</summary>
+        public bool IsOutsideHoursException { get; set; } = false;
+
         // ── WhatsApp Notification Tracking ──────────────────────────────────
         /// <summary>True once a pre-appointment reminder has been dispatched via WhatsApp.</summary>
         public bool IsReminderSent { get; set; } = false;

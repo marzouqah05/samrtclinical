@@ -32,6 +32,74 @@ namespace WebApplication1.Controllers
             _logger = logger;
         }
 
+        #region Dynamic Working Hours & Exception Validation
+
+        public enum WorkingHoursExceptionType
+        {
+            None,
+            OutsideHours,
+            OpeningBuffer,
+            ClosingBuffer
+        }
+
+        private (bool isException, WorkingHoursExceptionType type, string shiftStart, string shiftEnd, string openingBufferEnd, string closingBufferStart)
+            EvaluateWorkingHours(TimeSpan appointmentTime, ClinicSettingsViewModel cfg)
+        {
+            var start = TimeSpan.TryParse(cfg.WorkingHoursStart, out var s) ? s : new TimeSpan(8, 0, 0);
+            var end   = TimeSpan.TryParse(cfg.WorkingHoursEnd, out var e) ? e : new TimeSpan(20, 0, 0);
+            var slotMinutes = cfg.DefaultSlotDurationMinutes > 0 ? cfg.DefaultSlotDurationMinutes : 15;
+
+            var openingBufferEnd = start.Add(TimeSpan.FromMinutes(slotMinutes));
+            var closingBufferStart = end.Subtract(TimeSpan.FromMinutes(slotMinutes));
+
+            string startStr = start.ToString(@"hh\:mm");
+            string endStr = end.ToString(@"hh\:mm");
+            string opBufEndStr = openingBufferEnd.ToString(@"hh\:mm");
+            string clBufStartStr = closingBufferStart.ToString(@"hh\:mm");
+
+            // Outside working hours: < shift.StartTime OR > shift.EndTime
+            if (appointmentTime < start || appointmentTime > end)
+            {
+                return (true, WorkingHoursExceptionType.OutsideHours, startStr, endStr, opBufEndStr, clBufStartStr);
+            }
+            // Opening buffer: [shift.StartTime, shift.StartTime + SlotDurationMinutes]
+            if (appointmentTime >= start && appointmentTime <= openingBufferEnd)
+            {
+                return (true, WorkingHoursExceptionType.OpeningBuffer, startStr, endStr, opBufEndStr, clBufStartStr);
+            }
+            // Closing buffer: [shift.EndTime - SlotDurationMinutes, shift.EndTime]
+            if (appointmentTime >= closingBufferStart && appointmentTime <= end)
+            {
+                return (true, WorkingHoursExceptionType.ClosingBuffer, startStr, endStr, opBufEndStr, clBufStartStr);
+            }
+
+            return (false, WorkingHoursExceptionType.None, startStr, endStr, opBufEndStr, clBufStartStr);
+        }
+
+        // GET: Appointments/GetWorkingHoursConfig
+        [HttpGet]
+        public async Task<IActionResult> GetWorkingHoursConfig(int? doctorId, string? date)
+        {
+            var cfg = await _settingsService.GetSettingsAsync();
+            var start = TimeSpan.TryParse(cfg.WorkingHoursStart, out var s) ? s : new TimeSpan(8, 0, 0);
+            var end   = TimeSpan.TryParse(cfg.WorkingHoursEnd, out var e) ? e : new TimeSpan(20, 0, 0);
+            var slotMinutes = cfg.DefaultSlotDurationMinutes > 0 ? cfg.DefaultSlotDurationMinutes : 15;
+
+            var openingBufferEnd = start.Add(TimeSpan.FromMinutes(slotMinutes));
+            var closingBufferStart = end.Subtract(TimeSpan.FromMinutes(slotMinutes));
+
+            return Json(new
+            {
+                shiftStart = start.ToString(@"hh\:mm"),
+                shiftEnd = end.ToString(@"hh\:mm"),
+                slotDurationMinutes = slotMinutes,
+                openingBufferEnd = openingBufferEnd.ToString(@"hh\:mm"),
+                closingBufferStart = closingBufferStart.ToString(@"hh\:mm")
+            });
+        }
+
+        #endregion
+
         #region Bulk Import & Export
 
         /// <summary>
@@ -168,6 +236,11 @@ namespace WebApplication1.Controllers
             ViewBag.AllDoctors = await _context.Doctors.Where(d => d.ClinicId == currentClinicId).OrderBy(d => d.DoctorName).ToListAsync();
             ViewBag.AllPatients = await _context.Patients.Where(p => p.ClinicId == currentClinicId).OrderBy(p => p.PatientName).ToListAsync();
 
+            var cfg = await _settingsService.GetSettingsAsync();
+            ViewBag.WorkingHoursStart = cfg.WorkingHoursStart ?? "08:00";
+            ViewBag.WorkingHoursEnd = cfg.WorkingHoursEnd ?? "20:00";
+            ViewBag.SlotDurationMinutes = cfg.DefaultSlotDurationMinutes > 0 ? cfg.DefaultSlotDurationMinutes : 15;
+
             return View(appointments);
         }
 
@@ -207,20 +280,23 @@ namespace WebApplication1.Controllers
                 var cleanDoc = System.Text.RegularExpressions.Regex.Replace(rawDocName, @"^(Dr\.\s*|د\.\s*)+", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
                 var docTitle = string.IsNullOrWhiteSpace(cleanDoc) || cleanDoc == "?" ? "?" : $"Dr. {cleanDoc}";
 
+                var isExc = a.IsOutsideHoursException;
+
                 return new
                 {
                     id          = a.AppointmentId,
-                    title       = $"{a.Patient?.PatientName ?? "Patient"} — {docTitle}",
+                    title       = $"{a.Patient?.PatientName ?? "Patient"} — {docTitle}" + (isExc ? " (⚠️ Exception)" : ""),
                     start       = startDt.ToString("yyyy-MM-ddTHH:mm:ss"),
                     end         = endDt.ToString("yyyy-MM-ddTHH:mm:ss"),
                     color,
-                    className   = a.Status == "Cancelled" ? "event-cancelled" : "",
+                    className   = (a.Status == "Cancelled" ? "event-cancelled " : "") + (isExc ? "event-exception" : ""),
                     extendedProps = new
                     {
                         status      = a.Status,
                         doctorName  = docTitle,
                         patientName = a.Patient?.PatientName ?? "",
-                        notes       = a.Notes ?? ""
+                        notes       = a.Notes ?? "",
+                        isException = isExc
                     }
                 };
             });
@@ -229,21 +305,37 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Appointments/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
             var currentClinicId = User.GetClinicId();
             // جلب قائمة الأطباء والمرضى للعيادة الحالية لتعبئة القوائم المنسدلة في الواجهة
             ViewData["DoctorId"] = new SelectList(_context.Doctors.Where(d => d.ClinicId == currentClinicId), "DoctorId", "DoctorName");
             ViewData["PatientId"] = new SelectList(_context.Patients.Where(p => p.ClinicId == currentClinicId), "PatientId", "PatientName");
+
+            var cfg = await _settingsService.GetSettingsAsync();
+            ViewBag.WorkingHoursStart = cfg.WorkingHoursStart ?? "08:00";
+            ViewBag.WorkingHoursEnd = cfg.WorkingHoursEnd ?? "20:00";
+            ViewBag.SlotDurationMinutes = cfg.DefaultSlotDurationMinutes > 0 ? cfg.DefaultSlotDurationMinutes : 15;
+
             return View();
         }
 
         // POST: Appointments/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,Notes,IsWeekendOverride")] Appointment appointment)
+        public async Task<IActionResult> Create([Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,Notes,IsWeekendOverride,IsOutsideHoursException")] Appointment appointment, bool isException = false)
         {
             var currentClinicId = User.GetClinicId();
+            var cfg = await _settingsService.GetSettingsAsync();
+            ViewBag.WorkingHoursStart = cfg.WorkingHoursStart ?? "08:00";
+            ViewBag.WorkingHoursEnd = cfg.WorkingHoursEnd ?? "20:00";
+            ViewBag.SlotDurationMinutes = cfg.DefaultSlotDurationMinutes > 0 ? cfg.DefaultSlotDurationMinutes : 15;
+
+            var eval = EvaluateWorkingHours(appointment.AppointmentTime, cfg);
+            if (eval.isException && (isException || appointment.IsOutsideHoursException))
+            {
+                appointment.IsOutsideHoursException = true;
+            }
 
             // Explicitly enforce AppointmentDate >= DateTime.Today
             if (appointment.AppointmentDate.Date < DateTime.Today)
@@ -365,6 +457,11 @@ namespace WebApplication1.Controllers
                 return RedirectToAction(nameof(Details), new { id = appointment.AppointmentId });
             }
 
+            var cfg = await _settingsService.GetSettingsAsync();
+            ViewBag.WorkingHoursStart = cfg.WorkingHoursStart ?? "08:00";
+            ViewBag.WorkingHoursEnd = cfg.WorkingHoursEnd ?? "20:00";
+            ViewBag.SlotDurationMinutes = cfg.DefaultSlotDurationMinutes > 0 ? cfg.DefaultSlotDurationMinutes : 15;
+
             PopulateAppointmentDropdowns(appointment);
             return View(appointment);
         }
@@ -372,7 +469,7 @@ namespace WebApplication1.Controllers
         // POST: Appointments/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,Status,Notes,IsWeekendOverride")] Appointment appointment)
+        public async Task<IActionResult> Edit(int id, [Bind("AppointmentId,AppointmentDate,AppointmentTime,DoctorId,PatientId,Status,Notes,IsWeekendOverride,IsOutsideHoursException")] Appointment appointment, bool isException = false)
         {
             if (id != appointment.AppointmentId)
             {
@@ -462,12 +559,17 @@ namespace WebApplication1.Controllers
                 try
                 {
 
+                    var cfg = await _settingsService.GetSettingsAsync();
+                    var eval = EvaluateWorkingHours(appointment.AppointmentTime, cfg);
+                    bool finalException = (isException || appointment.IsOutsideHoursException) && eval.isException;
+
                     existing.AppointmentDate = appointment.AppointmentDate;
                     existing.AppointmentTime = appointment.AppointmentTime;
                     existing.DoctorId        = appointment.DoctorId;
                     existing.PatientId       = appointment.PatientId;
                     existing.Status          = appointment.Status;
                     existing.Notes           = appointment.Notes;
+                    existing.IsOutsideHoursException = finalException;
 
                     _context.Update(existing);
                     await _context.SaveChangesAsync();
@@ -484,6 +586,11 @@ namespace WebApplication1.Controllers
                     throw;
                 }
             }
+
+            var cfgFail = await _settingsService.GetSettingsAsync();
+            ViewBag.WorkingHoursStart = cfgFail.WorkingHoursStart ?? "08:00";
+            ViewBag.WorkingHoursEnd = cfgFail.WorkingHoursEnd ?? "20:00";
+            ViewBag.SlotDurationMinutes = cfgFail.DefaultSlotDurationMinutes > 0 ? cfgFail.DefaultSlotDurationMinutes : 15;
 
             PopulateAppointmentDropdowns(appointment);
             return View(appointment);
@@ -588,7 +695,7 @@ namespace WebApplication1.Controllers
         // POST: Appointments/QuickBook — AJAX quick-book from calendar modal
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> QuickBook([Bind("AppointmentDate,AppointmentTime,DoctorId,PatientId,Notes")] Appointment appointment)
+        public async Task<IActionResult> QuickBook([Bind("AppointmentDate,AppointmentTime,DoctorId,PatientId,Notes,IsOutsideHoursException")] Appointment appointment, bool isException = false)
         {
             if (appointment.AppointmentDate.Date < DateTime.Today)
             {
@@ -607,6 +714,13 @@ namespace WebApplication1.Controllers
                     : "Cannot schedule an appointment in the past.";
                 TempData["Error"] = error;
                 return RedirectToAction(nameof(Index));
+            }
+
+            var cfg = await _settingsService.GetSettingsAsync();
+            var eval = EvaluateWorkingHours(appointment.AppointmentTime, cfg);
+            if (eval.isException && (isException || appointment.IsOutsideHoursException))
+            {
+                appointment.IsOutsideHoursException = true;
             }
 
             if (ModelState.IsValid)
