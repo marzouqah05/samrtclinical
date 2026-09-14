@@ -53,6 +53,7 @@ namespace WebApplication1.Models
         public int DoctorId { get; set; }
         public string DoctorName { get; set; } = string.Empty;
         public string Specialization { get; set; } = string.Empty;
+        public decimal ConsultationFee { get; set; }
         public string DepartmentName { get; set; } = string.Empty;
         public string WorkingDays { get; set; } = string.Empty;
         public string OpeningTime { get; set; } = string.Empty;

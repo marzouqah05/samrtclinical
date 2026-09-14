@@ -175,21 +175,23 @@ namespace WebApplication1.Controllers.Api
             var cfg = await _settings.GetSettingsAsync();
 
             var doctors = await _context.Doctors
+                .IgnoreQueryFilters()   // Bypass multi-tenancy filter: API key requests have no session ClinicId
                 .AsNoTracking()
                 .Include(d => d.Department)
                 .OrderBy(d => d.DepartmentId)
                 .ThenBy(d => d.DoctorName)
                 .Select(d => new DoctorListDto
                 {
-                    DoctorId          = d.DoctorId,
-                    DoctorName        = d.DoctorName,
-                    Specialization    = d.Specialization,
-                    DepartmentName    = d.Department != null ? d.Department.DepartmentName : string.Empty,
-                    TelegramChatId    = d.TelegramChatId,
+                    DoctorId            = d.DoctorId,
+                    DoctorName          = d.DoctorName,
+                    Specialization      = d.Specialization,
+                    ConsultationFee     = d.ConsultationFee,
+                    DepartmentName      = d.Department != null ? d.Department.DepartmentName : string.Empty,
+                    TelegramChatId      = d.TelegramChatId,
                     // Clinic-wide scheduling parameters (same for all doctors)
-                    WorkingDays       = cfg.WorkingDays,
-                    OpeningTime       = cfg.WorkingHoursStart,
-                    ClosingTime       = cfg.WorkingHoursEnd,
+                    WorkingDays         = cfg.WorkingDays,
+                    OpeningTime         = cfg.WorkingHoursStart,
+                    ClosingTime         = cfg.WorkingHoursEnd,
                     SlotDurationMinutes = cfg.DefaultSlotDurationMinutes,
                 })
                 .ToListAsync();
