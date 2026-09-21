@@ -74,6 +74,7 @@ namespace WebApplication1.Controllers.Api
             _logger.LogInformation("[Automation] Patient lookup — phone={Phone}", cleanPhone);
 
             var patient = await _context.Patients
+                .IgnoreQueryFilters()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.PhoneNumber == cleanPhone);
 
@@ -82,6 +83,7 @@ namespace WebApplication1.Controllers.Api
 
             // Find the most recent non-cancelled appointment to get last doctor
             var lastAppointment = await _context.Appointments
+                .IgnoreQueryFilters()
                 .AsNoTracking()
                 .Include(a => a.Doctor)
                 .Where(a => a.PatientId == patient.PatientId && a.Status != "Cancelled")
@@ -91,7 +93,7 @@ namespace WebApplication1.Controllers.Api
 
             return Ok(new PatientLookupResult
             {
-                Exists        = true,
+                Exists         = true,
                 PatientId     = patient.PatientId,
                 FullName      = patient.PatientName,
                 TelegramChatId = patient.TelegramChatId,
@@ -122,7 +124,10 @@ namespace WebApplication1.Controllers.Api
             var cleanPhone = request.Phone.Trim();
 
             // Duplicate phone guard
-            var existing = await _context.Patients.AnyAsync(p => p.PhoneNumber == cleanPhone);
+            var existing = await _context.Patients
+                .IgnoreQueryFilters()
+                .AnyAsync(p => p.PhoneNumber == cleanPhone);
+
             if (existing)
                 return Conflict(new CreatePatientResult
                 {
@@ -175,7 +180,7 @@ namespace WebApplication1.Controllers.Api
             var cfg = await _settings.GetSettingsAsync();
 
             var doctors = await _context.Doctors
-                .IgnoreQueryFilters()   // Bypass multi-tenancy filter: API key requests have no session ClinicId
+                .IgnoreQueryFilters()   // Bypass multi-tenancy filter
                 .AsNoTracking()
                 .Include(d => d.Department)
                 .OrderBy(d => d.DepartmentId)
@@ -188,7 +193,6 @@ namespace WebApplication1.Controllers.Api
                     ConsultationFee     = d.ConsultationFee,
                     DepartmentName      = d.Department != null ? d.Department.DepartmentName : string.Empty,
                     TelegramChatId      = d.TelegramChatId,
-                    // Clinic-wide scheduling parameters (same for all doctors)
                     WorkingDays         = cfg.WorkingDays,
                     OpeningTime         = cfg.WorkingHoursStart,
                     ClosingTime         = cfg.WorkingHoursEnd,
@@ -210,6 +214,7 @@ namespace WebApplication1.Controllers.Api
         [ProducesResponseType(typeof(AvailableSlotsResult), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
         public async Task<IActionResult> GetAvailableSlots(
             [FromQuery] int doctorId,
             [FromQuery] string date)
@@ -224,7 +229,10 @@ namespace WebApplication1.Controllers.Api
                     CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
                 return BadRequest(new { error = "Invalid date format. Expected yyyy-MM-dd." });
 
-            var doctorExists = await _context.Doctors.AnyAsync(d => d.DoctorId == doctorId);
+            var doctorExists = await _context.Doctors
+                .IgnoreQueryFilters()
+                .AnyAsync(d => d.DoctorId == doctorId);
+
             if (!doctorExists)
                 return NotFound(new { error = $"Doctor with ID {doctorId} not found." });
 
@@ -247,6 +255,7 @@ namespace WebApplication1.Controllers.Api
             // Load booked slots for this day
             var dateOnly = parsedDate.Date;
             var bookedTimes = await _context.Appointments
+                .IgnoreQueryFilters()
                 .AsNoTracking()
                 .Where(a => a.DoctorId == doctorId
                          && a.AppointmentDate.Date == dateOnly
@@ -276,6 +285,7 @@ namespace WebApplication1.Controllers.Api
                         continue;
 
                     var candidateBooked = await _context.Appointments
+                        .IgnoreQueryFilters()
                         .AsNoTracking()
                         .CountAsync(a => a.DoctorId == doctorId
                                       && a.AppointmentDate.Date == candidate.Date
@@ -331,23 +341,30 @@ namespace WebApplication1.Controllers.Api
                 return BadRequest(new BookAppointmentResult { Success = false, Message = "Invalid time format. Expected HH:mm." });
 
             // Validate patient
-            var patient = await _context.Patients.FindAsync(request.PatientId);
+            var patient = await _context.Patients
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(p => p.PatientId == request.PatientId);
+
             if (patient == null)
                 return NotFound(new BookAppointmentResult { Success = false, Message = $"Patient ID {request.PatientId} not found." });
 
             // Validate doctor
             var doctor = await _context.Doctors
+                .IgnoreQueryFilters()
                 .Include(d => d.Department)
                 .FirstOrDefaultAsync(d => d.DoctorId == request.DoctorId);
+
             if (doctor == null)
                 return NotFound(new BookAppointmentResult { Success = false, Message = $"Doctor ID {request.DoctorId} not found." });
 
             // Double-booking guard
-            bool slotTaken = await _context.Appointments.AnyAsync(a =>
-                a.DoctorId == request.DoctorId
-                && a.AppointmentDate.Date == appointmentDate.Date
-                && a.AppointmentTime == timeSlot
-                && a.Status != "Cancelled");
+            bool slotTaken = await _context.Appointments
+                .IgnoreQueryFilters()
+                .AnyAsync(a =>
+                    a.DoctorId == request.DoctorId
+                    && a.AppointmentDate.Date == appointmentDate.Date
+                    && a.AppointmentTime == timeSlot
+                    && a.Status != "Cancelled");
 
             if (slotTaken)
                 return Conflict(new BookAppointmentResult
@@ -358,7 +375,7 @@ namespace WebApplication1.Controllers.Api
 
             // Read AutoConfirm setting
             var cfg = await _settings.GetSettingsAsync();
-            string status = cfg.AutoConfirmAppointments ? "Confirmed" : "Confirmed"; // Telegram bot always confirms
+            string status = cfg.AutoConfirmAppointments ? "Confirmed" : "Confirmed";
             string channel = request.Channel ?? "Telegram";
 
             // Create appointment
@@ -372,6 +389,7 @@ namespace WebApplication1.Controllers.Api
                 Notes           = string.IsNullOrWhiteSpace(request.Notes)
                                     ? $"Booked via {channel}"
                                     : $"[{channel}] {request.Notes}",
+                ClinicId        = doctor.ClinicId ?? patient.ClinicId,
             };
 
             _context.Appointments.Add(appointment);
@@ -424,6 +442,7 @@ namespace WebApplication1.Controllers.Api
                 return Unauthorized(new { error = "Invalid or missing X-Automation-Key header." });
 
             var doctor = await _context.Doctors
+                .IgnoreQueryFilters()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(d => d.DoctorId == doctorId);
 
@@ -436,6 +455,7 @@ namespace WebApplication1.Controllers.Api
             var weekEnd = today.AddDays(7);
 
             var appointments = await _context.Appointments
+                .IgnoreQueryFilters()
                 .AsNoTracking()
                 .Include(a => a.Patient)
                 .Where(a => a.DoctorId == doctorId
@@ -459,7 +479,6 @@ namespace WebApplication1.Controllers.Api
                         Time           = a.AppointmentTime.ToString(@"hh\:mm"),
                         PatientName    = a.Patient?.PatientName ?? "Unknown",
                         TelegramChatId = a.Patient?.TelegramChatId,
-                        // VisitType extracted from first line of Notes (if set by bot)
                         VisitType      = ExtractVisitType(a.Notes),
                         Status         = a.Status,
                     }).ToList()
@@ -767,7 +786,6 @@ namespace WebApplication1.Controllers.Api
         private static string? ExtractVisitType(string? notes)
         {
             if (string.IsNullOrWhiteSpace(notes)) return null;
-            // Strip channel prefix e.g. "[Telegram] " or "[WhatsApp] "
             var text = notes.Contains(']')
                 ? notes[(notes.IndexOf(']') + 1)..].Trim()
                 : notes.Trim();
