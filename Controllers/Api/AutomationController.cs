@@ -987,35 +987,51 @@ namespace WebApplication1.Controllers.Api
         public async Task<IActionResult> BookSlot(
             [FromBody] BookSlotRequest request)
         {
+            // ---------------------------------------------
+            // Authorization
+            // ---------------------------------------------
+
             if (!IsAuthorized())
+            {
                 return Unauthorized(new
                 {
                     error = "Invalid or missing X-Automation-Key header."
                 });
+            }
+
+            // ---------------------------------------------
+            // Validate request
+            // ---------------------------------------------
 
             if (request == null)
+            {
                 return BadRequest(new
                 {
                     error = "Request payload cannot be empty."
                 });
+            }
 
-            if (string.IsNullOrWhiteSpace(
-                    request.PatientTelegramChatId))
+            if (string.IsNullOrWhiteSpace(request.PatientTelegramChatId))
             {
                 return BadRequest(new
                 {
-                    error =
-                        "patientTelegramChatId is required."
+                    error = "patientTelegramChatId is required."
                 });
             }
 
             int doctorId = ParseId(request.DoctorId);
 
             if (doctorId <= 0)
+            {
                 return BadRequest(new
                 {
                     error = "Invalid or missing doctorId."
                 });
+            }
+
+            // ---------------------------------------------
+            // Parse date
+            // ---------------------------------------------
 
             if (string.IsNullOrWhiteSpace(request.Date) ||
                 !DateTime.TryParse(
@@ -1026,10 +1042,13 @@ namespace WebApplication1.Controllers.Api
             {
                 return BadRequest(new
                 {
-                    error =
-                        "Invalid or missing 'date'. Expected format: yyyy-MM-dd or ISO 8601."
+                    error = "Invalid or missing 'date'. Expected format: yyyy-MM-dd or ISO 8601."
                 });
             }
+
+            // ---------------------------------------------
+            // Parse time
+            // ---------------------------------------------
 
             if (string.IsNullOrWhiteSpace(request.Time) ||
                 !TimeSpan.TryParse(
@@ -1038,22 +1057,34 @@ namespace WebApplication1.Controllers.Api
             {
                 return BadRequest(new
                 {
-                    error =
-                        "Invalid or missing 'time'. Expected format: HH:mm."
+                    error = "Invalid or missing 'time'. Expected format: HH:mm."
                 });
             }
 
             // ---------------------------------------------
-            // Find patient by TelegramChatId
+            // Find the correct Telegram patient
             // ---------------------------------------------
 
-            var cleanChatId =
-                request.PatientTelegramChatId.Trim();
+            var cleanChatId = request.PatientTelegramChatId.Trim();
+
+            /*
+             * IMPORTANT:
+             *
+             * One Telegram account can register more than one patient.
+             * Therefore TelegramChatId alone is not unique.
+             *
+             * The previous code used FirstOrDefaultAsync(), which could
+             * return the old patient (for example "sulaiman").
+             *
+             * We now explicitly select the newest patient registered
+             * for this Telegram chat by descending PatientId.
+             */
 
             var patient = await _context.Patients
                 .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(
-                    p => p.TelegramChatId == cleanChatId);
+                .Where(p => p.TelegramChatId == cleanChatId)
+                .OrderByDescending(p => p.PatientId)
+                .FirstOrDefaultAsync();
 
             if (patient == null)
             {
@@ -1106,6 +1137,10 @@ namespace WebApplication1.Controllers.Api
                         $"Slot {apptTime:hh\\:mm} on {apptDate:yyyy-MM-dd} is already booked for Dr. {doctor.DoctorName}."
                 });
             }
+
+            // ---------------------------------------------
+            // Clinic
+            // ---------------------------------------------
 
             var targetClinicId =
                 doctor.ClinicId ?? patient.ClinicId;
@@ -1176,20 +1211,44 @@ namespace WebApplication1.Controllers.Api
                 UserName = "Telegram_Automation",
                 Action = "CREATE",
                 EntityName = "Appointment",
-                EntityId =
-                    appointment.AppointmentId.ToString(),
+                EntityId = appointment.AppointmentId.ToString(),
                 Timestamp = DateTime.UtcNow,
                 Details =
-                    $"Automated book-slot via Telegram | ChatId: {cleanChatId} | Patient: {patient.PatientName} | Doctor: Dr. {doctor.DoctorName} | Slot: {apptDate:yyyy-MM-dd} {apptTime:hh\\:mm}",
+                    $"Automated book-slot via Telegram | " +
+                    $"ChatId: {cleanChatId} | " +
+                    $"Patient: {patient.PatientName} (ID:{patient.PatientId}) | " +
+                    $"Doctor: Dr. {doctor.DoctorName} (ID:{doctor.DoctorId}) | " +
+                    $"Slot: {apptDate:yyyy-MM-dd} {apptTime:hh\\:mm}",
             });
 
             await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "[Automation] Telegram booking created successfully. " +
+                "AppointmentId={AppointmentId}, PatientId={PatientId}, " +
+                "PatientName={PatientName}, ChatId={ChatId}, " +
+                "DoctorId={DoctorId}, Date={Date}, Time={Time}",
+                appointment.AppointmentId,
+                patient.PatientId,
+                patient.PatientName,
+                cleanChatId,
+                doctor.DoctorId,
+                apptDate.ToString("yyyy-MM-dd"),
+                apptTime.ToString(@"hh\:mm")
+            );
+
+            // ---------------------------------------------
+            // Response
+            // ---------------------------------------------
 
             return Ok(new
             {
                 success = true,
                 appointmentId = appointment.AppointmentId,
+                patientId = patient.PatientId,
                 patientName = patient.PatientName,
+                patientTelegramChatId = patient.TelegramChatId,
+                doctorId = doctor.DoctorId,
                 doctorName = doctor.DoctorName,
                 departmentName =
                     doctor.Department?.DepartmentName
