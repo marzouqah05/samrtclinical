@@ -94,10 +94,10 @@ namespace WebApplication1.Controllers.Api
             return Ok(new PatientLookupResult
             {
                 Exists         = true,
-                PatientId     = patient.PatientId,
-                FullName      = patient.PatientName,
+                PatientId      = patient.PatientId,
+                FullName       = patient.PatientName,
                 TelegramChatId = patient.TelegramChatId,
-                LastDoctorId  = lastAppointment?.DoctorId,
+                LastDoctorId   = lastAppointment?.DoctorId,
                 LastDoctorName = lastAppointment?.Doctor?.DoctorName,
             });
         }
@@ -141,7 +141,7 @@ namespace WebApplication1.Controllers.Api
             {
                 PatientName    = request.FullName.Trim(),
                 PhoneNumber    = cleanPhone,
-                NationalId     = request.NationalId.Trim(),
+                NationalId     = string.IsNullOrWhiteSpace(request.NationalId) ? "0000000000" : request.NationalId.Trim(),
                 DOB            = new DateTime(1990, 1, 1),  // Placeholder; patient can update via portal
                 TelegramChatId = string.IsNullOrWhiteSpace(request.TelegramChatId) ? null : request.TelegramChatId.Trim(),
             };
@@ -378,22 +378,51 @@ namespace WebApplication1.Controllers.Api
             string status = cfg.AutoConfirmAppointments ? "Confirmed" : "Confirmed";
             string channel = request.Channel ?? "Telegram";
 
+            var targetClinicId = doctor.ClinicId ?? patient.ClinicId;
+
             // Create appointment
             var appointment = new Appointment
             {
                 PatientId       = patient.PatientId,
                 DoctorId        = doctor.DoctorId,
+                DepartmentId    = doctor.DepartmentId,
                 AppointmentDate = appointmentDate.Date,
                 AppointmentTime = timeSlot,
                 Status          = status,
                 Notes           = string.IsNullOrWhiteSpace(request.Notes)
                                     ? $"Booked via {channel}"
                                     : $"[{channel}] {request.Notes}",
-                ClinicId        = doctor.ClinicId ?? patient.ClinicId,
+                ClinicId        = targetClinicId,
             };
 
             _context.Appointments.Add(appointment);
             await _context.SaveChangesAsync();
+
+            // Dispatch notification to reception
+            try
+            {
+                var notification = new Notification
+                {
+                    ClinicId       = targetClinicId,
+                    AppointmentId  = appointment.AppointmentId,
+                    PatientId      = patient.PatientId,
+                    PatientName    = patient.PatientName,
+                    DoctorName     = doctor.DoctorName,
+                    DepartmentName = doctor.Department?.DepartmentName ?? "العيادة",
+                    Title          = "طلب حجز جديد",
+                    Message        = $"قام المريض {patient.PatientName} بحجز موعد مع د. {doctor.DoctorName} بتاريخ {request.Date} الساعة {request.Time}.",
+                    TargetRole     = "Receptionist",
+                    Type           = "AppointmentCreated",
+                    IsRead         = false,
+                    CreatedAt      = DateTime.UtcNow
+                };
+
+                _context.Notifications.Add(notification);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[Automation] Failed to add Notification entry.");
+            }
 
             // Write structured audit log entry
             _context.AuditLogs.Add(new AuditLog
@@ -414,15 +443,15 @@ namespace WebApplication1.Controllers.Api
 
             return Ok(new BookAppointmentResult
             {
-                Success               = true,
-                Message               = "Appointment confirmed successfully.",
-                AppointmentId         = appointment.AppointmentId,
-                DoctorName            = doctor.DoctorName,
-                DoctorTelegramChatId  = doctor.TelegramChatId,
-                PatientName           = patient.PatientName,
-                AppointmentDate       = request.Date,
-                AppointmentTime       = request.Time,
-                Status                = status,
+                Success                = true,
+                Message                = "Appointment confirmed successfully.",
+                AppointmentId          = appointment.AppointmentId,
+                DoctorName             = doctor.DoctorName,
+                DoctorTelegramChatId   = doctor.TelegramChatId,
+                PatientName            = patient.PatientName,
+                AppointmentDate        = request.Date,
+                AppointmentTime        = request.Time,
+                Status                 = status,
             });
         }
 
@@ -648,7 +677,7 @@ namespace WebApplication1.Controllers.Api
         // ── 4. POST /api/automation/book-slot ─────────────────────────────────
         /// <summary>
         /// Books an appointment slot for a patient identified by their TelegramChatId.
-        /// Validates doctor availability and records the new appointment.
+        /// Validates doctor availability, creates appointment with Pending status, and notifies reception.
         /// </summary>
         [HttpPost("book-slot")]
         [ProducesResponseType(200)]
@@ -707,13 +736,13 @@ namespace WebApplication1.Controllers.Api
                 });
             }
 
-            // Check availability (double-booking guard)
+            // Double-booking guard
             bool slotTaken = await _context.Appointments
                 .IgnoreQueryFilters()
                 .AnyAsync(a => a.DoctorId == doctor.DoctorId
-                            && a.AppointmentDate.Date == apptDate.Date
-                            && a.AppointmentTime == apptTime
-                            && a.Status != "Cancelled");
+                             && a.AppointmentDate.Date == apptDate.Date
+                             && a.AppointmentTime == apptTime
+                             && a.Status != "Cancelled");
 
             if (slotTaken)
             {
@@ -724,6 +753,9 @@ namespace WebApplication1.Controllers.Api
                 });
             }
 
+            var targetClinicId = doctor.ClinicId ?? patient.ClinicId;
+
+            // 1. Create Appointment
             var appointment = new Appointment
             {
                 PatientId       = patient.PatientId,
@@ -731,16 +763,43 @@ namespace WebApplication1.Controllers.Api
                 DepartmentId    = doctor.DepartmentId,
                 AppointmentDate = apptDate.Date,
                 AppointmentTime = apptTime,
-                Status          = "Confirmed",
+                Status          = "Pending", // تظهر مباشرة في قائمة الحجوزات المعلقة للموقع
                 Notes           = string.IsNullOrWhiteSpace(request.Notes)
                                     ? "[Telegram Automation]"
                                     : $"[Telegram Automation] {request.Notes}",
-                ClinicId        = doctor.ClinicId ?? patient.ClinicId,
+                ClinicId        = targetClinicId,
             };
 
             _context.Appointments.Add(appointment);
             await _context.SaveChangesAsync();
 
+            // 2. Dispatch In-App Notification to Receptionist
+            try
+            {
+                var notification = new Notification
+                {
+                    ClinicId        = targetClinicId,
+                    AppointmentId   = appointment.AppointmentId,
+                    PatientId       = patient.PatientId,
+                    PatientName     = patient.PatientName,
+                    DoctorName      = doctor.DoctorName,
+                    DepartmentName  = doctor.Department?.DepartmentName ?? "العيادة",
+                    Title           = "طلب حجز جديد (Telegram)",
+                    Message         = $"قام المريض {patient.PatientName} بحجز موعد مع د. {doctor.DoctorName} بتاريخ {apptDate:yyyy-MM-dd} الساعة {apptTime:hh\\:mm}.",
+                    TargetRole      = "Receptionist",
+                    Type            = "TelegramBooking",
+                    IsRead          = false,
+                    CreatedAt       = DateTime.UtcNow
+                };
+
+                _context.Notifications.Add(notification);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[Automation] Failed to dispatch Notification entity.");
+            }
+
+            // 3. Write structured audit log entry
             _context.AuditLogs.Add(new AuditLog
             {
                 UserName   = "Telegram_Automation",
@@ -762,7 +821,7 @@ namespace WebApplication1.Controllers.Api
                 appointmentDate = appointment.AppointmentDate.ToString("yyyy-MM-dd"),
                 appointmentTime = appointment.AppointmentTime.ToString(@"hh\:mm"),
                 status          = appointment.Status,
-                message         = "Appointment slot booked successfully."
+                message         = "Appointment slot booked successfully and reception notified."
             });
         }
 
