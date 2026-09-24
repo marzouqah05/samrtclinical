@@ -2,10 +2,9 @@
 
 /// <summary>
 /// Registers a new patient record via the Telegram bot flow.
-/// Creates the patient with a generated PatientNumber and returns the new PatientId.
-/// Telegram registrations do not require a real National ID.
-/// If the Telegram flow sends the default placeholder 0000000000,
-/// a unique internal placeholder is generated to satisfy the database unique constraint.
+/// Telegram patients only need name and phone.
+/// When the Telegram flow sends 0000000000 as a placeholder,
+/// the backend generates a unique internal NationalId value.
 /// </summary>
 [HttpPost("patient")]
 [ProducesResponseType(typeof(CreatePatientResult), 201)]
@@ -14,18 +13,34 @@
 [ProducesResponseType(409)]
 public async Task<IActionResult> CreatePatient([FromBody] CreatePatientRequest request)
 {
+    // ---------------------------------------------
+    // Authorization
+    // ---------------------------------------------
+
     if (!IsAuthorized())
+    {
         return Unauthorized(new
         {
             error = "Invalid or missing X-Automation-Key header."
         });
+    }
+
+    // ---------------------------------------------
+    // Validate request
+    // ---------------------------------------------
 
     if (!ModelState.IsValid)
+    {
         return BadRequest(ModelState);
+    }
 
-    // ---------------------------------------------
-    // Clean input
-    // ---------------------------------------------
+    if (request == null)
+    {
+        return BadRequest(new
+        {
+            error = "Request body cannot be empty."
+        });
+    }
 
     var cleanPhone = request.Phone?.Trim() ?? string.Empty;
     var cleanName = request.FullName?.Trim() ?? string.Empty;
@@ -48,7 +63,7 @@ public async Task<IActionResult> CreatePatient([FromBody] CreatePatientRequest r
     }
 
     // ---------------------------------------------
-    // Duplicate phone guard
+    // Check duplicate phone
     // ---------------------------------------------
 
     var existingPatient = await _context.Patients
@@ -66,37 +81,39 @@ public async Task<IActionResult> CreatePatient([FromBody] CreatePatientRequest r
     }
 
     // ---------------------------------------------
-    // National ID handling
+    // National ID
     // ---------------------------------------------
 
     var requestedNationalId = request.NationalId?.Trim();
 
     string finalNationalId;
 
-    // Telegram currently sends 0000000000 as a placeholder.
-    // Because Patients.NationalId has a UNIQUE constraint,
-    // we must NOT store the same placeholder for every patient.
+    // Telegram sends 0000000000 as a placeholder.
+    // Because NationalId is UNIQUE in PostgreSQL,
+    // we generate a unique internal value instead.
     if (string.IsNullOrWhiteSpace(requestedNationalId) ||
         requestedNationalId == "0000000000")
     {
-        if (!string.IsNullOrWhiteSpace(cleanChatId))
+        // Generate a unique 10-character internal value.
+        // This keeps the value short in case the database
+        // column has a maximum length.
+        do
         {
-            // Telegram Chat ID is unique per Telegram conversation,
-            // so it provides a stable internal placeholder.
-            finalNationalId = $"TG-{cleanChatId}";
+            finalNationalId = Guid.NewGuid()
+                .ToString("N")
+                .Substring(0, 10)
+                .ToUpperInvariant();
         }
-        else
-        {
-            // Fallback in case TelegramChatId was not supplied.
-            finalNationalId = $"TG-{Guid.NewGuid():N}";
-        }
+        while (await _context.Patients
+            .IgnoreQueryFilters()
+            .AnyAsync(p => p.NationalId == finalNationalId));
     }
     else
     {
         // A real National ID was supplied.
         finalNationalId = requestedNationalId;
 
-        // Check whether this real National ID already exists.
+        // Check duplicate National ID.
         var nationalIdExists = await _context.Patients
             .IgnoreQueryFilters()
             .AnyAsync(p => p.NationalId == finalNationalId);
@@ -109,20 +126,6 @@ public async Task<IActionResult> CreatePatient([FromBody] CreatePatientRequest r
                 Message = "A patient with this National ID already exists."
             });
         }
-    }
-
-    // ---------------------------------------------
-    // Final safety check
-    // ---------------------------------------------
-
-    var generatedNationalIdExists = await _context.Patients
-        .IgnoreQueryFilters()
-        .AnyAsync(p => p.NationalId == finalNationalId);
-
-    if (generatedNationalIdExists)
-    {
-        // Extremely unlikely, but prevents a database unique-key crash.
-        finalNationalId = $"TG-{Guid.NewGuid():N}";
     }
 
     // ---------------------------------------------
@@ -145,11 +148,11 @@ public async Task<IActionResult> CreatePatient([FromBody] CreatePatientRequest r
         PatientName = cleanName,
         PhoneNumber = cleanPhone,
 
-        // Real National ID if supplied.
-        // Otherwise a unique internal Telegram placeholder.
+        // Real National ID if provided.
+        // Otherwise a unique internal value for Telegram.
         NationalId = finalNationalId,
 
-        // Placeholder DOB; patient can update it later through portal.
+        // Temporary DOB until patient updates profile.
         DOB = new DateTime(1990, 1, 1),
 
         TelegramChatId = string.IsNullOrWhiteSpace(cleanChatId)
@@ -158,6 +161,10 @@ public async Task<IActionResult> CreatePatient([FromBody] CreatePatientRequest r
     };
 
     _context.Patients.Add(patient);
+
+    // ---------------------------------------------
+    // Save
+    // ---------------------------------------------
 
     await _context.SaveChangesAsync();
 
