@@ -441,7 +441,7 @@ namespace WebApplication1.Controllers.Api
 
             for (var t = firstSlot; t <= lastSlotCeiling; t += TimeSpan.FromMinutes(slotMinutes))
             {
-                allSlots.Add(t.ToString("HH:mm"));
+                allSlots.Add(t.ToString(@"hh\:mm"));
             }
 
             var dateOnly = parsedDate.Date;
@@ -457,7 +457,7 @@ namespace WebApplication1.Controllers.Api
                 .ToListAsync();
 
             var bookedSet = bookedTimes
-                .Select(t => t.ToString("HH:mm"))
+                .Select(t => t.ToString(@"hh\:mm"))
                 .ToHashSet();
 
             var freeSlots = allSlots
