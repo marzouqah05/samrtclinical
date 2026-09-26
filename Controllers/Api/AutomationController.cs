@@ -387,6 +387,36 @@ namespace WebApplication1.Controllers.Api
 
             var cfg = await _settings.GetSettingsAsync();
 
+            // ── Working-day validation ────────────────────────────────────────
+            var configuredWorkingDays = cfg.WorkingDays
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(d => d.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            bool isWorkingDay = configuredWorkingDays.Contains(
+                parsedDate.DayOfWeek.ToString());
+
+            if (!isWorkingDay)
+            {
+                _logger.LogInformation(
+                    "[Automation] AvailableSlots — {Date} is {DayOfWeek}, not a working day.",
+                    date, parsedDate.DayOfWeek);
+
+                return Ok(new AvailableSlotsResult
+                {
+                    DoctorId       = doctorId,
+                    Date           = date,
+                    IsWorkingDay   = false,
+                    Slots          = new List<string>(),
+                    TotalAvailable = 0,
+                    IsFull         = false,
+                    NextAvailableDate = null,
+                    ClinicName     = cfg.ClinicName,
+                    ClinicPhone    = cfg.ClinicPhone,
+                });
+            }
+
+            // ── Shift boundaries ─────────────────────────────────────────────
             if (!TimeSpan.TryParse(cfg.WorkingHoursStart, out var shiftStart))
                 shiftStart = TimeSpan.FromHours(8);
 
@@ -398,14 +428,20 @@ namespace WebApplication1.Controllers.Api
                     ? cfg.DefaultSlotDurationMinutes
                     : 30;
 
+            // Rule: first slot = OpeningTime + 15 minutes
+            var firstSlot = shiftStart + TimeSpan.FromMinutes(15);
+
+            // Rule: last slot must finish >= 15 min before ClosingTime
+            //   lastSlotStart = ClosingTime - 15 - slotDuration
+            var lastSlotCeiling = shiftEnd
+                - TimeSpan.FromMinutes(15)
+                - TimeSpan.FromMinutes(slotMinutes);
+
             var allSlots = new List<string>();
 
-            for (
-                var t = shiftStart;
-                t + TimeSpan.FromMinutes(slotMinutes) <= shiftEnd;
-                t += TimeSpan.FromMinutes(slotMinutes))
+            for (var t = firstSlot; t <= lastSlotCeiling; t += TimeSpan.FromMinutes(slotMinutes))
             {
-                allSlots.Add(t.ToString(@"hh\:mm"));
+                allSlots.Add(t.ToString("HH:mm"));
             }
 
             var dateOnly = parsedDate.Date;
@@ -421,7 +457,7 @@ namespace WebApplication1.Controllers.Api
                 .ToListAsync();
 
             var bookedSet = bookedTimes
-                .Select(t => t.ToString(@"hh\:mm"))
+                .Select(t => t.ToString("HH:mm"))
                 .ToHashSet();
 
             var freeSlots = allSlots
@@ -432,18 +468,11 @@ namespace WebApplication1.Controllers.Api
 
             if (freeSlots.Count == 0)
             {
-                var workingDays = cfg.WorkingDays
-                    .Split(
-                        ',',
-                        StringSplitOptions.RemoveEmptyEntries)
-                    .Select(d => d.Trim())
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
                 for (int offset = 1; offset <= 30; offset++)
                 {
                     var candidate = parsedDate.AddDays(offset);
 
-                    if (!workingDays.Contains(
+                    if (!configuredWorkingDays.Contains(
                             candidate.DayOfWeek.ToString()))
                         continue;
 
@@ -458,9 +487,7 @@ namespace WebApplication1.Controllers.Api
 
                     if (candidateBooked < allSlots.Count)
                     {
-                        nextAvailableDate =
-                            candidate.ToString("yyyy-MM-dd");
-
+                        nextAvailableDate = candidate.ToString("yyyy-MM-dd");
                         break;
                     }
                 }
@@ -468,12 +495,15 @@ namespace WebApplication1.Controllers.Api
 
             return Ok(new AvailableSlotsResult
             {
-                DoctorId = doctorId,
-                Date = date,
-                Slots = freeSlots,
-                TotalAvailable = freeSlots.Count,
-                IsFull = freeSlots.Count == 0,
+                DoctorId          = doctorId,
+                Date              = date,
+                IsWorkingDay      = true,
+                Slots             = freeSlots,
+                TotalAvailable    = freeSlots.Count,
+                IsFull            = freeSlots.Count == 0,
                 NextAvailableDate = nextAvailableDate,
+                ClinicName        = cfg.ClinicName,
+                ClinicPhone       = cfg.ClinicPhone,
             });
         }
 
@@ -579,6 +609,35 @@ namespace WebApplication1.Controllers.Api
             }
 
             var cfg = await _settings.GetSettingsAsync();
+
+            // ── Working-day check ────────────────────────────────────────
+            var bookWorkingDays = cfg.WorkingDays
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(d => d.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (!bookWorkingDays.Contains(appointmentDate.DayOfWeek.ToString()))
+                return BadRequest(new BookAppointmentResult
+                {
+                    Success = false,
+                    Message = $"{appointmentDate:dddd} ({request.Date}) is not a working day. The clinic is open on: {cfg.WorkingDays}."
+                });
+
+            // ── Hours check ───────────────────────────────────────────
+            if (TimeSpan.TryParse(cfg.WorkingHoursStart, out var bookShiftStart) &&
+                TimeSpan.TryParse(cfg.WorkingHoursEnd, out var bookShiftEnd))
+            {
+                int bookSlotMin = cfg.DefaultSlotDurationMinutes > 0 ? cfg.DefaultSlotDurationMinutes : 30;
+                var bookFirstSlot   = bookShiftStart + TimeSpan.FromMinutes(15);
+                var bookLastCeiling = bookShiftEnd - TimeSpan.FromMinutes(15) - TimeSpan.FromMinutes(bookSlotMin);
+
+                if (timeSlot < bookFirstSlot || timeSlot > bookLastCeiling)
+                    return BadRequest(new BookAppointmentResult
+                    {
+                        Success = false,
+                        Message = $"Time {request.Time} is outside clinic hours. Valid range: {bookFirstSlot:hh\\:mm} – {bookLastCeiling:hh\\:mm}."
+                    });
+            }
 
             string status =
                 cfg.AutoConfirmAppointments
@@ -1117,6 +1176,39 @@ namespace WebApplication1.Controllers.Api
                     message =
                         $"Doctor with ID {doctorId} not found."
                 });
+            }
+
+            // ---------------------------------------------
+            // Working-day and hours checks
+            // ---------------------------------------------
+
+            var slotCfg = await _settings.GetSettingsAsync();
+
+            var slotWorkingDays = slotCfg.WorkingDays
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(d => d.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (!slotWorkingDays.Contains(apptDate.DayOfWeek.ToString()))
+                return BadRequest(new
+                {
+                    success = false,
+                    message = $"{apptDate:dddd} ({apptDate:yyyy-MM-dd}) is not a working day. The clinic is open on: {slotCfg.WorkingDays}."
+                });
+
+            if (TimeSpan.TryParse(slotCfg.WorkingHoursStart, out var slotShiftStart) &&
+                TimeSpan.TryParse(slotCfg.WorkingHoursEnd, out var slotShiftEnd))
+            {
+                int slotMin = slotCfg.DefaultSlotDurationMinutes > 0 ? slotCfg.DefaultSlotDurationMinutes : 30;
+                var slotFirstSlot   = slotShiftStart + TimeSpan.FromMinutes(15);
+                var slotLastCeiling = slotShiftEnd - TimeSpan.FromMinutes(15) - TimeSpan.FromMinutes(slotMin);
+
+                if (apptTime < slotFirstSlot || apptTime > slotLastCeiling)
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"Time {apptTime:hh\\:mm} is outside clinic hours. Valid range: {slotFirstSlot:hh\\:mm} – {slotLastCeiling:hh\\:mm}."
+                    });
             }
 
             // ---------------------------------------------

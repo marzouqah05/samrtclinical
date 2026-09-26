@@ -81,10 +81,16 @@ namespace WebApplication1.Models
     {
         public int DoctorId { get; set; }
         public string Date { get; set; } = string.Empty;
+        /// <summary>False when the requested date is not a configured working day.</summary>
+        public bool IsWorkingDay { get; set; } = true;
         public List<string> Slots { get; set; } = new();
         public int TotalAvailable { get; set; }
         public bool IsFull { get; set; }
         public string? NextAvailableDate { get; set; }
+        /// <summary>Clinic name from ClinicSettings — available on all responses including closed-day.</summary>
+        public string ClinicName { get; set; } = string.Empty;
+        /// <summary>Clinic phone from ClinicSettings — available on all responses including closed-day.</summary>
+        public string ClinicPhone { get; set; } = string.Empty;
     }
 
     // ── D. Booking ────────────────────────────────────────────────────────────
