@@ -60,6 +60,8 @@ namespace WebApplication1.Models
         public string ClosingTime { get; set; } = string.Empty;
         public int SlotDurationMinutes { get; set; }
         public string? TelegramChatId { get; set; }
+        public string ClinicName { get; set; } = string.Empty;
+        public string ClinicPhone { get; set; } = string.Empty;
     }
 
     // ── B2. Doctors List Response (wraps DoctorListDto with clinic identity) ─

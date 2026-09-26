@@ -288,7 +288,7 @@ namespace WebApplication1.Controllers.Api
         // ── B. GET /api/automation/doctors ───────────────────────────────────
 
         [HttpGet("doctors")]
-        [ProducesResponseType(typeof(DoctorsListResponse), 200)]
+        [ProducesResponseType(typeof(List<DoctorListDto>), 200)]
         [ProducesResponseType(401)]
         public async Task<IActionResult> GetDoctors()
         {
@@ -323,15 +323,13 @@ namespace WebApplication1.Controllers.Api
                     OpeningTime = cfg.WorkingHoursStart,
                     ClosingTime = cfg.WorkingHoursEnd,
                     SlotDurationMinutes = cfg.DefaultSlotDurationMinutes,
+                    // Clinic identity — same for all doctors
+                    ClinicName  = cfg.ClinicName,
+                    ClinicPhone = cfg.ClinicPhone,
                 })
                 .ToListAsync();
 
-            return Ok(new DoctorsListResponse
-            {
-                ClinicName  = cfg.ClinicName,
-                ClinicPhone = cfg.ClinicPhone,
-                Doctors     = doctors,
-            });
+            return Ok(doctors);
         }
 
         // ── C. GET /api/automation/available-slots ────────────────────────────
