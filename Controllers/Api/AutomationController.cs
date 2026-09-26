@@ -288,7 +288,7 @@ namespace WebApplication1.Controllers.Api
         // ── B. GET /api/automation/doctors ───────────────────────────────────
 
         [HttpGet("doctors")]
-        [ProducesResponseType(typeof(List<DoctorListDto>), 200)]
+        [ProducesResponseType(typeof(DoctorsListResponse), 200)]
         [ProducesResponseType(401)]
         public async Task<IActionResult> GetDoctors()
         {
@@ -326,7 +326,12 @@ namespace WebApplication1.Controllers.Api
                 })
                 .ToListAsync();
 
-            return Ok(doctors);
+            return Ok(new DoctorsListResponse
+            {
+                ClinicName  = cfg.ClinicName,
+                ClinicPhone = cfg.ClinicPhone,
+                Doctors     = doctors,
+            });
         }
 
         // ── C. GET /api/automation/available-slots ────────────────────────────

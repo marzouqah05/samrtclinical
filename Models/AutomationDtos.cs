@@ -62,6 +62,16 @@ namespace WebApplication1.Models
         public string? TelegramChatId { get; set; }
     }
 
+    // ── B2. Doctors List Response (wraps DoctorListDto with clinic identity) ─
+
+    /// <summary>Response for GET /api/automation/doctors</summary>
+    public class DoctorsListResponse
+    {
+        public string ClinicName { get; set; } = string.Empty;
+        public string ClinicPhone { get; set; } = string.Empty;
+        public List<DoctorListDto> Doctors { get; set; } = new();
+    }
+
     // ── C. Slot Availability ──────────────────────────────────────────────────
 
     /// <summary>Response for GET /api/automation/available-slots</summary>
